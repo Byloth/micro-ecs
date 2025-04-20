@@ -1,0 +1,75 @@
+{
+  "name": "@byloth/micro-ecs",
+  "version": "1.0.0",
+  "description": "A simple & lightweight ECS (Entity Component System) library for JavaScript and TypeScript. 🕹",
+  "keywords": [
+    "ECS",
+    "Entity Component System",
+    "JavaScript",
+    "TypeScript",
+    "Library"
+  ],
+  "homepage": "https://github.com/Byloth/micro-ecs#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Byloth/micro-ecs.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Byloth/micro-ecs/issues"
+  },
+  "author": {
+    "name": "Matteo Bilotta",
+    "email": "me@byloth.dev",
+    "url": "https://www.byloth.dev/"
+  },
+  "license": "Apache-2.0",
+  "type": "module",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "main": "dist/micro-ecs.umd.cjs",
+  "module": "dist/micro-ecs.cjs",
+  "unpkg": "dist/micro-ecs.global.js",
+  "jsdelivr": "dist/micro-ecs.global.js",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./src/index.ts",
+        "default": "./dist/micro-ecs.esm.js"
+      },
+      "require": {
+        "types": "./src/index.ts",
+        "default": "./dist/micro-ecs.cjs"
+      }
+    }
+  },
+  "types": "src/index.ts",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "prepare": "husky",
+    "ci": "pnpm install --frozen-lockfile"
+  },
+  "dependencies": {
+    "@byloth/core": "^2.0.2"
+  },
+  "devDependencies": {
+    "@byloth/eslint-config-typescript": "^3.1.0",
+    "@eslint/compat": "^1.2.8",
+    "@types/node": "^22.14.1",
+    "@vitest/coverage-v8": "^3.1.1",
+    "eslint": "^9.25.0",
+    "husky": "^9.1.7",
+    "jsdom": "^26.1.0",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.2",
+    "vitest": "^3.1.1"
+  },
+  "packageManager": "pnpm@10.8.1+sha512.c50088ba998c67b8ca8c99df8a5e02fd2ae2e2b29aaf238feaa9e124248d3f48f9fb6db2424949ff901cffbb5e0f0cc1ad6aedb602cd29450751d11c35023677"
+}

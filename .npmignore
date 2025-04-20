@@ -1,0 +1,38 @@
+# Files created by OS
+#
+.DS_Store
+Desktop.ini
+
+# Files created by IDE
+#
+/.idea/
+/.vscode/
+
+/*.code-workspace
+
+# Generated & compiled files
+#
+/coverage/
+
+/*.tgz
+
+# Environmental files
+#
+.env
+.gitkeep
+
+# Log files
+#
+*.log
+
+# Files with sensitive data
+#
+/.github/
+
+# Config files
+#
+/.editorconfig
+/eslint.config.mjs
+
+/tsconfig.json
+/vite.config.js
