@@ -1,0 +1,16 @@
+name: NPM release
+on:
+  release:
+    types: [published]
+
+jobs:
+  artifact-build:
+    name: Artifact
+    uses: ./.github/workflows/template-build.yml
+
+  publish-npm:
+    name: NPM
+    needs: artifact-build
+    uses: ./.github/workflows/template-publish.yml
+    secrets:
+      AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

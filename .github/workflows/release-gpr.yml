@@ -1,0 +1,19 @@
+name: GPR release
+on:
+  release:
+    types: [published]
+
+jobs:
+  artifact-build:
+    name: Artifact
+    uses: ./.github/workflows/template-build.yml
+
+  publish-gpr:
+    name: GPR
+    needs: artifact-build
+    uses: ./.github/workflows/template-publish.yml
+    with:
+      registry-url: https://npm.pkg.github.com/
+
+    secrets:
+      AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

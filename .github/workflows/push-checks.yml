@@ -1,0 +1,62 @@
+name: Push checks
+on:
+  push
+
+jobs:
+  checks:
+    name: Build checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cloning source code
+        uses: actions/checkout@v4
+      - name: "`pnpm` installation"
+        uses: pnpm/action-setup@v3
+        with:
+          version: latest
+
+      - name: Configuring Node.js 22 (LTS)
+        uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version: 22
+
+      - name: Installing dependencies
+        run: pnpm run ci
+      - name: Linting the source code
+        run: pnpm run lint
+        env:
+          NODE_ENV: production
+
+      - name: Checking type consistency
+        run: pnpm run typecheck
+      - name: Testing the source code
+        run: pnpm run test
+      - name: Building the source code
+        run: pnpm build
+
+  # coverage:
+  #   name: Coverage tests
+  #   needs: checks
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Cloning source code
+  #       uses: actions/checkout@v4
+  #     - name: "`pnpm` installation"
+  #       uses: pnpm/action-setup@v3
+  #       with:
+  #         version: latest
+
+  #     - name: Configuring Node.js 22 (LTS)
+  #       uses: actions/setup-node@v4
+  #       with:
+  #         cache: pnpm
+  #         node-version: 22
+
+  #     - name: Installing dependencies
+  #       run: pnpm run ci
+  #     - name: Running coverage tests
+  #       run: pnpm run test:coverage
+  #     - name: Uploading coverage reports
+  #       uses: codecov/codecov-action@v5
+  #       with:
+  #         token: ${{ secrets.CODECOV_TOKEN }}
