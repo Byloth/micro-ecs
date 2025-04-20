@@ -1,7 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-
-import { Component } from "../src/index.js";
-import { Entity } from "../src/index.js";
+import { Component, Entity } from "../src/index.js";
 
 describe("Component", () =>
 {
@@ -48,7 +46,6 @@ describe("Component", () =>
         const entity2 = new Entity();
 
         entity1.addComponent(component);
-
         expect(() => entity2.addComponent(component)).toThrow();
     });
 

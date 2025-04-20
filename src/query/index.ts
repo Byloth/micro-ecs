@@ -165,36 +165,7 @@ export default class QueryManager<W extends World = World>
         }
     }
 
-    public getEntities<E extends Entity = Entity>(condition: Condition, reactive = false): ReadonlySet<E>
-    {
-        const index = condition.toString();
-        const query = this._queries.get(index) as Query<E> | undefined;
-        if (query)
-        {
-            if (reactive) { return query.entities; }
-
-            return new Set(query.entities);
-        }
-
-        const entities = new Set<E>();
-        for (const entity of this._world.entities.values())
-        {
-            if (condition.evaluate(entity)) { entities.add(entity as E); }
-        }
-
-        if (!(reactive)) { return entities; }
-
-        this._queries.set(index, { condition, entities });
-
-        const { components, tags } = this._analyzeCondition(condition);
-
-        this._addComponentIndexes(components, index);
-        this._addTagIndexes(tags, index);
-
-        return entities;
-    }
-
-    public pickFirstEntity<E extends Entity = Entity>(condition: Condition): E | undefined
+    public getFirstEntity<E extends Entity = Entity>(condition: Condition): E | undefined
     {
         const index = condition.toString();
         const query = this._queries.get(index) as Query<E> | undefined;
@@ -214,21 +185,35 @@ export default class QueryManager<W extends World = World>
 
         return undefined;
     }
-    public pickEntities<E extends Entity = Entity>(condition: Condition): SmartIterator<E>
+    public iterateEntities<E extends Entity = Entity>(condition: Condition): SmartIterator<E>
     {
         const index = condition.toString();
         const query = this._queries.get(index) as Query<E> | undefined;
-        if (query) { return new SmartIterator(query.entities.values()); }
+        if (query) { return new SmartIterator(query.entities); }
 
-        const entities = this.getEntities(condition, true).values();
+        return new SmartIterator(this._world.entities.values() as Iterable<E>)
+            .filter((entity) => condition.evaluate(entity));
+    }
+    public queryEntities<E extends Entity = Entity>(condition: Condition): ReadonlySet<E>
+    {
+        const index = condition.toString();
+        const query = this._queries.get(index) as Query<E> | undefined;
+        if (query) { return query.entities; }
 
-        return new SmartIterator<E>(function* ()
+        const entities = new Set<E>();
+        for (const entity of this._world.entities.values())
         {
-            for (const entity of entities)
-            {
-                if (condition.evaluate(entity)) { yield entity as E; }
-            }
-        });
+            if (condition.evaluate(entity)) { entities.add(entity as E); }
+        }
+
+        this._queries.set(index, { condition, entities });
+
+        const { components, tags } = this._analyzeCondition(condition);
+
+        this._addComponentIndexes(components, index);
+        this._addTagIndexes(tags, index);
+
+        return entities;
     }
 
     public dispose(): void

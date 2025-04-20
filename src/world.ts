@@ -76,10 +76,10 @@ export default class World<T extends CallbackMap<T> = { }> extends Publisher<T &
         {
             entity.onAttach(this);
         }
-        catch (error)
+        catch
         {
-            // eslint-disable-next-line no-console
-            console.error("Failed to attach entity:", error);
+            // TODO!
+            // console.error("Failed to attach entity:", error);
 
             throw new Error();
         }
@@ -101,18 +101,17 @@ export default class World<T extends CallbackMap<T> = { }> extends Publisher<T &
         return this;
     }
 
-    public getEntities<E extends Entity = Entity>(condition: Condition): ReadonlySet<E>
+    public getFirstEntity<E extends Entity = Entity>(condition: Condition): E | undefined
     {
-        return this._queryManager.getEntities<E>(condition);
+        return this._queryManager.getFirstEntity<E>(condition);
     }
-
-    public pickFirstEntity<E extends Entity = Entity>(condition: Condition): E | undefined
+    public iterateEntities<E extends Entity = Entity>(condition: Condition): SmartIterator<E>
     {
-        return this._queryManager.pickFirstEntity<E>(condition);
+        return this._queryManager.iterateEntities<E>(condition);
     }
-    public pickEntities<E extends Entity = Entity>(condition: Condition): SmartIterator<E>
+    public queryEntities<E extends Entity = Entity>(condition: Condition): ReadonlySet<E>
     {
-        return this._queryManager.pickEntities<E>(condition);
+        return this._queryManager.queryEntities<E>(condition);
     }
 
     public removeEntity(entityId: number): this
@@ -144,10 +143,10 @@ export default class World<T extends CallbackMap<T> = { }> extends Publisher<T &
         {
             system.onAttach(this);
         }
-        catch (error)
+        catch
         {
-            // eslint-disable-next-line no-console
-            console.error("Failed to attach system:", error);
+            // TODO!
+            // console.error("Failed to attach system:", error);
 
             throw new Error();
         }

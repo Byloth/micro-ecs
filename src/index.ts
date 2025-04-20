@@ -1,3 +1,5 @@
+export const VERSION = "1.0.0";
+
 import Entity from "./entity.js";
 import Component from "./component.js";
 import System from "./system.js";
@@ -9,8 +11,8 @@ import World from "./world.js";
 export { World };
 export type { WorldEventsMap } from "./world.js";
 
-import Query from "./query/index.js";
+import QueryManager from "./query/index.js";
 
-export { Query };
+export { QueryManager };
 export { hasComponent, hasTag, and, or, not } from "./query/index.js";
 export { Condition, HasComponent, HasTag, And, Or, Not } from "./query/conditions.js";

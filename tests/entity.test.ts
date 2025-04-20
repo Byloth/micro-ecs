@@ -1,5 +1,4 @@
 import { describe, it, expect, vi } from "vitest";
-
 import { Component, Entity, World } from "../src/index.js";
 
 describe("Entity", () =>
@@ -39,7 +38,6 @@ describe("Entity", () =>
         const component = new TestComponent();
 
         entity.addComponent(component);
-
         expect(() => entity.addComponent(component)).toThrow();
     });
 
@@ -61,7 +59,6 @@ describe("Entity", () =>
         class TestComponent extends Component { }
 
         const entity = new Entity();
-
         expect(() => entity.removeComponent(TestComponent)).toThrow();
     });
 
@@ -142,7 +139,6 @@ describe("Entity", () =>
     it("Should throw an error when removing a non-existent tag", () =>
     {
         const entity = new Entity();
-
         expect(() => entity.removeTag("tag:test")).toThrow();
     });
 
@@ -183,7 +179,6 @@ describe("Entity", () =>
         const entity = new TestEntity();
 
         world1.addEntity(entity);
-
         expect(() => world2.addEntity(entity)).toThrow();
     });
 

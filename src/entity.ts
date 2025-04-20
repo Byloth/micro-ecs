@@ -47,10 +47,10 @@ export default class Entity<W extends World = World>
         {
             component.onAttach(this);
         }
-        catch (error)
+        catch
         {
-            // eslint-disable-next-line no-console
-            console.error("Failed to attach component:", error);
+            // TODO!
+            // console.error("Failed to attach component:", error);
 
             throw new Error();
         }
@@ -90,10 +90,10 @@ export default class Entity<W extends World = World>
         {
             child.onAdoption(this);
         }
-        catch (error)
+        catch
         {
-            // eslint-disable-next-line no-console
-            console.error("Failed to adopt child:", error);
+            // TODO!
+            // console.error("Failed to adopt child:", error);
 
             throw new Error();
         }
