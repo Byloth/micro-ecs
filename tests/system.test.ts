@@ -11,6 +11,42 @@ describe("System", () =>
         expect(() => system.world).toThrow();
     });
 
+    it("Should enable / disable the system", () =>
+    {
+        const _enable = vi.fn(() => { /* ... */ });
+        const _disable = vi.fn(() => { /* ... */ });
+        class TestSystem extends System
+        {
+            public override enable(): void
+            {
+                super.enable();
+                _enable();
+            }
+            public override disable(): void
+            {
+                super.disable();
+                _disable();
+            }
+        }
+
+        const system = new TestSystem();
+        expect(system.enabled).toBe(true);
+        expect(() => system.enable()).toThrow();
+        expect(_enable).not.toHaveBeenCalled();
+        expect(_disable).not.toHaveBeenCalled();
+
+        system.disable();
+        expect(system.enabled).toBe(false);
+        expect(() => system.disable()).toThrow();
+        expect(_enable).toHaveBeenCalledTimes(0);
+        expect(_disable).toHaveBeenCalledTimes(1);
+
+        system.enable();
+        expect(system.enabled).toBe(true);
+        expect(_enable).toHaveBeenCalledTimes(1);
+        expect(_disable).toHaveBeenCalledTimes(1);
+    });
+
     it("Should be attachable to a world", () =>
     {
         const _onAttach = vi.fn(() => { /* ... */ });

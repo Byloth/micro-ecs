@@ -9,6 +9,9 @@ export default class System<W extends World = World>
 
     public readonly priority: number;
 
+    private _enabled: boolean;
+    public get enabled(): boolean { return this._enabled; }
+
     private _world: W | null;
     public get world(): W { throw new Error(); }
 
@@ -16,7 +19,24 @@ export default class System<W extends World = World>
     {
         this.priority = priority;
 
+        this._enabled = true;
         this._world = null;
+    }
+
+    public enable(): void
+    {
+        if (this._enabled) { throw new Error(); }
+        this._enabled = true;
+
+        if (this._world) { this._world.publish("system:enable", this); }
+    }
+
+    public disable(): void
+    {
+        if (!(this._enabled)) { throw new Error(); }
+        this._enabled = false;
+
+        if (this._world) { this._world.publish("system:disable", this); }
     }
 
     public onAttach(world: W): void
