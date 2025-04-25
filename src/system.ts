@@ -15,11 +15,11 @@ export default class System<W extends World = World>
     private _world: W | null;
     public get world(): W { throw new Error(); }
 
-    public constructor(priority = 0)
+    public constructor(priority = 0, enabled = true)
     {
         this.priority = priority;
 
-        this._enabled = true;
+        this._enabled = enabled;
         this._world = null;
     }
 
