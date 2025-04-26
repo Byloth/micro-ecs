@@ -51,8 +51,8 @@ describe("QueryManager", () =>
         const condition3 = and(hasComponent(TestComponent3), hasTag("test:tag:1"));
         const condition4 = and(not(hasComponent(TestComponent1)), not(hasComponent(TestComponent3)));
 
-        const entities1 = Array.from(world.queryEntities(condition1).values());
-        const entities2 = world.iterateEntities(condition2).toArray();
+        const entities1 = Array.from(world.getEntitiesReactiveView(condition1).values());
+        const entities2 = world.getEntities(condition2).toArray();
         const entity1 = world.getFirstEntity(condition3);
         const entity2 = world.getFirstEntity(condition4);
 
@@ -77,7 +77,7 @@ describe("QueryManager", () =>
         _populateWorld(world);
 
         const condition = or(hasTag("test:tag:1"), hasTag("test:tag:2"));
-        const entities = world.queryEntities(condition);
+        const entities = world.getEntitiesReactiveView(condition);
 
         const before = Array.from(entities.values());
         expect(before.length).toBe(3);
@@ -106,7 +106,7 @@ describe("QueryManager", () =>
         _populateWorld(world);
 
         const condition = or(hasTag("test:tag:1"), hasTag("test:tag:2"));
-        const entities = world.queryEntities(condition);
+        const entities = world.getEntitiesReactiveView(condition);
 
         const before = Array.from(entities.values());
         expect(before.length).toBe(3);
@@ -138,7 +138,7 @@ describe("QueryManager", () =>
         _populateWorld(world);
 
         const condition = hasComponent(TestComponent1);
-        const entities = world.queryEntities(condition);
+        const entities = world.getEntitiesReactiveView(condition);
 
         const before = Array.from(entities.values());
         expect(before.length).toBe(3);

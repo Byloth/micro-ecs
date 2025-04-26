@@ -7,6 +7,7 @@ import type System from "./system.js";
 
 import QueryManager from "./query/index.js";
 import type { Condition } from "./query/conditions.js";
+import type { ReadonlyView } from "./query/view.js";
 
 export interface WorldEventsMap
 {
@@ -129,13 +130,14 @@ export default class World<T extends CallbackMap<T> = { }> extends Publisher<T &
     {
         return this._queryManager.getFirstEntity<E>(condition);
     }
-    public iterateEntities<E extends Entity = Entity>(condition: Condition): SmartIterator<E>
+
+    public getEntities<E extends Entity = Entity>(condition: Condition): SmartIterator<E>
     {
-        return this._queryManager.iterateEntities<E>(condition);
+        return this._queryManager.getEntities<E>(condition);
     }
-    public queryEntities<E extends Entity = Entity>(condition: Condition): ReadonlySet<E>
+    public getEntitiesReactiveView<E extends Entity = Entity>(condition: Condition): ReadonlyView<E>
     {
-        return this._queryManager.queryEntities<E>(condition);
+        return this._queryManager.getEntitiesReactiveView<E>(condition);
     }
 
     public removeEntity(entityId: number): this

@@ -6,6 +6,7 @@ import type Component from "../component.js";
 import type World from "../world.js";
 
 import { Condition, HasComponent, HasTag, And, Or, Not } from "./conditions.js";
+import View, { type ReadonlyView } from "./view.js";
 
 export function hasComponent(type: Constructor<Component>): HasComponent { return new HasComponent(type); }
 export function hasTag(tag: string): HasTag { return new HasTag(tag); }
@@ -22,7 +23,7 @@ interface ConditionAnalysis
 interface Query<E extends Entity = Entity>
 {
     condition: Condition;
-    entities: Set<E>;
+    entities: View<E>;
 }
 
 export default class QueryManager<W extends World = World>
@@ -185,7 +186,7 @@ export default class QueryManager<W extends World = World>
 
         return undefined;
     }
-    public iterateEntities<E extends Entity = Entity>(condition: Condition): SmartIterator<E>
+    public getEntities<E extends Entity = Entity>(condition: Condition): SmartIterator<E>
     {
         const index = condition.toString();
         const query = this._queries.get(index) as Query<E> | undefined;
@@ -194,13 +195,13 @@ export default class QueryManager<W extends World = World>
         return new SmartIterator(this._world.entities.values() as Iterable<E>)
             .filter((entity) => condition.evaluate(entity));
     }
-    public queryEntities<E extends Entity = Entity>(condition: Condition): ReadonlySet<E>
+    public getEntitiesReactiveView<E extends Entity = Entity>(condition: Condition): ReadonlyView<E>
     {
         const index = condition.toString();
         const query = this._queries.get(index) as Query<E> | undefined;
         if (query) { return query.entities; }
 
-        const entities = new Set<E>();
+        const entities = new View<E>();
         for (const entity of this._world.entities.values())
         {
             if (condition.evaluate(entity)) { entities.add(entity as E); }

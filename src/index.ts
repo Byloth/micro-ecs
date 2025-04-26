@@ -12,7 +12,9 @@ export { World };
 export type { WorldEventsMap } from "./world.js";
 
 import QueryManager from "./query/index.js";
+import View from "./query/view.js";
 
-export { QueryManager };
+export { QueryManager, View };
 export { hasComponent, hasTag, and, or, not } from "./query/index.js";
 export { Condition, HasComponent, HasTag, And, Or, Not } from "./query/conditions.js";
+export type { ReadonlyView, ViewEventsMap } from "./query/view.js";
