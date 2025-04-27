@@ -51,7 +51,7 @@ describe("QueryManager", () =>
         const condition3 = and(hasComponent(TestComponent3), hasTag("test:tag:1"));
         const condition4 = and(not(hasComponent(TestComponent1)), not(hasComponent(TestComponent3)));
 
-        const entities1 = Array.from(world.getEntitiesReactiveView(condition1).values());
+        const entities1 = Array.from(world.getEntitiesReactiveView(condition1) .values());
         const entities2 = world.getEntities(condition2).toArray();
         const entity1 = world.getFirstEntity(condition3);
         const entity2 = world.getFirstEntity(condition4);

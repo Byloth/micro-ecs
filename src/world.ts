@@ -1,5 +1,5 @@
 import { Publisher } from "@byloth/core";
-import type { CallbackMap, Constructor, SmartIterator } from "@byloth/core";
+import type { CallbackMap, Constructor, ReadonlySetView, SmartIterator } from "@byloth/core";
 
 import type Entity from "./entity.js";
 import type Component from "./component.js";
@@ -7,7 +7,6 @@ import type System from "./system.js";
 
 import QueryManager from "./query/index.js";
 import type { Condition } from "./query/conditions.js";
-import type { ReadonlyView } from "./query/view.js";
 
 export interface WorldEventsMap
 {
@@ -135,7 +134,7 @@ export default class World<T extends CallbackMap<T> = { }> extends Publisher<T &
     {
         return this._queryManager.getEntities<E>(condition);
     }
-    public getEntitiesReactiveView<E extends Entity = Entity>(condition: Condition): ReadonlyView<E>
+    public getEntitiesReactiveView<E extends Entity = Entity>(condition: Condition): ReadonlySetView<E>
     {
         return this._queryManager.getEntitiesReactiveView<E>(condition);
     }
