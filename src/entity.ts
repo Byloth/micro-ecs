@@ -57,7 +57,7 @@ export default class Entity<W extends World = World>
 
         this._components.set(type, component);
 
-        if (this._world) { this._world.publish("entity:component:add", this, type); }
+        if (this._world) { this._world.publish("entity:component:add", this, component); }
 
         return this;
     }
@@ -79,7 +79,7 @@ export default class Entity<W extends World = World>
         this._components.delete(type);
         component.onDetach();
 
-        if (this._world) { this._world.publish("entity:component:remove", this, type); }
+        if (this._world) { this._world.publish("entity:component:remove", this, component); }
 
         return this;
     }

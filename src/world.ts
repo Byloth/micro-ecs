@@ -5,13 +5,12 @@ import type Entity from "./entity.js";
 import type Component from "./component.js";
 import type System from "./system.js";
 
-import QueryManager from "./query/index.js";
-import type { Condition } from "./query/conditions.js";
+import QueryManager from "./query-manager.js";
 
 export interface WorldEventsMap
 {
-    "entity:component:add": (entity: Entity, type: Constructor<Component>) => void;
-    "entity:component:remove": (entity: Entity, type: Constructor<Component>) => void;
+    "entity:component:add": (entity: Entity, component: Component) => void;
+    "entity:component:remove": (entity: Entity, component: Component) => void;
 
     "entity:child:add": (entity: Entity, child: Entity) => void;
     "entity:child:remove": (entity: Entity, child: Entity) => void;
@@ -38,8 +37,8 @@ export default class World<T extends CallbackMap<T> = { }> extends Publisher<T &
 
     private readonly _queryManager: QueryManager;
 
-    private readonly _onEntityChildAdd = (entity: Entity, child: Entity): void => { this.addEntity(child); };
-    private readonly _onEntityChildRemove = (entity: Entity, child: Entity): void => { this.removeEntity(child.id); };
+    private readonly _onEntityChildAdd = (_: Entity, child: Entity): void => { this.addEntity(child); };
+    private readonly _onEntityChildRemove = (_: Entity, child: Entity): void => { this.removeEntity(child.id); };
 
     public readonly _onSystemEnable = (system: System): void => { this._insertSystem(this._enabledSystems, system); };
     public readonly _onSystemDisable = (system: System): void => { this._removeSystem(this._enabledSystems, system); };
@@ -110,9 +109,9 @@ export default class World<T extends CallbackMap<T> = { }> extends Publisher<T &
 
         this._entities.set(entity.id, entity);
 
-        entity.components.keys()
+        entity.components.values()
             // @ts-expect-error - Parameters type is correct.
-            .forEach((type) => this.publish("entity:component:add", entity, type));
+            .forEach((component) => this.publish("entity:component:add", entity, component));
 
         entity.children
             // @ts-expect-error - Parameters type is correct.
@@ -125,18 +124,18 @@ export default class World<T extends CallbackMap<T> = { }> extends Publisher<T &
         return this;
     }
 
-    public getFirstEntity<E extends Entity = Entity>(condition: Condition): E | undefined
+    public pickOne<C extends Component>(type: Constructor<C>): C | undefined
     {
-        return this._queryManager.getFirstEntity<E>(condition);
+        return this._queryManager.pickOne<C>(type);
+    }
+    public pickAll<C extends Component>(type: Constructor<C>): SmartIterator<C>
+    {
+        return this._queryManager.pickAll<C>(type);
     }
 
-    public getEntities<E extends Entity = Entity>(condition: Condition): SmartIterator<E>
+    public query<C extends Component>(type: Constructor<C>): ReadonlySetView<C>
     {
-        return this._queryManager.getEntities<E>(condition);
-    }
-    public getEntitiesReactiveView<E extends Entity = Entity>(condition: Condition): ReadonlySetView<E>
-    {
-        return this._queryManager.getEntitiesReactiveView<E>(condition);
+        return this._queryManager.query<C>(type);
     }
 
     public removeEntity(entityId: number): this
@@ -144,9 +143,9 @@ export default class World<T extends CallbackMap<T> = { }> extends Publisher<T &
         const entity = this._entities.get(entityId);
         if (!(entity)) { throw new Error(); }
 
-        entity.components.keys()
+        entity.components.values()
             // @ts-expect-error - Parameters type is correct.
-            .forEach((type) => this.publish("entity:component:remove", entity, type));
+            .forEach((component) => this.publish("entity:component:remove", entity, component));
 
         entity.children
             // @ts-expect-error - Parameters type is correct.
