@@ -44,18 +44,18 @@ describe("QueryManager", () =>
         const view = Array.from(world.query(TestComponent1).values());
 
         expect(view.length).toBe(4);
-        expect(view[0].entity.id).toBe(1);
-        expect(view[1].entity.id).toBe(2);
-        expect(view[2].entity.id).toBe(3);
-        expect(view[3].entity.id).toBe(5);
+        expect(view[0].entity!.id).toBe(1);
+        expect(view[1].entity!.id).toBe(2);
+        expect(view[2].entity!.id).toBe(3);
+        expect(view[3].entity!.id).toBe(5);
 
         expect(iterator.length).toBe(4);
-        expect(iterator[0].entity.id).toBe(2);
-        expect(iterator[1].entity.id).toBe(5);
-        expect(iterator[2].entity.id).toBe(6);
-        expect(iterator[3].entity.id).toBe(7);
+        expect(iterator[0].entity!.id).toBe(2);
+        expect(iterator[1].entity!.id).toBe(5);
+        expect(iterator[2].entity!.id).toBe(6);
+        expect(iterator[3].entity!.id).toBe(7);
 
-        expect(first!.entity.id).toBe(3);
+        expect(first!.entity!.id).toBe(3);
         expect(second).toBeUndefined();
     });
 
@@ -69,10 +69,10 @@ describe("QueryManager", () =>
 
         const before = Array.from(view.values());
         expect(before.length).toBe(4);
-        expect(before[0].entity.id).toBe(1);
-        expect(before[1].entity.id).toBe(2);
-        expect(before[2].entity.id).toBe(3);
-        expect(before[3].entity.id).toBe(5);
+        expect(before[0].entity!.id).toBe(1);
+        expect(before[1].entity!.id).toBe(2);
+        expect(before[2].entity!.id).toBe(3);
+        expect(before[3].entity!.id).toBe(5);
 
         const entity = new Entity()
             .addComponent(new TestComponent1());
@@ -83,11 +83,11 @@ describe("QueryManager", () =>
 
         const after = Array.from(view.values());
         expect(after.length).toBe(5);
-        expect(after[0].entity.id).toBe(1);
-        expect(after[1].entity.id).toBe(2);
-        expect(after[2].entity.id).toBe(3);
-        expect(after[3].entity.id).toBe(5);
-        expect(after[4].entity.id).toBe(10);
+        expect(after[0].entity!.id).toBe(1);
+        expect(after[1].entity!.id).toBe(2);
+        expect(after[2].entity!.id).toBe(3);
+        expect(after[3].entity!.id).toBe(5);
+        expect(after[4].entity!.id).toBe(10);
     });
     it("Should reactively update entities when entities are removed", () =>
     {
@@ -99,19 +99,19 @@ describe("QueryManager", () =>
 
         const before = Array.from(view.values());
         expect(before.length).toBe(4);
-        expect(before[0].entity.id).toBe(2);
-        expect(before[1].entity.id).toBe(5);
-        expect(before[2].entity.id).toBe(6);
-        expect(before[3].entity.id).toBe(7);
+        expect(before[0].entity!.id).toBe(2);
+        expect(before[1].entity!.id).toBe(5);
+        expect(before[2].entity!.id).toBe(6);
+        expect(before[3].entity!.id).toBe(7);
 
         const { entity } = before[2];
-        entity.removeComponent(TestComponent2);
+        entity!.removeComponent(TestComponent2);
 
         const after = Array.from(view.values());
         expect(after.length).toBe(3);
-        expect(after[0].entity.id).toBe(2);
-        expect(after[1].entity.id).toBe(5);
-        expect(after[2].entity.id).toBe(7);
+        expect(after[0].entity!.id).toBe(2);
+        expect(after[1].entity!.id).toBe(5);
+        expect(after[2].entity!.id).toBe(7);
     });
 
     it("Should be disposed correctly", () =>
@@ -124,10 +124,10 @@ describe("QueryManager", () =>
 
         const before = Array.from(entities.values());
         expect(before.length).toBe(4);
-        expect(before[0].entity.id).toBe(3);
-        expect(before[1].entity.id).toBe(4);
-        expect(before[2].entity.id).toBe(5);
-        expect(before[3].entity.id).toBe(6);
+        expect(before[0].entity!.id).toBe(3);
+        expect(before[1].entity!.id).toBe(4);
+        expect(before[2].entity!.id).toBe(5);
+        expect(before[3].entity!.id).toBe(6);
 
         world.dispose();
 
