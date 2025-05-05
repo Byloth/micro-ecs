@@ -10,7 +10,7 @@ export default class Entity<W extends World = World>
     public readonly id: number;
 
     private _world: W | null;
-    public get world(): W { throw new Error(); }
+    public get world(): W | null { return this._world; }
 
     private readonly _components: Map<Constructor<Component>, Component>;
     public get components(): ReadonlyMap<Constructor<Component>, Component> { return this._components; }
@@ -140,15 +140,11 @@ export default class Entity<W extends World = World>
     {
         if (this._world) { throw new Error(); }
         this._world = world;
-
-        Object.defineProperty(this, "world", { get: () => this._world!, configurable: true });
     }
     public onDetach(): void
     {
         if (!(this._world)) { throw new Error(); }
         this._world = null;
-
-        Object.defineProperty(this, "world", { get: () => { throw new Error(); }, configurable: true });
     }
 
     public onAdoption(parent: Entity): void

@@ -8,7 +8,7 @@ describe("System", () =>
         const system = new System();
 
         expect(system.priority).toBe(0);
-        expect(() => system.world).toThrow();
+        expect(system.world).toBeNull();
     });
 
     it("Should enable / disable the system", () =>
@@ -107,7 +107,7 @@ describe("System", () =>
         world.addSystem(system);
         world.removeSystem(system);
 
-        expect(() => system.world).toThrow();
+        expect(system.world).toBeNull();
         expect(_onDetach).toHaveBeenCalledTimes(1);
     });
     it("Should throw an error if detached from a world while not attached to one", () =>
@@ -167,7 +167,7 @@ describe("System", () =>
         world.addSystem(system);
         system.dispose();
 
-        expect(() => system.world).toThrow();
+        expect(system.world).toBeNull();
         expect(_dispose).toHaveBeenCalledTimes(1);
     });
 });

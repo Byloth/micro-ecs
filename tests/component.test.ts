@@ -6,7 +6,7 @@ describe("Component", () =>
     it("Should be initialized with a null entity", () =>
     {
         const component = new Component();
-        expect(() => component.entity).toThrow();
+        expect(component.entity).toBeNull();
     });
 
     it("Should be attachable to an entity", () =>
@@ -68,7 +68,7 @@ describe("Component", () =>
         entity.addComponent(component);
         entity.removeComponent(TestComponent);
 
-        expect(() => component.entity).toThrow();
+        expect(component.entity).toBeNull();
         expect(_onDetach).toHaveBeenCalledTimes(1);
     });
     it("Should throw an error if detached from an entity while not attached to one", () =>
@@ -114,7 +114,7 @@ describe("Component", () =>
         entity.addComponent(component);
         component.dispose();
 
-        expect(() => component.entity).toThrow();
+        expect(component.entity).toBeNull();
         expect(_dispose).toHaveBeenCalledTimes(1);
     });
 });

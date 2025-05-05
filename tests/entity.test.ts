@@ -9,7 +9,7 @@ describe("Entity", () =>
 
         expect(entity.id).toBeGreaterThan(0);
 
-        expect(() => entity.world).toThrow();
+        expect(entity.world).toBeNull();
         expect(entity.parent).toBeNull();
 
         expect(entity.components.size).toBe(0);
@@ -201,7 +201,7 @@ describe("Entity", () =>
         world.addEntity(entity);
         world.removeEntity(entity.id);
 
-        expect(() => entity.world).toThrow();
+        expect(entity.world).toBeNull();
         expect(_onDetach).toHaveBeenCalledTimes(1);
     });
     it("Should throw an error if detached from a world while not attached to one", () =>
