@@ -138,7 +138,7 @@ export default class World<T extends CallbackMap<T> = { }> extends Publisher<T &
         return this._queryManager.query<C>(type);
     }
 
-    public removeEntity(entityId: number): this
+    public removeEntity(entityId: number): Entity
     {
         const entity = this._entities.get(entityId);
         if (!(entity)) { throw new Error(); }
@@ -158,7 +158,7 @@ export default class World<T extends CallbackMap<T> = { }> extends Publisher<T &
         this._entities.delete(entityId);
         entity.onDetach();
 
-        return this;
+        return entity;
     }
 
     public addSystem(system: System): this

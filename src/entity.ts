@@ -2,6 +2,7 @@ import type { Constructor } from "@byloth/core";
 
 import type Component from "./component.js";
 import type World from "./world.js";
+import { getHierarchy } from "./utils.js";
 
 export default class Entity<W extends World = World>
 {
@@ -41,7 +42,11 @@ export default class Entity<W extends World = World>
     public addComponent(component: Component): this
     {
         const type = component.constructor as Constructor<Component>;
-        if (this._components.has(type)) { throw new Error(); }
+        const hierarchy = getHierarchy(type) as Constructor<Component>[];
+        for (const cls of hierarchy)
+        {
+            if (this._components.has(cls)) { throw new Error(); }
+        }
 
         try
         {
@@ -55,7 +60,10 @@ export default class Entity<W extends World = World>
             throw new Error();
         }
 
-        this._components.set(type, component);
+        for (const cls of hierarchy)
+        {
+            this._components.set(cls, component);
+        }
 
         if (this._world) { this._world.publish("entity:component:add", this, component); }
 
@@ -71,17 +79,24 @@ export default class Entity<W extends World = World>
         return this._components.has(type);
     }
 
-    public removeComponent<C extends Component>(type: Constructor<C>): this
+    public removeComponent<C extends Component>(type: Constructor<C>): C
     {
-        const component = this._components.get(type);
+        const component = this._components.get(type) as C | undefined;
         if (!(component)) { throw new Error(); }
 
-        this._components.delete(type);
+        if (component.constructor !== type) { throw new Error(); }
+
+        const hierarchy = getHierarchy(type) as Constructor<Component>[];
+        for (const cls of hierarchy)
+        {
+            this._components.delete(cls);
+        }
+
         component.onDetach();
 
         if (this._world) { this._world.publish("entity:component:remove", this, component); }
 
-        return this;
+        return component;
     }
 
     public addChild(child: Entity): this
