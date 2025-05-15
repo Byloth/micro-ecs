@@ -5,17 +5,18 @@ import type { HiddenProps } from "./types.js";
 
 export function getHierarchy(cls: Constructor<Component>): Constructor<Component>[]
 {
-    const hierarchy = (cls as HiddenProps)["__μECS_hierarchy__"] ?? [];
-    if (hierarchy.length) { return hierarchy; }
+    const cache = (cls as HiddenProps)["__μECS_hierarchy__"];
+    if (cache?.length) { return cache; }
 
-    const queue = [cls];
+    const hierarchy: Constructor<Component>[] = [];
+    const queue: Constructor<Component>[] = [cls];
     while (queue.length)
     {
         const current = queue.shift()!;
         hierarchy.unshift(current);
 
         const inherits = (current as HiddenProps)["__μECS_inherits__"];
-        if (inherits.length) { continue; }
+        if (!(inherits.length)) { continue; }
 
         queue.unshift(...inherits);
     }
