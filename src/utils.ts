@@ -1,26 +1,26 @@
 import type { Constructor } from "@byloth/core";
 
-interface HierarchyCache<T extends object = object> extends Constructor<T>
-{
-    __hierarchy__?: Constructor<object>[];
-}
+import Component from "./component.js";
+import type { HiddenProps } from "./types.js";
 
-// SMELLS: Remove `<object>` from the type signature once the `@byloth/core` package is updated.
-//
-export function getHierarchy(cls: Constructor<object>): Constructor<object>[]
+export function getHierarchy(cls: Constructor<Component>): Constructor<Component>[]
 {
-    const hierarchy = (cls as HierarchyCache).__hierarchy__ ?? [];
+    const hierarchy = (cls as HiddenProps)["__μECS_hierarchy__"] ?? [];
     if (hierarchy.length) { return hierarchy; }
 
-    let current = cls;
-    while ((typeof current === "function") && (current !== Function.prototype))
+    const queue = [cls];
+    while (queue.length)
     {
+        const current = queue.shift()!;
         hierarchy.unshift(current);
 
-        current = Reflect.getPrototypeOf(current) as Constructor<object>;
+        const inherits = (current as HiddenProps)["__μECS_inherits__"];
+        if (inherits.length) { continue; }
+
+        queue.unshift(...inherits);
     }
 
-    (cls as HierarchyCache).__hierarchy__ = hierarchy;
+    (cls as HiddenProps)["__μECS_hierarchy__"] = hierarchy;
 
     return hierarchy;
 }

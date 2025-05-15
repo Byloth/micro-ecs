@@ -6,7 +6,11 @@ import { getHierarchy } from "./utils.js";
 
 export default class Entity<W extends World = World>
 {
-    private static _NextId = 0;
+    // eslint-disable-next-line camelcase
+    protected static readonly __μECS_entity__ = true;
+
+    // eslint-disable-next-line camelcase
+    private static __μECS_nextId__ = 0;
 
     public readonly id: number;
 
@@ -27,7 +31,7 @@ export default class Entity<W extends World = World>
 
     public constructor()
     {
-        this.id = (Entity._NextId += 1);
+        this.id = (Entity["__μECS_nextId__"] += 1);
 
         this._world = null;
 

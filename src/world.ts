@@ -28,6 +28,9 @@ export interface WorldEventsMap
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export default class World<T extends CallbackMap<T> = { }> extends Publisher<T & WorldEventsMap>
 {
+    // eslint-disable-next-line camelcase
+    protected static readonly __μECS_world__ = true;
+
     private readonly _entities: Map<number, Entity>;
     public get entities(): ReadonlyMap<number, Entity> { return this._entities; }
 
