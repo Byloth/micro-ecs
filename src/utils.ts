@@ -10,9 +10,14 @@ export function getHierarchy(cls: Constructor<Component>): Constructor<Component
 
     const hierarchy: Constructor<Component>[] = [];
     const queue: Constructor<Component>[] = [cls];
+
+    const seen = new Set<Constructor<Component>>();
     while (queue.length)
     {
         const current = queue.shift()!;
+        if (seen.has(current)) { throw new Error(); }
+
+        seen.add(current);
         hierarchy.unshift(current);
 
         const inherits = (current as HiddenProps)["__μECS_inherits__"];

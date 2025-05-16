@@ -157,4 +157,44 @@ describe("getHierarchy", () =>
         const result = getHierarchy(ComponentA);
         expect(result).toEqual([ParentB, ChildB, ParentA, ChildA, ComponentA]);
     });
+
+    it("Should throw an error a doubly-inherited class is detected", () =>
+    {
+        class ParentA extends Component { }
+        class ChildA extends ParentA
+        {
+            // eslint-disable-next-line camelcase
+            protected static override readonly __μECS_inherits__ = [ParentA];
+        }
+        class ChildB extends ParentA
+        {
+            // eslint-disable-next-line camelcase
+            protected static override readonly __μECS_inherits__ = [ParentA];
+        }
+        class ComponentA extends ChildA
+        {
+            // eslint-disable-next-line camelcase
+            protected static override readonly __μECS_inherits__ = [ChildA, ChildB];
+        }
+
+        expect(() => getHierarchy(ComponentA)).toThrowError();
+    });
+    it("Should throw an error if a circular inheritance is detected", () =>
+    {
+        class ParentA extends Component { }
+        class ChildA extends ParentA
+        {
+            // eslint-disable-next-line camelcase
+            protected static override readonly __μECS_inherits__ = [ParentA];
+        }
+        class ComponentA extends ChildA
+        {
+            // eslint-disable-next-line camelcase
+            protected static override readonly __μECS_inherits__ = [ChildA];
+        }
+
+        ((ComponentA as unknown) as HiddenProps)["__μECS_inherits__"] = [ComponentA];
+
+        expect(() => getHierarchy(ComponentA)).toThrowError();
+    });
 });
