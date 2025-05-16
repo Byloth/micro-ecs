@@ -1,4 +1,4 @@
-export const VERSION = "1.0.3";
+export const VERSION = "1.0.4";
 
 import Entity from "./entity.js";
 import Component from "./component.js";
@@ -11,3 +11,5 @@ export type { WorldEventsMap } from "./world.js";
 
 import QueryManager from "./query-manager.js";
 export { QueryManager };
+
+export type { Inherits } from "./types.js";
