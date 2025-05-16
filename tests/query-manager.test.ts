@@ -3,21 +3,37 @@ import { Component, Entity, World } from "../src/index.js";
 
 describe("QueryManager", () =>
 {
-    class TestComponent1 extends Component { }
-    class TestComponent2 extends Component { }
-    class TestComponent3 extends Component { }
-    class TestComponent4 extends Component { }
+    class Parent1 extends Component { }
+    class Parent2 extends Component { }
+    class Parent3 extends Component { }
+    class Parent4 extends Component { }
+
+    class Child1 extends Component
+    {
+        // eslint-disable-next-line camelcase
+        protected static override readonly __μECS_inherits__ = [Parent1];
+    }
+    class Child2 extends Component
+    {
+        // eslint-disable-next-line camelcase
+        protected static override readonly __μECS_inherits__ = [Parent1, Parent2];
+    }
+    class Child3 extends Component
+    {
+        // eslint-disable-next-line camelcase
+        protected static override readonly __μECS_inherits__ = [Parent1, Parent2, Parent3];
+    }
 
     const _populateWorld = (world: World): void =>
     {
         const definitions = [
-            [TestComponent1],
-            [TestComponent2, TestComponent1],
-            [TestComponent1, TestComponent3],
-            [TestComponent3],
-            [TestComponent2, TestComponent3, TestComponent1],
-            [TestComponent3, TestComponent2],
-            [TestComponent2]
+            [Parent1],
+            [Child2],
+            [Child1, Parent3],
+            [Parent3],
+            [Child3],
+            [Parent3, Parent2],
+            [Parent2]
         ];
 
         let index = 0;
@@ -38,10 +54,10 @@ describe("QueryManager", () =>
 
         _populateWorld(world);
 
-        const first = world.pickOne(TestComponent3);
-        const second = world.pickOne(TestComponent4);
-        const iterator = world.pickAll(TestComponent2).toArray();
-        const view = Array.from(world.query(TestComponent1).values());
+        const first = world.pickOne(Parent3);
+        const second = world.pickOne(Parent4);
+        const iterator = world.pickAll(Parent2).toArray();
+        const view = Array.from(world.query(Parent1).values());
 
         expect(view.length).toBe(4);
         expect(view[0].entity!.id).toBe(1);
@@ -65,7 +81,7 @@ describe("QueryManager", () =>
 
         _populateWorld(world);
 
-        const view = world.query(TestComponent1);
+        const view = world.query(Parent1);
 
         const before = Array.from(view.values());
         expect(before.length).toBe(4);
@@ -75,7 +91,7 @@ describe("QueryManager", () =>
         expect(before[3].entity!.id).toBe(5);
 
         const entity = new Entity()
-            .addComponent(new TestComponent1());
+            .addComponent(new Parent1());
 
         Object.defineProperty(entity, "id", { value: 10 });
 
@@ -95,7 +111,7 @@ describe("QueryManager", () =>
 
         _populateWorld(world);
 
-        const view = world.query(TestComponent2);
+        const view = world.query(Parent2);
 
         const before = Array.from(view.values());
         expect(before.length).toBe(4);
@@ -105,7 +121,7 @@ describe("QueryManager", () =>
         expect(before[3].entity!.id).toBe(7);
 
         const { entity } = before[2];
-        entity!.removeComponent(TestComponent2);
+        entity!.removeComponent(Parent2);
 
         const after = Array.from(view.values());
         expect(after.length).toBe(3);
@@ -120,7 +136,7 @@ describe("QueryManager", () =>
 
         _populateWorld(world);
 
-        const entities = world.query(TestComponent3);
+        const entities = world.query(Parent3);
 
         const before = Array.from(entities.values());
         expect(before.length).toBe(4);

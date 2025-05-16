@@ -28,6 +28,9 @@ export interface WorldEventsMap
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export default class World<T extends CallbackMap<T> = { }> extends Publisher<T & WorldEventsMap>
 {
+    // eslint-disable-next-line camelcase
+    protected static readonly __μECS_world__ = true;
+
     private readonly _entities: Map<number, Entity>;
     public get entities(): ReadonlyMap<number, Entity> { return this._entities; }
 
@@ -138,7 +141,7 @@ export default class World<T extends CallbackMap<T> = { }> extends Publisher<T &
         return this._queryManager.query<C>(type);
     }
 
-    public removeEntity(entityId: number): this
+    public removeEntity(entityId: number): Entity
     {
         const entity = this._entities.get(entityId);
         if (!(entity)) { throw new Error(); }
@@ -158,7 +161,7 @@ export default class World<T extends CallbackMap<T> = { }> extends Publisher<T &
         this._entities.delete(entityId);
         entity.onDetach();
 
-        return this;
+        return entity;
     }
 
     public addSystem(system: System): this
