@@ -1,6 +1,6 @@
 import { beforeEach, describe, it, expect, vi } from "vitest";
 
-import { Entity, System, World } from "../src/index.js";
+import { Context, Entity, System, World } from "../src/index.js";
 
 describe("World", () =>
 {
@@ -181,5 +181,24 @@ describe("World", () =>
         expect(_disposeSystem).toHaveBeenCalledTimes(2);
         expect(_world.entities.size).toBe(0);
         expect(_world.systems.length).toBe(0);
+    });
+
+    it("Should provide a context for each system", () =>
+    {
+        class TestSystem extends System { }
+
+        const system = new TestSystem();
+        const context = _world.getContext(system);
+
+        expect(context).toBeInstanceOf(Context);
+    });
+    it("Should throw when adding the same system context twice", () =>
+    {
+        class TestSystem extends System { }
+
+        const system = new TestSystem();
+
+        _world.getContext(system);
+        expect(() => _world.getContext(system)).toThrow();
     });
 });
