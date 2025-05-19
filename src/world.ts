@@ -1,11 +1,12 @@
 import { Publisher } from "@byloth/core";
-import type { CallbackMap, Constructor, ReadonlySetView, SmartIterator } from "@byloth/core";
+import type { CallbackMap, Constructor, Publishable, ReadonlySetView, SmartIterator } from "@byloth/core";
 
 import type Entity from "./entity.js";
 import type Component from "./component.js";
 import type System from "./system.js";
 
 import QueryManager from "./query-manager.js";
+import Context from "./context.js";
 
 export interface WorldEventsMap
 {
@@ -26,10 +27,13 @@ export interface WorldEventsMap
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export default class World<T extends CallbackMap<T> = { }> extends Publisher<T & WorldEventsMap>
+export default class World<T extends CallbackMap<T> = { }> implements Publishable<T & WorldEventsMap>
 {
     // eslint-disable-next-line camelcase
     protected static readonly __μECS_world__ = true;
+
+    private readonly _contexts: Map<System, Context>;
+    public get contexts(): ReadonlyMap<System, Context> { return this._contexts; }
 
     private readonly _entities: Map<number, Entity>;
     public get entities(): ReadonlyMap<number, Entity> { return this._entities; }
@@ -38,6 +42,7 @@ export default class World<T extends CallbackMap<T> = { }> extends Publisher<T &
     private readonly _enabledSystems: System[];
     public get systems(): readonly System[] { return this._systems; }
 
+    private readonly _publisher: Publisher<T & WorldEventsMap>;
     private readonly _queryManager: QueryManager;
 
     private readonly _onEntityChildAdd = (_: Entity, child: Entity): void => { this.addEntity(child); };
@@ -48,26 +53,26 @@ export default class World<T extends CallbackMap<T> = { }> extends Publisher<T &
 
     public constructor()
     {
-        super();
-
+        this._contexts = new Map();
         this._entities = new Map();
 
         this._systems = [];
         this._enabledSystems = [];
 
-        this._queryManager = new QueryManager(this);
+        this._publisher = new Publisher();
+        this._queryManager = new QueryManager(this._entities, this._publisher);
 
         // @ts-expect-error - Parameter type is correct.
-        this.subscribe("entity:child:add", this._onEntityChildAdd);
+        this._publisher.subscribe("entity:child:add", this._onEntityChildAdd);
 
         // @ts-expect-error - Parameters type is correct.
-        this.subscribe("entity:child:remove", this._onEntityChildRemove);
+        this._publisher.subscribe("entity:child:remove", this._onEntityChildRemove);
 
         // @ts-expect-error - Parameter type is correct.
-        this.subscribe("system:enable", this._onSystemEnable);
+        this._publisher.subscribe("system:enable", this._onSystemEnable);
 
         // @ts-expect-error - Parameter type is correct.
-        this.subscribe("system:disable", this._onSystemDisable);
+        this._publisher.subscribe("system:disable", this._onSystemDisable);
     }
 
     private _insertSystem(array: System[], system: System): number
@@ -114,15 +119,15 @@ export default class World<T extends CallbackMap<T> = { }> extends Publisher<T &
 
         entity.components.values()
             // @ts-expect-error - Parameters type is correct.
-            .forEach((component) => this.publish("entity:component:add", entity, component));
+            .forEach((component) => this._publisher.publish("entity:component:add", entity, component));
 
         entity.children
             // @ts-expect-error - Parameters type is correct.
-            .forEach((child) => this.publish("entity:child:add", entity, child));
+            .forEach((child) => this._publisher.publish("entity:child:add", entity, child));
 
         entity.tags
             // @ts-expect-error - Parameters type is correct.
-            .forEach((tag) => this.publish("entity:tag:add", entity, tag));
+            .forEach((tag) => this._publisher.publish("entity:tag:add", entity, tag));
 
         return this;
     }
@@ -148,15 +153,15 @@ export default class World<T extends CallbackMap<T> = { }> extends Publisher<T &
 
         entity.components.values()
             // @ts-expect-error - Parameters type is correct.
-            .forEach((component) => this.publish("entity:component:remove", entity, component));
+            .forEach((component) => this._publisher.publish("entity:component:remove", entity, component));
 
         entity.children
             // @ts-expect-error - Parameters type is correct.
-            .forEach((child) => this.publish("entity:child:remove", entity, child));
+            .forEach((child) => this._publisher.publish("entity:child:remove", entity, child));
 
         entity.tags
             // @ts-expect-error - Parameters type is correct.
-            .forEach((tag) => this.publish("entity:tag:remove", entity, tag));
+            .forEach((tag) => this._publisher.publish("entity:tag:remove", entity, tag));
 
         this._entities.delete(entityId);
         entity.onDetach();
@@ -182,7 +187,7 @@ export default class World<T extends CallbackMap<T> = { }> extends Publisher<T &
         if (system.enabled) { this._insertSystem(this._enabledSystems, system); }
 
         // @ts-expect-error - Parameter type is correct.
-        this.publish("system:add", system);
+        this._publisher.publish("system:add", system);
 
         return this;
     }
@@ -194,9 +199,26 @@ export default class World<T extends CallbackMap<T> = { }> extends Publisher<T &
         system.onDetach();
 
         // @ts-expect-error - Parameter type is correct.
-        this.publish("system:remove", system);
+        this._publisher.publish("system:remove", system);
 
         return this;
+    }
+
+    public getContext(system: System): Context
+    {
+        if (this._contexts.has(system)) { throw new Error(); }
+
+        const context = new Context(this._publisher);
+        this._contexts.set(system, context);
+
+        return context;
+    }
+
+    // eslint-disable-next-line space-before-function-paren
+    public publish<K extends keyof (T & WorldEventsMap)>(
+        event: K & string, ...args: Parameters<(T & WorldEventsMap)[K]>): ReturnType<(T & WorldEventsMap)[K]>[]
+    {
+        return this._publisher.publish(event, ...args);
     }
 
     public update(deltaTime: number): void
@@ -209,8 +231,7 @@ export default class World<T extends CallbackMap<T> = { }> extends Publisher<T &
 
     public dispose(): void
     {
-        this.clear();
-
+        this._publisher.clear();
         this._queryManager.dispose();
 
         for (const system of this._systems.slice()) { system.dispose(); }

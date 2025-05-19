@@ -1,14 +1,17 @@
 import { SetView, SmartIterator } from "@byloth/core";
-import type { Constructor, ReadonlySetView } from "@byloth/core";
+import type { CallbackMap, Constructor, Publisher, ReadonlySetView } from "@byloth/core";
 
 import type Entity from "./entity.js";
 import type Component from "./component.js";
-import type World from "./world.js";
+import type { WorldEventsMap } from "./world.js";
 
-export default class QueryManager<W extends World = World>
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export default class QueryManager<T extends CallbackMap<T> = { }>
 {
     private readonly _views: Map<Constructor<Component>, SetView<Component>>;
-    private readonly _world: W;
+
+    private readonly _entities: ReadonlyMap<number, Entity>;
+    private readonly _publisher: Publisher<T & WorldEventsMap>;
 
     private readonly _onEntityComponentAdd = (_: Entity, component: Component) =>
     {
@@ -25,13 +28,18 @@ export default class QueryManager<W extends World = World>
         view.delete(component);
     };
 
-    public constructor(world: W)
+    public constructor(entities: ReadonlyMap<number, Entity>, publisher: Publisher<T & WorldEventsMap>)
     {
         this._views = new Map();
 
-        this._world = world;
-        this._world.subscribe("entity:component:add", this._onEntityComponentAdd);
-        this._world.subscribe("entity:component:remove", this._onEntityComponentRemove);
+        this._entities = entities;
+        this._publisher = publisher;
+
+        // @ts-expect-error - Parameter type is correct.
+        this._publisher.subscribe("entity:component:add", this._onEntityComponentAdd);
+
+        // @ts-expect-error - Parameter type is correct.
+        this._publisher.subscribe("entity:component:remove", this._onEntityComponentRemove);
     }
 
     public pickOne<C extends Component>(type: Constructor<C>): C | undefined
@@ -45,7 +53,7 @@ export default class QueryManager<W extends World = World>
             return value;
         }
 
-        for (const entity of this._world.entities.values())
+        for (const entity of this._entities.values())
         {
             const component = entity.getComponent(type);
             if (component) { return component; }
@@ -58,7 +66,7 @@ export default class QueryManager<W extends World = World>
         const view = this._views.get(type) as SetView<C> | undefined;
         if (view) { return new SmartIterator(view); }
 
-        return new SmartIterator(this._world.entities.values())
+        return new SmartIterator(this._entities.values())
             .map((entity) => entity.getComponent(type))
             .filter<C>(((component) => component !== undefined));
     }
@@ -69,7 +77,7 @@ export default class QueryManager<W extends World = World>
         if (view) { return view; }
 
         const components = new SetView<C>();
-        for (const entity of this._world.entities.values())
+        for (const entity of this._entities.values())
         {
             const component = entity.getComponent(type);
             if (component) { components.add(component); }
@@ -82,8 +90,11 @@ export default class QueryManager<W extends World = World>
 
     public dispose(): void
     {
-        this._world.unsubscribe("entity:component:add", this._onEntityComponentAdd);
-        this._world.unsubscribe("entity:component:remove", this._onEntityComponentRemove);
+        // @ts-expect-error - Parameter type is correct.
+        this._publisher.unsubscribe("entity:component:add", this._onEntityComponentAdd);
+
+        // @ts-expect-error - Parameter type is correct.
+        this._publisher.unsubscribe("entity:component:remove", this._onEntityComponentRemove);
 
         for (const view of this._views.values()) { view.clear(); }
         this._views.clear();

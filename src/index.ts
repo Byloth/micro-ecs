@@ -9,6 +9,9 @@ import World from "./world.js";
 export { World };
 export type { WorldEventsMap } from "./world.js";
 
+import Context from "./context.js";
+export { Context };
+
 import QueryManager from "./query-manager.js";
 export { QueryManager };
 
