@@ -32,8 +32,8 @@ export default class World<T extends CallbackMap<T> = { }> implements Publishabl
     // eslint-disable-next-line camelcase
     protected static readonly __μECS_world__ = true;
 
-    private readonly _contexts: Map<System, Context>;
-    public get contexts(): ReadonlyMap<System, Context> { return this._contexts; }
+    private readonly _contexts: Map<Entity | System, Context>;
+    public get contexts(): ReadonlyMap<Entity | System, Context> { return this._contexts; }
 
     private readonly _entities: Map<number, Entity>;
     public get entities(): ReadonlyMap<number, Entity> { return this._entities; }
@@ -204,12 +204,12 @@ export default class World<T extends CallbackMap<T> = { }> implements Publishabl
         return this;
     }
 
-    public getContext(system: System): Context
+    public getContext(instance: Entity | System): Context
     {
-        if (this._contexts.has(system)) { throw new Error(); }
+        if (this._contexts.has(instance)) { throw new Error(); }
 
         const context = new Context(this._publisher);
-        this._contexts.set(system, context);
+        this._contexts.set(instance, context);
 
         return context;
     }
