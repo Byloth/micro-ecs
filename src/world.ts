@@ -204,7 +204,7 @@ export default class World<T extends CallbackMap<T> = { }> implements Publishabl
         return this;
     }
 
-    public getContext(instance: Entity | System): Context
+    public getContext(instance: Entity | System): Context<T>
     {
         if (this._contexts.has(instance)) { throw new Error(); }
 
