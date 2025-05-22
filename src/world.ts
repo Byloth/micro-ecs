@@ -30,9 +30,6 @@ export interface WorldEventsMap
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export default class World<T extends CallbackMap<T> = { }> implements Publishable<T & WorldEventsMap>
 {
-    // eslint-disable-next-line camelcase
-    protected static readonly __μECS_world__ = true;
-
     private readonly _contexts: Map<Entity | System, Context>;
     public get contexts(): ReadonlyMap<Entity | System, Context> { return this._contexts; }
 

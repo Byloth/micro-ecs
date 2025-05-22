@@ -2,9 +2,6 @@ import type World from "./world.js";
 
 export default class System<W extends World = World>
 {
-    // eslint-disable-next-line camelcase
-    protected static readonly __μECS_system__ = true;
-
     public static Sort(a: System, b: System): number
     {
         return a.priority - b.priority;

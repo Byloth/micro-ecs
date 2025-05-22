@@ -15,4 +15,4 @@ export { Context };
 import QueryManager from "./query-manager.js";
 export { QueryManager };
 
-export type { Inherits } from "./types.js";
+export type { Instances } from "./types.js";

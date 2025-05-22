@@ -2,13 +2,9 @@ import type { Constructor } from "@byloth/core";
 
 import type Component from "./component.js";
 import type World from "./world.js";
-import { getHierarchy } from "./utils.js";
 
 export default class Entity<W extends World = World>
 {
-    // eslint-disable-next-line camelcase
-    protected static readonly __μECS_entity__ = true;
-
     // eslint-disable-next-line camelcase
     private static __μECS_nextId__ = 0;
 
@@ -46,11 +42,7 @@ export default class Entity<W extends World = World>
     public addComponent(component: Component): this
     {
         const type = component.constructor as Constructor<Component>;
-        const hierarchy = getHierarchy(type) as Constructor<Component>[];
-        for (const cls of hierarchy)
-        {
-            if (this._components.has(cls)) { throw new Error(); }
-        }
+        if (this._components.has(type)) { throw new Error(); }
 
         try
         {
@@ -64,10 +56,7 @@ export default class Entity<W extends World = World>
             throw new Error();
         }
 
-        for (const cls of hierarchy)
-        {
-            this._components.set(cls, component);
-        }
+        this._components.set(type, component);
 
         if (this._world) { this._world.publish("entity:component:add", this, component); }
 
@@ -88,13 +77,7 @@ export default class Entity<W extends World = World>
         const component = this._components.get(type) as C | undefined;
         if (!(component)) { throw new Error(); }
 
-        if (component.constructor !== type) { throw new Error(); }
-
-        const hierarchy = getHierarchy(type) as Constructor<Component>[];
-        for (const cls of hierarchy)
-        {
-            this._components.delete(cls);
-        }
+        this._components.delete(type);
 
         component.onDetach();
 

@@ -30,33 +30,6 @@ describe("Entity", () =>
         expect(entity.getComponent(TestComponent)).toBe(component);
         expect(entity.components.size).toBe(1);
     });
-    it("Should be able to add and retrieve an inherited component", () =>
-    {
-        class ParentComponent extends Component { }
-        class ChildComponent extends ParentComponent
-        {
-            // eslint-disable-next-line camelcase
-            protected static override readonly __μECS_inherits__ = [ParentComponent];
-        }
-
-        const entity = new Entity();
-        const component = new ChildComponent();
-
-        entity.addComponent(component);
-
-        expect(entity.components.size).toBe(2);
-
-        expect(entity.hasComponent(ParentComponent)).toBe(true);
-        expect(entity.getComponent(ParentComponent)).toBe(component);
-
-        expect(entity.hasComponent(ChildComponent)).toBe(true);
-        expect(entity.getComponent(ChildComponent)).toBe(component);
-
-        const componentRef1 = entity.getComponent(ParentComponent);
-        const componentRef2 = entity.getComponent(ChildComponent);
-
-        expect(componentRef1).toBe(componentRef2);
-    });
     it("Should throw an error when adding a duplicate component", () =>
     {
         class TestComponent extends Component { }
@@ -80,22 +53,6 @@ describe("Entity", () =>
 
         expect(entity.hasComponent(TestComponent)).toBe(false);
         expect(entity.components.size).toBe(0);
-    });
-    it("Should throw an error when removing an inherited component", () =>
-    {
-        class ParentComponent extends Component { }
-        class ChildComponent extends ParentComponent
-        {
-            // eslint-disable-next-line camelcase
-            protected static override readonly __μECS_inherits__ = [ParentComponent];
-        }
-
-        const entity = new Entity();
-        const component = new ChildComponent();
-
-        entity.addComponent(component);
-        expect(() => entity.removeComponent(ParentComponent)).toThrow();
-        expect(entity.removeComponent(ChildComponent)).toBe(component);
     });
     it("Should throw an error when removing a non-existent component", () =>
     {
