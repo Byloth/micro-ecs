@@ -1,5 +1,5 @@
 import { Publisher } from "@byloth/core";
-import type { CallbackMap, Constructor, Publishable, ReadonlySetView, SmartIterator } from "@byloth/core";
+import type { CallbackMap, Constructor, Publishable, ReadonlyMapView, SmartIterator } from "@byloth/core";
 
 import type Entity from "./entity.js";
 import type Component from "./component.js";
@@ -7,6 +7,7 @@ import type System from "./system.js";
 
 import QueryManager from "./query-manager.js";
 import Context from "./context.js";
+import type { Instances } from "./types.js";
 
 export interface WorldEventsMap
 {
@@ -101,6 +102,23 @@ export default class World<T extends CallbackMap<T> = { }> implements Publishabl
         return index;
     }
 
+    public pickFirst<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(...types: C)
+        : R | undefined
+    {
+        return this._queryManager.pickFirst<C, R>(...types);
+    }
+    public pickAll<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(...types: C)
+        : SmartIterator<R>
+    {
+        return this._queryManager.pickAll<C, R>(...types);
+    }
+
+    public query<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(...types: C)
+        : ReadonlyMapView<Entity, R>
+    {
+        return this._queryManager.query<C, R>(...types);
+    }
+
     public addEntity(entity: Entity): this
     {
         try
@@ -131,21 +149,6 @@ export default class World<T extends CallbackMap<T> = { }> implements Publishabl
 
         return this;
     }
-
-    public pickOne<C extends Component>(type: Constructor<C>): C | undefined
-    {
-        return this._queryManager.pickOne<C>(type);
-    }
-    public pickAll<C extends Component>(type: Constructor<C>): SmartIterator<C>
-    {
-        return this._queryManager.pickAll<C>(type);
-    }
-
-    public query<C extends Component>(type: Constructor<C>): ReadonlySetView<C>
-    {
-        return this._queryManager.query<C>(type);
-    }
-
     public removeEntity(entityId: number): Entity
     {
         const entity = this._entities.get(entityId);

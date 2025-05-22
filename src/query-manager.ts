@@ -1,35 +1,75 @@
-import { SetView, SmartIterator } from "@byloth/core";
-import type { CallbackMap, Constructor, Publisher, ReadonlySetView } from "@byloth/core";
+import { MapView, SmartIterator } from "@byloth/core";
+import type { CallbackMap, Constructor, Publisher, ReadonlyMapView } from "@byloth/core";
 
 import type Entity from "./entity.js";
-import type Component from "./component.js";
+import Component from "./component.js";
 import type { WorldEventsMap } from "./world.js";
+import type { Instances } from "./types.js";
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export default class QueryManager<T extends CallbackMap<T> = { }>
 {
-    private readonly _views: Map<Constructor<Component>, SetView<Component>>;
+    private readonly _typeKeys: Map<Constructor<Component>, Set<string>>;
+    private readonly _keyTypes: Map<string, Constructor<Component>[]>;
+
+    private readonly _views: Map<string, MapView<Entity, Component[]>>;
 
     private readonly _entities: ReadonlyMap<number, Entity>;
     private readonly _publisher: Publisher<T & WorldEventsMap>;
 
-    private readonly _onEntityComponentAdd = (_: Entity, component: Component) =>
+    private readonly _onEntityComponentAdd = (entity: Entity, component: Component) =>
     {
-        const view = this._views.get(component.constructor as Constructor<Component>);
-        if (!(view)) { return; }
+        const type = component.constructor as Constructor<Component>;
+        const keys = this._typeKeys.get(type);
+        if (!(keys)) { return; }
 
-        view.add(component);
+        for (const key of keys)
+        {
+            const types = this._keyTypes.get(key);
+            if (!(types)) { continue; }
+
+            const components: Component[] = [];
+
+            let found = true;
+            let index = 0;
+            do
+            {
+                const _type = types[index];
+                const _component = entity.getComponent(_type);
+                if (!(_component))
+                {
+                    found = false;
+
+                    break;
+                }
+
+                components.push(_component);
+
+                index += 1;
+            }
+            while (index < types.length);
+
+            if (found) { this._views.get(key)!.set(entity, components); }
+        }
     };
-    private readonly _onEntityComponentRemove = (_: Entity, component: Component) =>
+    private readonly _onEntityComponentRemove = (entity: Entity, component: Component) =>
     {
-        const view = this._views.get(component.constructor as Constructor<Component>);
-        if (!(view)) { return; }
+        const type = component.constructor as Constructor<Component>;
+        const keys = this._typeKeys.get(type);
+        if (!(keys)) { return; }
 
-        view.delete(component);
+        for (const key of keys)
+        {
+            const view = this._views.get(key);
+            if (view) { view.delete(entity); }
+        }
     };
 
     public constructor(entities: ReadonlyMap<number, Entity>, publisher: Publisher<T & WorldEventsMap>)
     {
+        this._typeKeys = new Map();
+        this._keyTypes = new Map();
+
         this._views = new Map();
 
         this._entities = entities;
@@ -42,9 +82,31 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         this._publisher.subscribe("entity:component:remove", this._onEntityComponentRemove);
     }
 
-    public pickOne<C extends Component>(type: Constructor<C>): C | undefined
+    private _addComponentKeys(types: Constructor<Component>[], key: string): void
     {
-        const view = this._views.get(type) as SetView<C> | undefined;
+        for (const type of types)
+        {
+            const view = this._typeKeys.get(type);
+            if (view) { view.add(key); }
+            else { this._typeKeys.set(type, new Set([key])); }
+        }
+    }
+    private _addKeyComponents(key: string, types: Constructor<Component>[]): void
+    {
+        if (this._keyTypes.has(key)) { throw new Error(); }
+        this._keyTypes.set(key, types);
+    }
+
+    public pickFirst<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(...types: C)
+        : R | undefined
+    {
+        if (!(types.length)) { throw new Error(); }
+
+        const key = types.map((type) => type.name)
+            .sort()
+            .join(",");
+
+        const view = this._views.get(key) as MapView<number, R> | undefined;
         if (view)
         {
             const { value } = view.values()
@@ -53,39 +115,124 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
             return value;
         }
 
+        const components: Component[] = [];
+
         for (const entity of this._entities.values())
         {
-            const component = entity.getComponent(type);
-            if (component) { return component; }
+            let found = true;
+            let index = 0;
+            do
+            {
+                const type = types[index];
+                const component = entity.getComponent(type);
+                if (!(component))
+                {
+                    found = false;
+
+                    break;
+                }
+
+                components.push(component);
+
+                index += 1;
+            }
+            while (index < types.length);
+
+            if (found) { return components as R; }
+
+            components.length = 0;
         }
 
         return undefined;
     }
-    public pickAll<C extends Component>(type: Constructor<C>): SmartIterator<C>
+    public pickAll<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(...types: C)
+        : SmartIterator<R>
     {
-        const view = this._views.get(type) as SetView<C> | undefined;
-        if (view) { return new SmartIterator(view); }
+        if (!(types.length)) { throw new Error(); }
+
+        const key = types.map((type) => type.name)
+            .sort()
+            .join(",");
+
+        const view = this._views.get(key) as MapView<number, R> | undefined;
+        if (view) { return new SmartIterator(view.values()); }
 
         return new SmartIterator(this._entities.values())
-            .map((entity) => entity.getComponent(type))
-            .filter<C>(((component) => component !== undefined));
+            .map((entity) =>
+            {
+                const components: Component[] = [];
+
+                let found = true;
+                let index = 0;
+                do
+                {
+                    const type = types[index];
+                    const component = entity.getComponent(type);
+                    if (!(component))
+                    {
+                        found = false;
+
+                        break;
+                    }
+
+                    components.push(component);
+
+                    index += 1;
+                }
+                while (index < types.length);
+
+                if (found) { return components as R; }
+
+                return undefined;
+            })
+            .filter<R>(((component) => component !== undefined));
     }
 
-    public query<C extends Component>(type: Constructor<C>): ReadonlySetView<C>
+    public query<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(...types: C)
+        : ReadonlyMapView<Entity, R>
     {
-        const view = this._views.get(type) as SetView<C> | undefined;
+        if (!(types.length)) { throw new Error(); }
+
+        const key = types.map((type) => type.name)
+            .sort()
+            .join(",");
+
+        let view = this._views.get(key) as MapView<Entity, R> | undefined;
         if (view) { return view; }
 
-        const components = new SetView<C>();
+        view = new MapView<Entity, R>();
         for (const entity of this._entities.values())
         {
-            const component = entity.getComponent(type);
-            if (component) { components.add(component); }
+            const components: Component[] = [];
+
+            let found = true;
+            let index = 0;
+            do
+            {
+                const type = types[index];
+                const component = entity.getComponent(type);
+                if (!(component))
+                {
+                    found = false;
+
+                    break;
+                }
+
+                components.push(component);
+
+                index += 1;
+            }
+            while (index < types.length);
+
+            if (found) { view.set(entity, components as R); }
         }
 
-        this._views.set(type, components);
+        this._views.set(key, view);
 
-        return components;
+        this._addComponentKeys(types, key);
+        this._addKeyComponents(key, types);
+
+        return view;
     }
 
     public dispose(): void
@@ -98,5 +245,8 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
 
         for (const view of this._views.values()) { view.clear(); }
         this._views.clear();
+
+        this._keyTypes.clear();
+        this._typeKeys.clear();
     }
 }
