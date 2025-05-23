@@ -99,23 +99,6 @@ export default class World<T extends CallbackMap<T> = { }> implements Publishabl
         return index;
     }
 
-    public pickFirst<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(...types: C)
-        : R | undefined
-    {
-        return this._queryManager.pickFirst<C, R>(...types);
-    }
-    public pickAll<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(...types: C)
-        : SmartIterator<R>
-    {
-        return this._queryManager.pickAll<C, R>(...types);
-    }
-
-    public query<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(...types: C)
-        : ReadonlyMapView<Entity, R>
-    {
-        return this._queryManager.query<C, R>(...types);
-    }
-
     public addEntity(entity: Entity): this
     {
         try
@@ -167,6 +150,29 @@ export default class World<T extends CallbackMap<T> = { }> implements Publishabl
         entity.onDetach();
 
         return entity;
+    }
+
+    public getComponent<C extends Constructor<Component>, R extends InstanceType<C> = InstanceType<C>>(type: C)
+        : R | undefined
+    {
+        return this._queryManager.pickOne<C, R>(type);
+    }
+    public getComponents<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(...types: C)
+        : R | undefined
+    {
+        return this._queryManager.findFirst<C, R>(...types);
+    }
+
+    public findComponents<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(...types: C)
+        : SmartIterator<R>
+    {
+        return this._queryManager.findAll<C, R>(...types);
+    }
+
+    public getComponentView<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(...types: C)
+        : ReadonlyMapView<Entity, R>
+    {
+        return this._queryManager.getView<C, R>(...types);
     }
 
     public addSystem(system: System): this

@@ -1,6 +1,6 @@
 {
   "name": "@byloth/micro-ecs",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "A simple & lightweight ECS (Entity Component System) library for JavaScript and TypeScript. 🕹",
   "keywords": [
     "ECS",
@@ -57,7 +57,7 @@
     "ci": "pnpm install --frozen-lockfile"
   },
   "dependencies": {
-    "@byloth/core": "^2.1.1"
+    "@byloth/core": "^2.1.2"
   },
   "devDependencies": {
     "@byloth/eslint-config-typescript": "^3.1.0",

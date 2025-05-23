@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { Component, Entity, World } from "../src/index.js";
 
-describe("QueryManager", () =>
+describe("getComponentViewManager", () =>
 {
     class TestComponent1 extends Component { }
     class TestComponent2 extends Component { }
@@ -38,10 +38,10 @@ describe("QueryManager", () =>
 
         _populateWorld(world);
 
-        const first = world.pickFirst(TestComponent3, TestComponent1)!;
-        const second = world.pickFirst(TestComponent4);
-        const iterator = world.pickAll(TestComponent2).toArray();
-        const view = Array.from(world.query(TestComponent1).values());
+        const first = world.getComponents(TestComponent3, TestComponent1)!;
+        const second = world.getComponent(TestComponent4);
+        const iterator = world.findComponents(TestComponent2).toArray();
+        const view = Array.from(world.getComponentView(TestComponent1).values());
 
         expect(view.length).toBe(4);
         expect(view[0][0].entity!.id).toBe(1);
@@ -65,7 +65,7 @@ describe("QueryManager", () =>
 
         _populateWorld(world);
 
-        const view = world.query(TestComponent1, TestComponent3);
+        const view = world.getComponentView(TestComponent1, TestComponent3);
 
         const before = Array.from(view.values());
         expect(before.length).toBe(2);
@@ -92,7 +92,7 @@ describe("QueryManager", () =>
 
         _populateWorld(world);
 
-        const view = world.query(TestComponent2, TestComponent3);
+        const view = world.getComponentView(TestComponent2, TestComponent3);
 
         const before = Array.from(view.values());
         expect(before.length).toBe(2);
@@ -113,7 +113,7 @@ describe("QueryManager", () =>
 
         _populateWorld(world);
 
-        const entities = world.query(TestComponent3);
+        const entities = world.getComponentView(TestComponent3);
 
         const before = Array.from(entities.values());
         expect(before.length).toBe(4);

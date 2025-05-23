@@ -97,7 +97,27 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         this._keyTypes.set(key, types);
     }
 
-    public pickFirst<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(...types: C)
+    public pickOne<C extends Constructor<Component>, R = InstanceType<C>>(type: C): R | undefined
+    {
+        const view = this._views.get(type.name) as MapView<number, R> | undefined;
+        if (view)
+        {
+            const { value } = view.values()
+                .next();
+
+            return value;
+        }
+
+        for (const entity of this._entities.values())
+        {
+            const component = entity.getComponent(type);
+            if (component) { return component as R; }
+        }
+
+        return undefined;
+    }
+
+    public findFirst<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(...types: C)
         : R | undefined
     {
         if (!(types.length)) { throw new Error(); }
@@ -145,7 +165,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
 
         return undefined;
     }
-    public pickAll<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(...types: C)
+    public findAll<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(...types: C)
         : SmartIterator<R>
     {
         if (!(types.length)) { throw new Error(); }
@@ -188,7 +208,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
             .filter<R>(((component) => component !== undefined));
     }
 
-    public query<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(...types: C)
+    public getView<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(...types: C)
         : ReadonlyMapView<Entity, R>
     {
         if (!(types.length)) { throw new Error(); }
