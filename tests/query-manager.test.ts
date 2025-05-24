@@ -72,9 +72,9 @@ describe("getComponentViewManager", () =>
         expect(before[0][0].entity!.id).toBe(3);
         expect(before[1][0].entity!.id).toBe(5);
 
-        const entity = new Entity()
-            .addComponent(new TestComponent3())
-            .addComponent(new TestComponent1());
+        const entity = new Entity();
+        entity.addComponent(new TestComponent3());
+        entity.addComponent(new TestComponent1());
 
         Object.defineProperty(entity, "id", { value: 10 });
 

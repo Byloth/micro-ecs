@@ -39,7 +39,7 @@ export default class Entity<W extends World = World>
         this._tags = new Set();
     }
 
-    public addComponent(component: Component): this
+    public addComponent<C extends Component>(component: C): C
     {
         const type = component.constructor as Constructor<Component>;
         if (this._components.has(type)) { throw new Error(); }
@@ -60,7 +60,7 @@ export default class Entity<W extends World = World>
 
         if (this._world) { this._world.publish("entity:component:add", this, component); }
 
-        return this;
+        return component;
     }
 
     public getComponent<C extends Component>(type: Constructor<C>): C | undefined
@@ -86,7 +86,7 @@ export default class Entity<W extends World = World>
         return component;
     }
 
-    public addChild(child: Entity): this
+    public addChild<E extends Entity>(child: E): E
     {
         try
         {
@@ -104,7 +104,7 @@ export default class Entity<W extends World = World>
 
         if (this._world) { this._world.publish("entity:child:add", this, child); }
 
-        return this;
+        return child;
     }
     public removeChild(child: Entity): this
     {
