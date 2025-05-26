@@ -27,8 +27,11 @@ export interface WorldEventsMap
     "system:disable": (system: System) => void;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export default class World<T extends CallbackMap<T> = { }> implements Publishable<T & WorldEventsMap>
+export default class World<
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+    T extends CallbackMap<T> = { },
+    U extends CallbackMap = T & WorldEventsMap
+> implements Publishable<U>
 {
     private readonly _contexts: Map<Entity | System, Context>;
     public get contexts(): ReadonlyMap<Entity | System, Context> { return this._contexts; }
@@ -40,7 +43,7 @@ export default class World<T extends CallbackMap<T> = { }> implements Publishabl
     private readonly _enabledSystems: System[];
     public get systems(): readonly System[] { return this._systems; }
 
-    private readonly _publisher: Publisher<T & WorldEventsMap>;
+    private readonly _publisher: Publisher<U>;
     private readonly _queryManager: QueryManager;
 
     private readonly _onEntityChildAdd = (_: Entity, child: Entity): void => { this.addEntity(child); };
@@ -220,9 +223,7 @@ export default class World<T extends CallbackMap<T> = { }> implements Publishabl
         return context;
     }
 
-    // eslint-disable-next-line space-before-function-paren
-    public publish<K extends keyof (T & WorldEventsMap)>(
-        event: K & string, ...args: Parameters<(T & WorldEventsMap)[K]>): ReturnType<(T & WorldEventsMap)[K]>[]
+    public publish<K extends keyof U>(event: K & string, ...args: Parameters<U[K]>): ReturnType<U[K]>[]
     {
         return this._publisher.publish(event, ...args);
     }
