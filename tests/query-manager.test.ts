@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { Component, Entity, World } from "../src/index.js";
 
 describe("getComponentViewManager", () =>
@@ -105,6 +105,20 @@ describe("getComponentViewManager", () =>
         const after = Array.from(view.values());
         expect(after.length).toBe(1);
         expect(after[0][0].entity!.id).toBe(5);
+    });
+
+    it("Should reactively be called once when an entity with multiple components is added", () =>
+    {
+        const _onEntryAdd = vi.fn();
+
+        const world = new World();
+        const view = world.getComponentView(TestComponent1, TestComponent2);
+
+        view.subscribe("entry:add", _onEntryAdd);
+
+        _populateWorld(world);
+
+        expect(_onEntryAdd).toHaveBeenCalledTimes(2);
     });
 
     it("Should be disposed correctly", () =>

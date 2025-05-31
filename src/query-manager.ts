@@ -25,6 +25,9 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
 
         for (const key of keys)
         {
+            const entities = this._views.get(key)!;
+            if (entities.has(entity)) { continue; }
+
             const types = this._keyTypes.get(key);
             if (!(types)) { continue; }
 
@@ -49,7 +52,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
             }
             while (index < types.length);
 
-            if (found) { this._views.get(key)!.set(entity, components); }
+            if (found) { entities.set(entity, components); }
         }
     };
     private readonly _onEntityComponentRemove = (entity: Entity, component: Component) =>
