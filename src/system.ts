@@ -1,3 +1,4 @@
+import { ReferenceException, RuntimeException } from "@byloth/core";
 import type World from "./world.js";
 
 export default class System<W extends World = World>
@@ -25,14 +26,14 @@ export default class System<W extends World = World>
 
     public enable(): void
     {
-        if (this._enabled) { throw new Error(); }
+        if (this._enabled) { throw new RuntimeException("The system is already enabled."); }
         this._enabled = true;
 
         this._world?.publish("system:enable", this);
     }
     public disable(): void
     {
-        if (!(this._enabled)) { throw new Error(); }
+        if (!(this._enabled)) { throw new RuntimeException("The system is already disabled."); }
         this._enabled = false;
 
         this._world?.publish("system:disable", this);
@@ -40,12 +41,12 @@ export default class System<W extends World = World>
 
     public onAttach(world: W): void
     {
-        if (this._world) { throw new Error(); }
+        if (this._world) { throw new ReferenceException("The system is already attached to a world."); }
         this._world = world;
     }
     public onDetach(): void
     {
-        if (!(this._world)) { throw new Error(); }
+        if (!(this._world)) { throw new ReferenceException("The system isn't attached to any world."); }
         this._world = null;
     }
 

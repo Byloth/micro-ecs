@@ -1,4 +1,4 @@
-import { Publisher } from "@byloth/core";
+import { Publisher, ReferenceException } from "@byloth/core";
 import type { CallbackMap, Constructor, Publishable, ReadonlyMapView, SmartIterator } from "@byloth/core";
 
 import type Entity from "./entity.js";
@@ -8,6 +8,7 @@ import type System from "./system.js";
 import QueryManager from "./query-manager.js";
 import Context from "./context.js";
 import type { Instances } from "./types.js";
+import { AttachmentException } from "./exceptions.js";
 
 export interface WorldEventsMap
 {
@@ -16,9 +17,6 @@ export interface WorldEventsMap
 
     "entity:child:add": (entity: Entity, child: Entity) => void;
     "entity:child:remove": (entity: Entity, child: Entity) => void;
-
-    "entity:tag:add": (entity: Entity, tag: string) => void;
-    "entity:tag:remove": (entity: Entity, tag: string) => void;
 
     "system:add": (system: System) => void;
     "system:remove": (system: System) => void;
@@ -33,8 +31,8 @@ export default class World<
     U extends CallbackMap = T & WorldEventsMap
 > implements Publishable<U>
 {
-    private readonly _contexts: Map<Entity | System, Context>;
-    public get contexts(): ReadonlyMap<Entity | System, Context> { return this._contexts; }
+    private readonly _contexts: Map<System, Context>;
+    public get contexts(): ReadonlyMap<System, Context> { return this._contexts; }
 
     private readonly _entities: Map<number, Entity>;
     public get entities(): ReadonlyMap<number, Entity> { return this._entities; }
@@ -108,12 +106,9 @@ export default class World<
         {
             entity.onAttach(this);
         }
-        catch
+        catch (error)
         {
-            // TODO!
-            // console.error("Failed to attach entity:", error);
-
-            throw new Error();
+            throw new AttachmentException("It wasn't possible to attach this entity to the world.", error);
         }
 
         this._entities.set(entity.id, entity);
@@ -126,16 +121,12 @@ export default class World<
             // @ts-expect-error - Parameters type is correct.
             .forEach((child) => this._publisher.publish("entity:child:add", entity, child));
 
-        entity.tags
-            // @ts-expect-error - Parameters type is correct.
-            .forEach((tag) => this._publisher.publish("entity:tag:add", entity, tag));
-
         return this;
     }
     public removeEntity(entityId: number): Entity
     {
         const entity = this._entities.get(entityId);
-        if (!(entity)) { throw new Error(); }
+        if (!(entity)) { throw new ReferenceException(`The entity with ID ${entityId} doesn't exist.`); }
 
         entity.components.values()
             // @ts-expect-error - Parameters type is correct.
@@ -144,10 +135,6 @@ export default class World<
         entity.children
             // @ts-expect-error - Parameters type is correct.
             .forEach((child) => this._publisher.publish("entity:child:remove", entity, child));
-
-        entity.tags
-            // @ts-expect-error - Parameters type is correct.
-            .forEach((tag) => this._publisher.publish("entity:tag:remove", entity, tag));
 
         this._entities.delete(entityId);
         entity.onDetach();
@@ -184,12 +171,9 @@ export default class World<
         {
             system.onAttach(this);
         }
-        catch
+        catch (error)
         {
-            // TODO!
-            // console.error("Failed to attach system:", error);
-
-            throw new Error();
+            throw new AttachmentException("It wasn't possible to attach this system to the world.", error);
         }
 
         this._insertSystem(this._systems, system);
@@ -202,7 +186,11 @@ export default class World<
     }
     public removeSystem(system: System): this
     {
-        if (this._removeSystem(this._systems, system) === -1) { throw new Error(); }
+        if (this._removeSystem(this._systems, system) === -1)
+        {
+            throw new ReferenceException("The system doesn't exist in the world.");
+        }
+
         this._removeSystem(this._enabledSystems, system);
 
         system.onDetach();
@@ -213,9 +201,12 @@ export default class World<
         return this;
     }
 
-    public getContext(instance: Entity | System): Context<T>
+    public getContext(instance: System): Context<T>
     {
-        if (this._contexts.has(instance)) { throw new Error(); }
+        if (this._contexts.has(instance))
+        {
+            throw new ReferenceException("The context already exists for this instance.");
+        }
 
         const context = new Context(this._publisher);
         this._contexts.set(instance, context);

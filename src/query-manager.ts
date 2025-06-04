@@ -1,4 +1,4 @@
-import { MapView, SmartIterator } from "@byloth/core";
+import { KeyException, MapView, SmartIterator, ValueException } from "@byloth/core";
 import type { CallbackMap, Constructor, Publisher, ReadonlyMapView } from "@byloth/core";
 
 import type Entity from "./entity.js";
@@ -96,7 +96,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
     }
     private _addKeyComponents(key: string, types: Constructor<Component>[]): void
     {
-        if (this._keyTypes.has(key)) { throw new Error(); }
+        if (this._keyTypes.has(key)) { throw new KeyException(`The key "${key}" is already registered.`); }
         this._keyTypes.set(key, types);
     }
 
@@ -123,7 +123,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
     public findFirst<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(...types: C)
         : R | undefined
     {
-        if (!(types.length)) { throw new Error(); }
+        if (!(types.length)) { throw new ValueException("At least one type must be provided."); }
 
         const key = types.map((type) => type.name)
             .sort()
@@ -171,7 +171,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
     public findAll<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(...types: C)
         : SmartIterator<R>
     {
-        if (!(types.length)) { throw new Error(); }
+        if (!(types.length)) { throw new ValueException("At least one type must be provided."); }
 
         const key = types.map((type) => type.name)
             .sort()
@@ -214,7 +214,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
     public getView<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(...types: C)
         : ReadonlyMapView<Entity, R>
     {
-        if (!(types.length)) { throw new Error(); }
+        if (!(types.length)) { throw new ValueException("At least one type must be provided."); }
 
         const key = types.map((type) => type.name)
             .sort()

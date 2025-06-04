@@ -1,3 +1,4 @@
+import { ReferenceException } from "@byloth/core";
 import type Entity from "./entity.js";
 
 export default class Component<E extends Entity = Entity>
@@ -12,12 +13,12 @@ export default class Component<E extends Entity = Entity>
 
     public onAttach(entity: E): void
     {
-        if (this._entity) { throw new Error(); }
+        if (this._entity) { throw new ReferenceException("The component is already attached to an entity."); }
         this._entity = entity;
     }
     public onDetach(): void
     {
-        if (!(this._entity)) { throw new Error(); }
+        if (!(this._entity)) { throw new ReferenceException("The component isn't attached to any entity."); }
         this._entity = null;
     }
 

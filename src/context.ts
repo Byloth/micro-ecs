@@ -1,4 +1,6 @@
+import { KeyException, ValueException } from "@byloth/core";
 import type { CallbackMap, Publisher, Subscribable } from "@byloth/core";
+
 import type { WorldEventsMap } from "./world.js";
 
 export default class Context<
@@ -23,7 +25,11 @@ export default class Context<
         else
         {
             const subscribers = this._subscribers.get(event)!;
-            if (subscribers.has(subscriber)) { throw new Error(); }
+            if (subscribers.has(subscriber))
+            {
+                throw new ValueException("The subscriber is already registered for this event.");
+            }
+
             subscribers.add(subscriber);
         }
 
@@ -35,8 +41,11 @@ export default class Context<
         : void
     {
         const subscribers = this._subscribers.get(event);
-        if (!(subscribers)) { throw new Error(); }
-        if (!(subscribers.delete(subscriber))) { throw new Error(); }
+        if (!(subscribers)) { throw new KeyException(`The event "${event}" doesn't have any subscribers.`); }
+        if (!(subscribers.delete(subscriber)))
+        {
+            throw new ValueException("The subscriber isn't registered for this event.");
+        }
 
         this._publisher.unsubscribe(event, subscriber);
     }

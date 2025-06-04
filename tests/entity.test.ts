@@ -14,7 +14,6 @@ describe("Entity", () =>
 
         expect(entity.components.size).toBe(0);
         expect(entity.children.size).toBe(0);
-        expect(entity.tags.size).toBe(0);
     });
 
     it("Should be able to add and retrieve a component", () =>
@@ -104,42 +103,6 @@ describe("Entity", () =>
 
         expect(parent.world).toBe(world);
         expect(child.world).toBe(world);
-    });
-
-    it("Should be able to add and retrieve a tag", () =>
-    {
-        const entity = new Entity();
-
-        entity.addTag("tag:test");
-
-        expect(entity.hasTag("tag:test")).toBe(true);
-        expect(entity.tags.has("tag:test")).toBe(true);
-        expect(entity.tags.size).toBe(1);
-    });
-    it("Should throw an error when adding a duplicate tag", () =>
-    {
-        const entity = new Entity();
-
-        entity.addTag("tag:test");
-
-        expect(() => entity.addTag("tag:test")).toThrow();
-        expect(entity.tags.size).toBe(1);
-    });
-
-    it("Should be able to remove a tag", () =>
-    {
-        const entity = new Entity();
-
-        entity.addTag("tag:test");
-        entity.removeTag("tag:test");
-
-        expect(entity.hasTag("tag:test")).toBe(false);
-        expect(entity.tags.size).toBe(0);
-    });
-    it("Should throw an error when removing a non-existent tag", () =>
-    {
-        const entity = new Entity();
-        expect(() => entity.removeTag("tag:test")).toThrow();
     });
 
     it("Should be attachable to a world", () =>
@@ -247,7 +210,6 @@ describe("Entity", () =>
 
         parent.addChild(child);
         parent.addComponent(new TestComponent());
-        parent.addTag("tag:test");
 
         world.addEntity(parent);
         parent.dispose();
@@ -256,9 +218,6 @@ describe("Entity", () =>
 
         expect(parent.hasComponent(TestComponent)).toBe(false);
         expect(parent.components.size).toBe(0);
-
-        expect(parent.hasTag("tag:test")).toBe(false);
-        expect(parent.tags.size).toBe(0);
 
         expect(parent.children.has(child)).toBe(false);
         expect(parent.children.size).toBe(0);

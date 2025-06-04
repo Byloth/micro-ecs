@@ -1,6 +1,8 @@
+import { ReferenceException } from "@byloth/core";
 import type { Constructor } from "@byloth/core";
 
 import type Component from "./component.js";
+import { AdoptionException, AttachmentException } from "./exceptions.js";
 import type World from "./world.js";
 
 export default class Entity<W extends World = World>
@@ -22,9 +24,6 @@ export default class Entity<W extends World = World>
     private readonly _children: Set<Entity>;
     public get children(): ReadonlySet<Entity> { return this._children; }
 
-    private readonly _tags: Set<string>;
-    public get tags(): ReadonlySet<string> { return this._tags; }
-
     public constructor()
     {
         this.id = (Entity["__μECS_nextId__"] += 1);
@@ -35,25 +34,20 @@ export default class Entity<W extends World = World>
 
         this._parent = null;
         this._children = new Set();
-
-        this._tags = new Set();
     }
 
     public addComponent<C extends Component>(component: C): C
     {
         const type = component.constructor as Constructor<Component>;
-        if (this._components.has(type)) { throw new Error(); }
+        if (this._components.has(type)) { throw new ReferenceException("The entity already has this component."); }
 
         try
         {
             component.onAttach(this);
         }
-        catch
+        catch (error)
         {
-            // TODO!
-            // console.error("Failed to attach component:", error);
-
-            throw new Error();
+            throw new AttachmentException("It wasn't possible to attach this component to the entity.", error);
         }
 
         this._components.set(type, component);
@@ -75,7 +69,7 @@ export default class Entity<W extends World = World>
     public removeComponent<C extends Component>(type: Constructor<C>): C
     {
         const component = this._components.get(type) as C | undefined;
-        if (!(component)) { throw new Error(); }
+        if (!(component)) { throw new ReferenceException("The entity doesn't have this component."); }
 
         this._components.delete(type);
 
@@ -92,12 +86,9 @@ export default class Entity<W extends World = World>
         {
             child.onAdoption(this);
         }
-        catch
+        catch (error)
         {
-            // TODO!
-            // console.error("Failed to adopt child:", error);
-
-            throw new Error();
+            throw new AdoptionException("It wasn't possible to adopt this entity as a child.", error);
         }
 
         this._children.add(child);
@@ -108,7 +99,10 @@ export default class Entity<W extends World = World>
     }
     public removeChild(child: Entity): this
     {
-        if (!(this._children.delete(child))) { throw new Error(); }
+        if (!(this._children.delete(child)))
+        {
+            throw new ReferenceException("The entity isn't a child of this entity.");
+        }
 
         child.onUnadoption();
 
@@ -117,46 +111,25 @@ export default class Entity<W extends World = World>
         return this;
     }
 
-    public addTag(tag: string): this
-    {
-        if (this._tags.has(tag)) { throw new Error(); }
-        this._tags.add(tag);
-
-        if (this._world) { this._world.publish("entity:tag:add", this, tag); }
-
-        return this;
-    }
-    public hasTag(tag: string): boolean
-    {
-        return this._tags.has(tag);
-    }
-    public removeTag(tag: string): this
-    {
-        if (!(this._tags.delete(tag))) { throw new Error(); }
-        if (this._world) { this._world.publish("entity:tag:remove", this, tag); }
-
-        return this;
-    }
-
     public onAttach(world: W): void
     {
-        if (this._world) { throw new Error(); }
+        if (this._world) { throw new ReferenceException("The entity is already attached to a world."); }
         this._world = world;
     }
     public onDetach(): void
     {
-        if (!(this._world)) { throw new Error(); }
+        if (!(this._world)) { throw new ReferenceException("The entity isn't attached to any world."); }
         this._world = null;
     }
 
     public onAdoption(parent: Entity): void
     {
-        if (this._parent) { throw new Error(); }
+        if (this._parent) { throw new ReferenceException("The entity is already adopted by another entity."); }
         this._parent = parent;
     }
     public onUnadoption(): void
     {
-        if (!(this._parent)) { throw new Error(); }
+        if (!(this._parent)) { throw new ReferenceException("The entity isn't adopted by any entity."); }
         this._parent = null;
     }
 
@@ -171,7 +144,5 @@ export default class Entity<W extends World = World>
 
         for (const child of this._children) { child.dispose(); }
         this._children.clear();
-
-        this._tags.clear();
     }
 }
