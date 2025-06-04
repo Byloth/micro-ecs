@@ -51,9 +51,12 @@ export default class System<W extends World = World>
     }
 
     public update(deltaTime: number): void { /* ... */ }
+
     public dispose(): void
     {
-        if (!(this._world)) { return; }
-        this._world = null;
+        if (this._world)
+        {
+            throw new RuntimeException("The system must be detached from the world before disposing it.");
+        }
     }
 }

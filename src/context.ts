@@ -1,5 +1,5 @@
-import { KeyException, ValueException } from "@byloth/core";
-import type { CallbackMap, Publisher, Subscribable } from "@byloth/core";
+import { ReferenceException } from "@byloth/core";
+import type { Callback, CallbackMap, Publisher, Subscribable } from "@byloth/core";
 
 import type { WorldEventsMap } from "./world.js";
 
@@ -10,7 +10,7 @@ export default class Context<
 > implements Subscribable<U>
 {
     private readonly _publisher: Publisher<U>;
-    private readonly _subscribers: Map<string, Set<() => void>>;
+    private readonly _subscribers: Map<string, Set<Callback<unknown[], unknown>>>;
 
     public constructor(publisher: Publisher<U>)
     {
@@ -21,30 +21,38 @@ export default class Context<
     public subscribe<K extends keyof U>(event: K & string, subscriber: U[K])
         : () => void
     {
-        if (!(this._subscribers.has(event))) { this._subscribers.set(event, new Set([subscriber])); }
-        else
-        {
-            const subscribers = this._subscribers.get(event)!;
-            if (subscribers.has(subscriber))
-            {
-                throw new ValueException("The subscriber is already registered for this event.");
-            }
+        if (!(this._subscribers.has(event))) { this._subscribers.set(event, new Set()); }
 
-            subscribers.add(subscriber);
-        }
+        const subscribers = this._subscribers.get(event)!;
+        subscribers.add(subscriber);
 
         this._publisher.subscribe(event, subscriber);
 
-        return () => this.unsubscribe(event, subscriber);
+        return () =>
+        {
+            if (!(subscribers.delete(subscriber)))
+            {
+                throw new ReferenceException("Unable to unsubscribe the required subscriber. " +
+                    "The subscription was already unsubscribed.");
+            }
+
+            this._publisher.unsubscribe(event, subscriber);
+        };
     }
     public unsubscribe<K extends keyof U>(event: K & string, subscriber: U[K])
         : void
     {
         const subscribers = this._subscribers.get(event);
-        if (!(subscribers)) { throw new KeyException(`The event "${event}" doesn't have any subscribers.`); }
+        if (!(subscribers))
+        {
+            throw new ReferenceException("Unable to unsubscribe the required subscriber. " +
+                "The subscription was already unsubscribed or was never subscribed.");
+        }
+
         if (!(subscribers.delete(subscriber)))
         {
-            throw new ValueException("The subscriber isn't registered for this event.");
+            throw new ReferenceException("Unable to unsubscribe the required subscriber. " +
+                "The subscription was already unsubscribed or was never subscribed.");
         }
 
         this._publisher.unsubscribe(event, subscriber);

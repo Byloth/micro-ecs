@@ -1,4 +1,4 @@
-import { ReferenceException } from "@byloth/core";
+import { ReferenceException, RuntimeException } from "@byloth/core";
 import type { Constructor } from "@byloth/core";
 
 import type Component from "./component.js";
@@ -135,14 +135,29 @@ export default class Entity<W extends World = World>
 
     public dispose(): void
     {
-        this._world = null;
+        if (this._world)
+        {
+            throw new RuntimeException("The entity must be detached from the world before being disposed.");
+        }
+        if (this._parent)
+        {
+            throw new RuntimeException("The entity must be unadopted from its parent before being disposed.");
+        }
 
-        for (const component of this._components.values()) { component.dispose(); }
+        for (const component of this._components.values())
+        {
+            component.onDetach();
+            component.dispose();
+        }
+
         this._components.clear();
 
-        this._parent = null;
+        for (const child of this._children)
+        {
+            child.onUnadoption();
+            child.dispose();
+        }
 
-        for (const child of this._children) { child.dispose(); }
         this._children.clear();
     }
 }

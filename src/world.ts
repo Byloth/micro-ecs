@@ -195,6 +195,14 @@ export default class World<
 
         system.onDetach();
 
+        const context = this._contexts.get(system);
+        if (context)
+        {
+            context.dispose();
+
+            this._contexts.delete(system);
+        }
+
         // @ts-expect-error - Parameter type is correct.
         this._publisher.publish("system:remove", system);
 
@@ -229,16 +237,25 @@ export default class World<
 
     public dispose(): void
     {
+        this._contexts.clear();
         this._publisher.clear();
+
         this._queryManager.dispose();
 
-        for (const system of this._systems.slice()) { system.dispose(); }
+        for (const system of this._systems)
+        {
+            system.onDetach();
+            system.dispose();
+        }
+
         this._systems.length = 0;
         this._enabledSystems.length = 0;
 
         for (const entity of this._entities.values())
         {
             if (entity.parent) { continue; }
+
+            entity.onDetach();
             entity.dispose();
         }
 

@@ -1,5 +1,7 @@
+import { ReferenceException, RuntimeException } from "@byloth/core";
 import { describe, it, expect, vi } from "vitest";
-import { System, World } from "../src/index.js";
+
+import { AttachmentException, System, World } from "../src/index.js";
 
 describe("System", () =>
 {
@@ -31,13 +33,13 @@ describe("System", () =>
 
         const system = new TestSystem();
         expect(system.enabled).toBe(true);
-        expect(() => system.enable()).toThrow();
+        expect(() => system.enable()).toThrow(RuntimeException);
         expect(_enable).not.toHaveBeenCalled();
         expect(_disable).not.toHaveBeenCalled();
 
         system.disable();
         expect(system.enabled).toBe(false);
-        expect(() => system.disable()).toThrow();
+        expect(() => system.disable()).toThrow(RuntimeException);
         expect(_enable).toHaveBeenCalledTimes(0);
         expect(_disable).toHaveBeenCalledTimes(1);
 
@@ -85,7 +87,7 @@ describe("System", () =>
 
         world1.addSystem(system);
 
-        expect(() => world2.addSystem(system)).toThrow();
+        expect(() => world2.addSystem(system)).toThrow(AttachmentException);
         expect(_onAttach).toHaveBeenCalledTimes(1);
     });
 
@@ -125,7 +127,7 @@ describe("System", () =>
         const world = new World();
         const system = new TestSystem();
 
-        expect(() => world.removeSystem(system)).toThrow();
+        expect(() => world.removeSystem(system)).toThrow(ReferenceException);
         expect(_onDetach).not.toHaveBeenCalled();
     });
 
@@ -165,6 +167,9 @@ describe("System", () =>
         const world = new World();
 
         world.addSystem(system);
+        expect(() => system.dispose()).toThrow(RuntimeException);
+
+        world.removeSystem(system);
         system.dispose();
 
         expect(system.world).toBeNull();

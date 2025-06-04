@@ -1,3 +1,4 @@
+import { ReferenceException } from "@byloth/core";
 import { beforeEach, describe, it, expect, vi } from "vitest";
 
 import { Context, Entity, System, World } from "../src/index.js";
@@ -31,7 +32,7 @@ describe("World", () =>
     {
         const entity = new Entity();
 
-        expect(() => _world.removeEntity(entity.id)).toThrow();
+        expect(() => _world.removeEntity(entity.id)).toThrow(ReferenceException);
     });
 
     it("Should add a system to the world", () =>
@@ -85,7 +86,7 @@ describe("World", () =>
     {
         const system = new System();
 
-        expect(() => _world.removeSystem(system)).toThrow();
+        expect(() => _world.removeSystem(system)).toThrow(ReferenceException);
     });
 
     it("Should call update on all enabled systems", () =>
@@ -199,6 +200,6 @@ describe("World", () =>
         const system = new TestSystem();
 
         _world.getContext(system);
-        expect(() => _world.getContext(system)).toThrow();
+        expect(() => _world.getContext(system)).toThrow(ReferenceException);
     });
 });

@@ -1,5 +1,7 @@
+import { ReferenceException, RuntimeException } from "@byloth/core";
 import { describe, it, expect, vi } from "vitest";
-import { Component, Entity, World } from "../src/index.js";
+
+import { AttachmentException, Component, Entity, World } from "../src/index.js";
 
 describe("Entity", () =>
 {
@@ -37,7 +39,7 @@ describe("Entity", () =>
         const component = new TestComponent();
 
         entity.addComponent(component);
-        expect(() => entity.addComponent(component)).toThrow();
+        expect(() => entity.addComponent(component)).toThrow(ReferenceException);
     });
 
     it("Should be able to remove a component", () =>
@@ -58,7 +60,7 @@ describe("Entity", () =>
         class TestComponent extends Component { }
 
         const entity = new Entity();
-        expect(() => entity.removeComponent(TestComponent)).toThrow();
+        expect(() => entity.removeComponent(TestComponent)).toThrow(ReferenceException);
     });
 
     it("Should be able to add and retrieve a child entity", () =>
@@ -89,7 +91,7 @@ describe("Entity", () =>
         const parent = new Entity();
         const child = new Entity();
 
-        expect(() => parent.removeChild(child)).toThrow();
+        expect(() => parent.removeChild(child)).toThrow(ReferenceException);
     });
 
     it("Should share the same world with its children", () =>
@@ -142,7 +144,7 @@ describe("Entity", () =>
         const entity = new TestEntity();
 
         world1.addEntity(entity);
-        expect(() => world2.addEntity(entity)).toThrow();
+        expect(() => world2.addEntity(entity)).toThrow(AttachmentException);
     });
 
     it("Should be detachable from a world", () =>
@@ -186,7 +188,7 @@ describe("Entity", () =>
         world.addEntity(entity);
         world.removeEntity(entity.id);
 
-        expect(() => world.removeEntity(entity.id)).toThrow();
+        expect(() => world.removeEntity(entity.id)).toThrow(ReferenceException);
     });
 
     it("Should be disposable", () =>
@@ -212,6 +214,9 @@ describe("Entity", () =>
         parent.addComponent(new TestComponent());
 
         world.addEntity(parent);
+        expect(() => parent.dispose()).toThrow(RuntimeException);
+
+        world.removeEntity(parent.id);
         parent.dispose();
 
         expect(parent.world).toBeNull();
