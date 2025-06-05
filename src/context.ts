@@ -10,7 +10,7 @@ export default class Context<
 > implements Subscribable<U>
 {
     private readonly _publisher: Publisher<U>;
-    private readonly _subscribers: Map<string, Set<Callback<unknown[], unknown>>>;
+    private readonly _subscribers: Map<string, Callback<unknown[], unknown>[]>;
 
     public constructor(publisher: Publisher<U>)
     {
@@ -21,21 +21,23 @@ export default class Context<
     public subscribe<K extends keyof U>(event: K & string, subscriber: U[K])
         : () => void
     {
-        if (!(this._subscribers.has(event))) { this._subscribers.set(event, new Set()); }
+        if (!(this._subscribers.has(event))) { this._subscribers.set(event, []); }
 
         const subscribers = this._subscribers.get(event)!;
-        subscribers.add(subscriber);
+        subscribers.push(subscriber);
 
         this._publisher.subscribe(event, subscriber);
 
         return () =>
         {
-            if (!(subscribers.delete(subscriber)))
+            const index = subscribers.indexOf(subscriber);
+            if (index < 0)
             {
                 throw new ReferenceException("Unable to unsubscribe the required subscriber. " +
                     "The subscription was already unsubscribed.");
             }
 
+            subscribers.splice(index, 1);
             this._publisher.unsubscribe(event, subscriber);
         };
     }
@@ -49,12 +51,14 @@ export default class Context<
                 "The subscription was already unsubscribed or was never subscribed.");
         }
 
-        if (!(subscribers.delete(subscriber)))
+        const index = subscribers.indexOf(subscriber);
+        if (index < 0)
         {
             throw new ReferenceException("Unable to unsubscribe the required subscriber. " +
                 "The subscription was already unsubscribed or was never subscribed.");
         }
 
+        subscribers.splice(index, 1);
         this._publisher.unsubscribe(event, subscriber);
     }
 

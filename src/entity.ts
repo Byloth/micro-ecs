@@ -1,11 +1,12 @@
 import { ReferenceException, RuntimeException } from "@byloth/core";
 import type { Constructor } from "@byloth/core";
 
+import μObject from "./core.js";
 import type Component from "./component.js";
 import { AdoptionException, AttachmentException } from "./exceptions.js";
 import type World from "./world.js";
 
-export default class Entity<W extends World = World>
+export default class Entity<W extends World = World> extends μObject
 {
     // eslint-disable-next-line camelcase
     private static __μECS_nextId__ = 0;
@@ -26,6 +27,8 @@ export default class Entity<W extends World = World>
 
     public constructor()
     {
+        super();
+
         this.id = (Entity["__μECS_nextId__"] += 1);
 
         this._world = null;
@@ -133,7 +136,7 @@ export default class Entity<W extends World = World>
         this._parent = null;
     }
 
-    public dispose(): void
+    public override dispose(): void
     {
         if (this._world)
         {
@@ -159,5 +162,7 @@ export default class Entity<W extends World = World>
         }
 
         this._children.clear();
+
+        super.dispose();
     }
 }
