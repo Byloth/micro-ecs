@@ -1,17 +1,14 @@
 import { ReferenceException, RuntimeException } from "@byloth/core";
 
-import μObject from "./core.js";
 import type Entity from "./entity.js";
 
-export default class Component<E extends Entity = Entity> extends μObject
+export default class Component<E extends Entity = Entity>
 {
     private _entity: E | null;
     public get entity(): E | null { return this._entity; }
 
     public constructor()
     {
-        super();
-
         this._entity = null;
     }
 
@@ -26,13 +23,11 @@ export default class Component<E extends Entity = Entity> extends μObject
         this._entity = null;
     }
 
-    public override dispose(): void
+    public dispose(): void
     {
         if (this._entity)
         {
             throw new RuntimeException("The component must be detached from the entity before disposing it.");
         }
-
-        super.dispose();
     }
 }

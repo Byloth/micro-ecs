@@ -1,9 +1,8 @@
 import { ReferenceException, RuntimeException } from "@byloth/core";
 
-import μObject from "./core.js";
 import type World from "./world.js";
 
-export default class System<W extends World = World> extends μObject
+export default class System<W extends World = World>
 {
     public static Sort(a: System, b: System): number
     {
@@ -20,8 +19,6 @@ export default class System<W extends World = World> extends μObject
 
     public constructor(priority = 0, enabled = true)
     {
-        super();
-
         this.priority = priority;
 
         this._enabled = enabled;
@@ -56,13 +53,11 @@ export default class System<W extends World = World> extends μObject
 
     public update(deltaTime: number): void { /* ... */ }
 
-    public override dispose(): void
+    public dispose(): void
     {
         if (this._world)
         {
             throw new RuntimeException("The system must be detached from the world before disposing it.");
         }
-
-        super.dispose();
     }
 }

@@ -219,8 +219,6 @@ export default class World<
         const context = new Context(this._publisher);
         this._contexts.set(instance, context);
 
-        instance.register(context);
-
         return context;
     }
 

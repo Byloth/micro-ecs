@@ -21,11 +21,10 @@ export default class Context<
     public subscribe<K extends keyof U>(event: K & string, subscriber: U[K])
         : () => void
     {
-        if (!(this._subscribers.has(event))) { this._subscribers.set(event, []); }
-
-        const subscribers = this._subscribers.get(event)!;
+        const subscribers = this._subscribers.get(event) ?? [];
         subscribers.push(subscriber);
 
+        this._subscribers.set(event, subscribers);
         this._publisher.subscribe(event, subscriber);
 
         return () =>
