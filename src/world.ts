@@ -237,9 +237,6 @@ export default class World<
 
     public dispose(): void
     {
-        this._contexts.clear();
-        this._publisher.clear();
-
         this._queryManager.dispose();
 
         for (const system of this._systems)
@@ -260,5 +257,8 @@ export default class World<
         }
 
         this._entities.clear();
+
+        this._contexts.clear();
+        this._publisher.clear();
     }
 }
