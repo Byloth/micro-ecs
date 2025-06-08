@@ -1,7 +1,7 @@
 import { ReferenceException, RuntimeException } from "@byloth/core";
 import { describe, it, expect, vi } from "vitest";
 
-import { AttachmentException, Component, Entity } from "../src/index.js";
+import { AttachmentException, Component, Entity, World } from "../src/index.js";
 
 describe("Component", () =>
 {
@@ -99,7 +99,6 @@ describe("Component", () =>
     it("Should be disposable", () =>
     {
         const _dispose = vi.fn(() => { /* ... */ });
-
         class TestComponent extends Component
         {
             public override dispose(): void
@@ -121,5 +120,123 @@ describe("Component", () =>
 
         expect(component.entity).toBeNull();
         expect(_dispose).toHaveBeenCalledTimes(1);
+    });
+
+    it("Should call `onMount` when the entity is attached to a world", () =>
+    {
+        const _onMount = vi.fn(() => { /* ... */ });
+        class TestComponent extends Component
+        {
+            public override onMount(): void
+            {
+                super.onMount();
+
+                _onMount();
+            }
+        }
+
+        const component = new TestComponent();
+        const entity = new Entity();
+        const world = new World();
+
+        entity.addComponent(component);
+        world.addEntity(entity);
+
+        expect(_onMount).toHaveBeenCalledTimes(1);
+    });
+    it("Should call `onMount` when the entity is adopted by another entity", () =>
+    {
+        const _onMount = vi.fn(() => { /* ... */ });
+        class TestComponent extends Component
+        {
+            public override onMount(): void
+            {
+                super.onMount();
+
+                _onMount();
+            }
+        }
+
+        const component = new TestComponent();
+        const parent = new Entity();
+        const child = new Entity();
+        const world = new World();
+
+        world.addEntity(parent);
+        child.addComponent(component);
+        parent.addChild(child);
+
+        expect(_onMount).toHaveBeenCalledTimes(1);
+    });
+    it("Should call `onMount` when the component is attached to an entity that is already attached to a world", () =>
+    {
+        const _onMount = vi.fn(() => { /* ... */ });
+        class TestComponent extends Component
+        {
+            public override onMount(): void
+            {
+                super.onMount();
+
+                _onMount();
+            }
+        }
+
+        const component = new TestComponent();
+        const entity = new Entity();
+        const world = new World();
+
+        world.addEntity(entity);
+        entity.addComponent(component);
+
+        expect(_onMount).toHaveBeenCalledTimes(1);
+    });
+
+    it("Should call `onUnmount` when the entity is detached from a world", () =>
+    {
+        const _onUnmount = vi.fn(() => { /* ... */ });
+        class TestComponent extends Component
+        {
+            public override onUnmount(): void
+            {
+                super.onUnmount();
+
+                _onUnmount();
+            }
+        }
+
+        const component = new TestComponent();
+        const entity = new Entity();
+        const world = new World();
+
+        entity.addComponent(component);
+        world.addEntity(entity);
+        world.removeEntity(entity.id);
+
+        expect(_onUnmount).toHaveBeenCalledTimes(1);
+    });
+    it("Should call `onUnmount` when the entity is unadopted from another entity", () =>
+    {
+        const _onUnmount = vi.fn(() => { /* ... */ });
+        class TestComponent extends Component
+        {
+            public override onUnmount(): void
+            {
+                super.onUnmount();
+
+                _onUnmount();
+            }
+        }
+
+        const component = new TestComponent();
+        const parent = new Entity();
+        const child = new Entity();
+        const world = new World();
+
+        world.addEntity(parent);
+        child.addComponent(component);
+        parent.addChild(child);
+        parent.removeChild(child);
+
+        expect(_onUnmount).toHaveBeenCalledTimes(1);
     });
 });

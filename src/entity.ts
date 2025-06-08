@@ -52,7 +52,11 @@ export default class Entity<W extends World = World>
 
         this._components.set(type, component);
 
-        if (this._world) { this._world.publish("entity:component:add", this, component); }
+        if (this._world)
+        {
+            component.onMount();
+            this._world.publish("entity:component:add", this, component);
+        }
 
         return component;
     }
@@ -71,11 +75,19 @@ export default class Entity<W extends World = World>
         const component = this._components.get(type) as C | undefined;
         if (!(component)) { throw new ReferenceException("The entity doesn't have this component."); }
 
-        this._components.delete(type);
+        if (this._world)
+        {
+            component.onUnmount();
+            this._components.delete(type);
+            component.onDetach();
 
-        component.onDetach();
-
-        if (this._world) { this._world.publish("entity:component:remove", this, component); }
+            this._world.publish("entity:component:remove", this, component);
+        }
+        else
+        {
+            this._components.delete(type);
+            component.onDetach();
+        }
 
         return component;
     }
@@ -115,11 +127,21 @@ export default class Entity<W extends World = World>
     {
         if (this._world) { throw new ReferenceException("The entity is already attached to a world."); }
         this._world = world;
+
+        for (const component of this._components.values())
+        {
+            component.onMount();
+        }
     }
     public onDetach(): void
     {
         if (!(this._world)) { throw new ReferenceException("The entity isn't attached to any world."); }
         this._world = null;
+
+        for (const component of this._components.values())
+        {
+            component.onUnmount();
+        }
     }
 
     public onAdoption(parent: Entity): void

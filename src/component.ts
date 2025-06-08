@@ -23,6 +23,9 @@ export default class Component<E extends Entity = Entity>
         this._entity = null;
     }
 
+    public onMount(): void { /* ... */ }
+    public onUnmount(): void { /* ... */ }
+
     public dispose(): void
     {
         if (this._entity)
