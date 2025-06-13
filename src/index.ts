@@ -9,9 +9,6 @@ import World from "./world.js";
 export { World };
 export type { WorldEventsMap } from "./world.js";
 
-import Context from "./context.js";
-export { Context };
-
 export { AdoptionException, AttachmentException } from "./exceptions.js";
 
 import QueryManager from "./query-manager.js";

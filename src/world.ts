@@ -6,7 +6,6 @@ import type Component from "./component.js";
 import type System from "./system.js";
 
 import QueryManager from "./query-manager.js";
-import Context from "./context.js";
 import type { Instances } from "./types.js";
 import { AttachmentException } from "./exceptions.js";
 
@@ -28,12 +27,9 @@ export interface WorldEventsMap
 export default class World<
     // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     T extends CallbackMap<T> = { },
-    U extends CallbackMap = T & WorldEventsMap
-> implements Publishable<U>
+    W extends CallbackMap = T & WorldEventsMap
+> implements Publishable<W>
 {
-    private readonly _contexts: Map<System, Context>;
-    public get contexts(): ReadonlyMap<System, Context> { return this._contexts; }
-
     private readonly _entities: Map<number, Entity>;
     public get entities(): ReadonlyMap<number, Entity> { return this._entities; }
 
@@ -41,7 +37,9 @@ export default class World<
     private readonly _enabledSystems: System[];
     public get systems(): readonly System[] { return this._systems; }
 
-    private readonly _publisher: Publisher<U>;
+    private readonly _publisher: Publisher<W>;
+    private readonly _scopes: Map<System, Publisher<W>>;
+
     private readonly _queryManager: QueryManager;
 
     private readonly _onEntityChildAdd = (_: Entity, child: Entity): void => { this.addEntity(child); };
@@ -52,13 +50,14 @@ export default class World<
 
     public constructor()
     {
-        this._contexts = new Map();
         this._entities = new Map();
 
         this._systems = [];
         this._enabledSystems = [];
 
         this._publisher = new Publisher();
+        this._scopes = new Map();
+
         this._queryManager = new QueryManager(this._entities, this._publisher);
 
         // @ts-expect-error - Parameter type is correct.
@@ -195,12 +194,12 @@ export default class World<
 
         system.onDetach();
 
-        const context = this._contexts.get(system);
-        if (context)
+        const scope = this._scopes.get(system);
+        if (scope)
         {
-            context.dispose();
+            scope.clear();
 
-            this._contexts.delete(system);
+            this._scopes.delete(system);
         }
 
         // @ts-expect-error - Parameter type is correct.
@@ -209,20 +208,20 @@ export default class World<
         return this;
     }
 
-    public getContext(instance: System): Context<T>
+    public createScope<S extends W = W>(instance: System): Publisher<S>
     {
-        if (this._contexts.has(instance))
+        if (this._scopes.has(instance))
         {
-            throw new ReferenceException("The context already exists for this instance.");
+            throw new ReferenceException("The scope already exists for this instance.");
         }
 
-        const context = new Context(this._publisher);
-        this._contexts.set(instance, context);
+        const scope = this._publisher.createScope<S>();
+        this._scopes.set(instance, scope);
 
-        return context;
+        return scope;
     }
 
-    public publish<K extends keyof U>(event: K & string, ...args: Parameters<U[K]>): ReturnType<U[K]>[]
+    public publish<K extends keyof W>(event: K & string, ...args: Parameters<W[K]>): ReturnType<W[K]>[]
     {
         return this._publisher.publish(event, ...args);
     }
@@ -258,7 +257,7 @@ export default class World<
 
         this._entities.clear();
 
-        this._contexts.clear();
+        this._scopes.clear();
         this._publisher.clear();
     }
 }

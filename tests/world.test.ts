@@ -1,7 +1,7 @@
-import { ReferenceException } from "@byloth/core";
+import { Publisher, ReferenceException } from "@byloth/core";
 import { beforeEach, describe, it, expect, vi } from "vitest";
 
-import { Context, Entity, System, World } from "../src/index.js";
+import { Entity, System, World } from "../src/index.js";
 
 describe("World", () =>
 {
@@ -184,22 +184,47 @@ describe("World", () =>
         expect(_world.systems.length).toBe(0);
     });
 
-    it("Should provide a context for each system", () =>
+    it("Should provide a scope for each system", () =>
     {
         class TestSystem extends System { }
 
         const system = new TestSystem();
-        const context = _world.getContext(system);
+        const scope = _world.createScope(system);
 
-        expect(context).toBeInstanceOf(Context);
+        expect(scope).toBeInstanceOf(Publisher);
     });
-    it("Should throw when adding the same system context twice", () =>
+    it("Should throw when adding the same system scope twice", () =>
     {
         class TestSystem extends System { }
 
         const system = new TestSystem();
 
-        _world.getContext(system);
-        expect(() => _world.getContext(system)).toThrow(ReferenceException);
+        _world.createScope(system);
+        expect(() => _world.createScope(system)).toThrow(ReferenceException);
+    });
+    it("Should clear & remove the scope when the system is removed", () =>
+    {
+        const _clear = vi.fn(() => { /* ... */ });
+
+        let scope: Publisher;
+        class TestSystem extends System
+        {
+            public override onAttach(world: World): void
+            {
+                super.onAttach(world);
+
+                scope = world.createScope(this);
+            }
+        }
+
+        const system = new TestSystem();
+        _world.addSystem(system);
+
+        expect(scope!).toBeInstanceOf(Publisher);
+        scope!.subscribe("__internals__:clear", _clear);
+
+        _world.removeSystem(system);
+
+        expect(_clear).toHaveBeenCalledTimes(1);
     });
 });
