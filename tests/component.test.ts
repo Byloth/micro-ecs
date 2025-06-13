@@ -11,14 +11,15 @@ describe("Component", () =>
         expect(component.entity).toBeNull();
     });
 
-    it("Should be attachable to an entity", () =>
+    it("Should be attachable to an entity", async () =>
     {
         const _onAttach = vi.fn(() => { /* ... */ });
         class TestComponent extends Component
         {
-            public override onAttach(entity: Entity): void
+            public override async onAttach(entity: Entity): Promise<void>
             {
-                super.onAttach(entity);
+                await super.onAttach(entity);
+
                 _onAttach();
             }
         }
@@ -26,19 +27,20 @@ describe("Component", () =>
         const component = new TestComponent();
         const entity = new Entity();
 
-        entity.addComponent(component);
+        await entity.addComponent(component);
 
         expect(component.entity).toBe(entity);
         expect(_onAttach).toHaveBeenCalledTimes(1);
     });
-    it("Should throw an error if attached to an entity while already attached to another", () =>
+    it("Should throw an error if attached to an entity while already attached to another", async () =>
     {
         const _onAttach = vi.fn(() => { /* ... */ });
         class TestComponent extends Component
         {
-            public override onAttach(entity: Entity): void
+            public override async onAttach(entity: Entity): Promise<void>
             {
-                super.onAttach(entity);
+                await super.onAttach(entity);
+
                 _onAttach();
             }
         }
@@ -47,11 +49,12 @@ describe("Component", () =>
         const entity1 = new Entity();
         const entity2 = new Entity();
 
-        entity1.addComponent(component);
-        expect(() => entity2.addComponent(component)).toThrow(AttachmentException);
+        await entity1.addComponent(component);
+        await expect(entity2.addComponent(component)).rejects
+            .toThrow(AttachmentException);
     });
 
-    it("Should be detachable from an entity", () =>
+    it("Should be detachable from an entity", async () =>
     {
         const _onDetach = vi.fn(() => { /* ... */ });
         class TestComponent extends Component
@@ -67,13 +70,13 @@ describe("Component", () =>
         const component = new TestComponent();
         const entity = new Entity();
 
-        entity.addComponent(component);
+        await entity.addComponent(component);
         entity.removeComponent(TestComponent);
 
         expect(component.entity).toBeNull();
         expect(_onDetach).toHaveBeenCalledTimes(1);
     });
-    it("Should throw an error if detached from an entity while not attached to one", () =>
+    it("Should throw an error if detached from an entity while not attached to one", async () =>
     {
         const _onDetach = vi.fn(() => { /* ... */ });
         class TestComponent extends Component
@@ -89,14 +92,14 @@ describe("Component", () =>
         const component = new TestComponent();
         const entity = new Entity();
 
-        entity.addComponent(component);
+        await entity.addComponent(component);
         entity.removeComponent(TestComponent);
 
         expect(() => entity.removeComponent(TestComponent)).toThrow(ReferenceException);
         expect(_onDetach).toHaveBeenCalledTimes(1);
     });
 
-    it("Should be disposable", () =>
+    it("Should be disposable", async () =>
     {
         const _dispose = vi.fn(() => { /* ... */ });
         class TestComponent extends Component
@@ -112,7 +115,7 @@ describe("Component", () =>
         const component = new TestComponent();
         const entity = new Entity();
 
-        entity.addComponent(component);
+        await entity.addComponent(component);
         expect(() => component.dispose()).toThrow(RuntimeException);
 
         entity.removeComponent(TestComponent);
@@ -122,14 +125,14 @@ describe("Component", () =>
         expect(_dispose).toHaveBeenCalledTimes(1);
     });
 
-    it("Should call `onMount` when the entity is attached to a world", () =>
+    it("Should call `onMount` when the entity is attached to a world", async () =>
     {
         const _onMount = vi.fn(() => { /* ... */ });
         class TestComponent extends Component
         {
-            public override onMount(): void
+            public override async onMount(): Promise<void>
             {
-                super.onMount();
+                await super.onMount();
 
                 _onMount();
             }
@@ -139,19 +142,19 @@ describe("Component", () =>
         const entity = new Entity();
         const world = new World();
 
-        entity.addComponent(component);
-        world.addEntity(entity);
+        await entity.addComponent(component);
+        await world.addEntity(entity);
 
         expect(_onMount).toHaveBeenCalledTimes(1);
     });
-    it("Should call `onMount` when the entity is adopted by another entity", () =>
+    it("Should call `onMount` when the entity is adopted by another entity", async () =>
     {
         const _onMount = vi.fn(() => { /* ... */ });
         class TestComponent extends Component
         {
-            public override onMount(): void
+            public override async onMount(): Promise<void>
             {
-                super.onMount();
+                await super.onMount();
 
                 _onMount();
             }
@@ -162,20 +165,20 @@ describe("Component", () =>
         const child = new Entity();
         const world = new World();
 
-        world.addEntity(parent);
-        child.addComponent(component);
-        parent.addChild(child);
+        await world.addEntity(parent);
+        await child.addComponent(component);
+        await parent.addChild(child);
 
         expect(_onMount).toHaveBeenCalledTimes(1);
     });
-    it("Should call `onMount` when the component is attached to an entity that is already attached to a world", () =>
+    it("Should call `onMount` when the component is attached to an entity already attached to a world", async () =>
     {
         const _onMount = vi.fn(() => { /* ... */ });
         class TestComponent extends Component
         {
-            public override onMount(): void
+            public override async onMount(): Promise<void>
             {
-                super.onMount();
+                await super.onMount();
 
                 _onMount();
             }
@@ -185,13 +188,13 @@ describe("Component", () =>
         const entity = new Entity();
         const world = new World();
 
-        world.addEntity(entity);
-        entity.addComponent(component);
+        await world.addEntity(entity);
+        await entity.addComponent(component);
 
         expect(_onMount).toHaveBeenCalledTimes(1);
     });
 
-    it("Should call `onUnmount` when the entity is detached from a world", () =>
+    it("Should call `onUnmount` when the entity is detached from a world", async () =>
     {
         const _onUnmount = vi.fn(() => { /* ... */ });
         class TestComponent extends Component
@@ -208,13 +211,13 @@ describe("Component", () =>
         const entity = new Entity();
         const world = new World();
 
-        entity.addComponent(component);
-        world.addEntity(entity);
+        await entity.addComponent(component);
+        await world.addEntity(entity);
         world.removeEntity(entity.id);
 
         expect(_onUnmount).toHaveBeenCalledTimes(1);
     });
-    it("Should call `onUnmount` when the entity is unadopted from another entity", () =>
+    it("Should call `onUnmount` when the entity is unadopted from another entity", async () =>
     {
         const _onUnmount = vi.fn(() => { /* ... */ });
         class TestComponent extends Component
@@ -232,9 +235,9 @@ describe("Component", () =>
         const child = new Entity();
         const world = new World();
 
-        world.addEntity(parent);
-        child.addComponent(component);
-        parent.addChild(child);
+        await world.addEntity(parent);
+        await child.addComponent(component);
+        await parent.addChild(child);
         parent.removeChild(child);
 
         expect(_onUnmount).toHaveBeenCalledTimes(1);

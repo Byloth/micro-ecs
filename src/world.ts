@@ -42,12 +42,6 @@ export default class World<
 
     private readonly _queryManager: QueryManager;
 
-    private readonly _onEntityChildAdd = (_: Entity, child: Entity): void => { this.addEntity(child); };
-    private readonly _onEntityChildRemove = (_: Entity, child: Entity): void => { this.removeEntity(child.id); };
-
-    public readonly _onSystemEnable = (system: System): void => { this._insertSystem(this._enabledSystems, system); };
-    public readonly _onSystemDisable = (system: System): void => { this._removeSystem(this._enabledSystems, system); };
-
     public constructor()
     {
         this._entities = new Map();
@@ -59,18 +53,6 @@ export default class World<
         this._scopes = new Map();
 
         this._queryManager = new QueryManager(this._entities, this._publisher);
-
-        // @ts-expect-error - Parameter type is correct.
-        this._publisher.subscribe("entity:child:add", this._onEntityChildAdd);
-
-        // @ts-expect-error - Parameters type is correct.
-        this._publisher.subscribe("entity:child:remove", this._onEntityChildRemove);
-
-        // @ts-expect-error - Parameter type is correct.
-        this._publisher.subscribe("system:enable", this._onSystemEnable);
-
-        // @ts-expect-error - Parameter type is correct.
-        this._publisher.subscribe("system:disable", this._onSystemDisable);
     }
 
     private _insertSystem(array: System[], system: System): number
@@ -99,11 +81,41 @@ export default class World<
         return index;
     }
 
-    public addEntity(entity: Entity): this
+    protected async _addChildEntity<E extends Entity>(parent: Entity, child: E): Promise<void>
+    {
+        await this.addEntity(child);
+
+        // @ts-expect-error - Parameters type is correct.
+        this.publish("entity:child:add", parent, child);
+    }
+    protected _removeChildEntity(parent: Entity, child: Entity): void
+    {
+        this.removeEntity(child.id);
+
+        // @ts-expect-error - Parameters type is correct.
+        this.publish("entity:child:remove", parent, child);
+    }
+
+    protected _enableSystem(system: System): void
+    {
+        this._insertSystem(this._enabledSystems, system);
+
+        // @ts-expect-error - Parameters type is correct.
+        this._publisher.publish("system:enable", system);
+    }
+    protected _disableSystem(system: System): void
+    {
+        this._removeSystem(this._enabledSystems, system);
+
+        // @ts-expect-error - Parameters type is correct.
+        this._publisher.publish("system:disable", system);
+    }
+
+    public async addEntity<E extends Entity>(entity: E): Promise<E>
     {
         try
         {
-            entity.onAttach(this);
+            await entity.onAttach(this);
         }
         catch (error)
         {
@@ -112,28 +124,31 @@ export default class World<
 
         this._entities.set(entity.id, entity);
 
-        entity.components.values()
+        for (const component of entity.components.values())
+        {
             // @ts-expect-error - Parameters type is correct.
-            .forEach((component) => this._publisher.publish("entity:component:add", entity, component));
+            this._publisher.publish("entity:component:add", entity, component);
+        }
 
-        entity.children
-            // @ts-expect-error - Parameters type is correct.
-            .forEach((child) => this._publisher.publish("entity:child:add", entity, child));
+        await Promise.all(entity.children.values().map((child) => this._addChildEntity(entity, child)));
 
-        return this;
+        return entity;
     }
     public removeEntity(entityId: number): Entity
     {
         const entity = this._entities.get(entityId);
         if (!(entity)) { throw new ReferenceException(`The entity with ID ${entityId} doesn't exist.`); }
 
-        entity.components.values()
-            // @ts-expect-error - Parameters type is correct.
-            .forEach((component) => this._publisher.publish("entity:component:remove", entity, component));
+        for (const child of entity.children.values())
+        {
+            this._removeChildEntity(entity, child);
+        }
 
-        entity.children
+        for (const component of entity.components.values())
+        {
             // @ts-expect-error - Parameters type is correct.
-            .forEach((child) => this._publisher.publish("entity:child:remove", entity, child));
+            this._publisher.publish("entity:component:remove", entity, component);
+        }
 
         this._entities.delete(entityId);
         entity.onDetach();
@@ -164,11 +179,11 @@ export default class World<
         return this._queryManager.getView<C, R>(...types);
     }
 
-    public addSystem(system: System): this
+    public async addSystem<S extends System>(system: S): Promise<S>
     {
         try
         {
-            system.onAttach(this);
+            await system.onAttach(this);
         }
         catch (error)
         {
@@ -181,7 +196,7 @@ export default class World<
         // @ts-expect-error - Parameter type is correct.
         this._publisher.publish("system:add", system);
 
-        return this;
+        return system;
     }
     public removeSystem(system: System): this
     {

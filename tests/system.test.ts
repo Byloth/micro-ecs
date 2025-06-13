@@ -49,14 +49,15 @@ describe("System", () =>
         expect(_disable).toHaveBeenCalledTimes(1);
     });
 
-    it("Should be attachable to a world", () =>
+    it("Should be attachable to a world", async () =>
     {
         const _onAttach = vi.fn(() => { /* ... */ });
         class TestSystem extends System
         {
-            public override onAttach(world: World): void
+            public override async onAttach(world: World): Promise<void>
             {
-                super.onAttach(world);
+                await super.onAttach(world);
+
                 _onAttach();
             }
         }
@@ -64,19 +65,20 @@ describe("System", () =>
         const world = new World();
         const system = new TestSystem();
 
-        world.addSystem(system);
+        await world.addSystem(system);
 
         expect(system.world).toBe(world);
         expect(_onAttach).toHaveBeenCalledTimes(1);
     });
-    it("Should throw an error if attached to a world while already attached to another", () =>
+    it("Should throw an error if attached to a world while already attached to another", async () =>
     {
         const _onAttach = vi.fn(() => { /* ... */ });
         class TestSystem extends System
         {
-            public override onAttach(world: World): void
+            public override async onAttach(world: World): Promise<void>
             {
-                super.onAttach(world);
+                await super.onAttach(world);
+
                 _onAttach();
             }
         }
@@ -85,13 +87,14 @@ describe("System", () =>
         const world2 = new World();
         const system = new TestSystem();
 
-        world1.addSystem(system);
+        await world1.addSystem(system);
+        await expect(world2.addSystem(system)).rejects
+            .toThrow(AttachmentException);
 
-        expect(() => world2.addSystem(system)).toThrow(AttachmentException);
         expect(_onAttach).toHaveBeenCalledTimes(1);
     });
 
-    it("Should be detachable from a world", () =>
+    it("Should be detachable from a world", async () =>
     {
         const _onDetach = vi.fn(() => { /* ... */ });
         class TestSystem extends System
@@ -106,7 +109,7 @@ describe("System", () =>
         const world = new World();
         const system = new TestSystem();
 
-        world.addSystem(system);
+        await world.addSystem(system);
         world.removeSystem(system);
 
         expect(system.world).toBeNull();
@@ -131,7 +134,7 @@ describe("System", () =>
         expect(_onDetach).not.toHaveBeenCalled();
     });
 
-    it("Should be sortable by priority", () =>
+    it("Should be sortable by priority", async () =>
     {
         const world = new World();
         const system0 = new System(2);
@@ -141,17 +144,17 @@ describe("System", () =>
         const system4 = new System(1);
         const system5 = new System(-1);
 
-        world.addSystem(system0);
-        world.addSystem(system1);
-        world.addSystem(system2);
-        world.addSystem(system3);
-        world.addSystem(system4);
-        world.addSystem(system5);
+        await world.addSystem(system0);
+        await world.addSystem(system1);
+        await world.addSystem(system2);
+        await world.addSystem(system3);
+        await world.addSystem(system4);
+        await world.addSystem(system5);
 
         expect(world.systems).toEqual([system5, system2, system4, system0, system3, system1]);
     });
 
-    it("Should be disposable", () =>
+    it("Should be disposable", async () =>
     {
         const _dispose = vi.fn(() => { /* ... */ });
         class TestSystem extends System
@@ -166,7 +169,7 @@ describe("System", () =>
         const system = new TestSystem();
         const world = new World();
 
-        world.addSystem(system);
+        await world.addSystem(system);
         expect(() => system.dispose()).toThrow(RuntimeException);
 
         world.removeSystem(system);

@@ -30,17 +30,19 @@ export default class System<W extends World = World>
         if (this._enabled) { throw new RuntimeException("The system is already enabled."); }
         this._enabled = true;
 
-        this._world?.publish("system:enable", this);
+        // @ts-expect-error - The method exists and is correct.
+        this._world?._enableSystem(this);
     }
     public disable(): void
     {
         if (!(this._enabled)) { throw new RuntimeException("The system is already disabled."); }
         this._enabled = false;
 
-        this._world?.publish("system:disable", this);
+        // @ts-expect-error - The method exists and is correct.
+        this._world?._disableSystem(this);
     }
 
-    public onAttach(world: W): void
+    public async onAttach(world: W): Promise<void>
     {
         if (this._world) { throw new ReferenceException("The system is already attached to a world."); }
         this._world = world;

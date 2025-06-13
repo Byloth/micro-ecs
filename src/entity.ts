@@ -36,14 +36,14 @@ export default class Entity<W extends World = World>
         this._children = new Set();
     }
 
-    public addComponent<C extends Component>(component: C): C
+    public async addComponent<C extends Component>(component: C): Promise<C>
     {
         const type = component.constructor as Constructor<Component>;
         if (this._components.has(type)) { throw new ReferenceException("The entity already has this component."); }
 
         try
         {
-            component.onAttach(this);
+            await component.onAttach(this);
         }
         catch (error)
         {
@@ -54,7 +54,8 @@ export default class Entity<W extends World = World>
 
         if (this._world)
         {
-            component.onMount();
+            await component.onMount();
+
             this._world.publish("entity:component:add", this, component);
         }
 
@@ -92,11 +93,11 @@ export default class Entity<W extends World = World>
         return component;
     }
 
-    public addChild<E extends Entity>(child: E): E
+    public async addChild<E extends Entity>(child: E): Promise<E>
     {
         try
         {
-            child.onAdoption(this);
+            await child.onAdoption(this);
         }
         catch (error)
         {
@@ -105,7 +106,11 @@ export default class Entity<W extends World = World>
 
         this._children.add(child);
 
-        if (this._world) { this._world.publish("entity:child:add", this, child); }
+        if (this._world)
+        {
+            // @ts-expect-error - The method exists and is correct.
+            await this._world._addChildEntity(this, child);
+        }
 
         return child;
     }
@@ -118,20 +123,21 @@ export default class Entity<W extends World = World>
 
         child.onUnadoption();
 
-        if (this._world) { this._world.publish("entity:child:remove", this, child); }
+        if (this._world)
+        {
+            // @ts-expect-error - The method exists and is correct.
+            this._world._removeChildEntity(this, child);
+        }
 
         return this;
     }
 
-    public onAttach(world: W): void
+    public async onAttach(world: W): Promise<void>
     {
         if (this._world) { throw new ReferenceException("The entity is already attached to a world."); }
         this._world = world;
 
-        for (const component of this._components.values())
-        {
-            component.onMount();
-        }
+        await Promise.all(this._components.values().map((component) => component.onMount()));
     }
     public onDetach(): void
     {
@@ -144,7 +150,7 @@ export default class Entity<W extends World = World>
         }
     }
 
-    public onAdoption(parent: Entity): void
+    public async onAdoption(parent: Entity): Promise<void>
     {
         if (this._parent) { throw new ReferenceException("The entity is already adopted by another entity."); }
         this._parent = parent;

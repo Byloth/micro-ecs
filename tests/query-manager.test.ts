@@ -8,7 +8,7 @@ describe("getComponentViewManager", () =>
     class TestComponent3 extends Component { }
     class TestComponent4 extends Component { }
 
-    const _populateWorld = (world: World): void =>
+    const _populateWorld = async (world: World): Promise<void> =>
     {
         const definitions = [
             [TestComponent1],
@@ -24,19 +24,20 @@ describe("getComponentViewManager", () =>
         for (const components of definitions)
         {
             const entity = new Entity();
-            components.forEach((C) => entity.addComponent(new C()));
+
+            await Promise.all(components.map((C) => entity.addComponent(new C())));
 
             Object.defineProperty(entity, "id", { value: (index += 1) });
 
-            world.addEntity(entity);
+            await world.addEntity(entity);
         }
     };
 
-    it("Should retrieve entities matching a condition", () =>
+    it("Should retrieve entities matching a condition", async () =>
     {
         const world = new World();
 
-        _populateWorld(world);
+        await _populateWorld(world);
 
         const first = world.getComponents(TestComponent3, TestComponent1)!;
         const second = world.getComponent(TestComponent4);
@@ -59,11 +60,11 @@ describe("getComponentViewManager", () =>
         expect(second).toBeUndefined();
     });
 
-    it("Should reactively update entities when entities are added", () =>
+    it("Should reactively update entities when entities are added", async () =>
     {
         const world = new World();
 
-        _populateWorld(world);
+        await _populateWorld(world);
 
         const view = world.getComponentView(TestComponent1, TestComponent3);
 
@@ -73,12 +74,12 @@ describe("getComponentViewManager", () =>
         expect(before[1][0].entity!.id).toBe(5);
 
         const entity = new Entity();
-        entity.addComponent(new TestComponent3());
-        entity.addComponent(new TestComponent1());
+        await entity.addComponent(new TestComponent3());
+        await entity.addComponent(new TestComponent1());
 
         Object.defineProperty(entity, "id", { value: 10 });
 
-        world.addEntity(entity);
+        await world.addEntity(entity);
 
         const after = Array.from(view.values());
         expect(after.length).toBe(3);
@@ -86,11 +87,11 @@ describe("getComponentViewManager", () =>
         expect(after[1][0].entity!.id).toBe(5);
         expect(after[2][0].entity!.id).toBe(10);
     });
-    it("Should reactively update entities when entities are removed", () =>
+    it("Should reactively update entities when entities are removed", async () =>
     {
         const world = new World();
 
-        _populateWorld(world);
+        await _populateWorld(world);
 
         const view = world.getComponentView(TestComponent2, TestComponent3);
 
@@ -107,7 +108,7 @@ describe("getComponentViewManager", () =>
         expect(after[0][0].entity!.id).toBe(5);
     });
 
-    it("Should reactively be called once when an entity with multiple components is added", () =>
+    it("Should reactively be called once when an entity with multiple components is added", async () =>
     {
         const _onEntryAdd = vi.fn();
 
@@ -116,16 +117,16 @@ describe("getComponentViewManager", () =>
 
         view.subscribe("entry:add", _onEntryAdd);
 
-        _populateWorld(world);
+        await _populateWorld(world);
 
         expect(_onEntryAdd).toHaveBeenCalledTimes(2);
     });
 
-    it("Should be disposed correctly", () =>
+    it("Should be disposed correctly", async () =>
     {
         const world = new World();
 
-        _populateWorld(world);
+        await _populateWorld(world);
 
         const entities = world.getComponentView(TestComponent3);
 

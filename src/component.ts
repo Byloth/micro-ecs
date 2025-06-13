@@ -12,7 +12,7 @@ export default class Component<E extends Entity = Entity>
         this._entity = null;
     }
 
-    public onAttach(entity: E): void
+    public async onAttach(entity: E): Promise<void>
     {
         if (this._entity) { throw new ReferenceException("The component is already attached to an entity."); }
         this._entity = entity;
@@ -23,7 +23,7 @@ export default class Component<E extends Entity = Entity>
         this._entity = null;
     }
 
-    public onMount(): void { /* ... */ }
+    public async onMount(): Promise<void> { /* ... */ }
     public onUnmount(): void { /* ... */ }
 
     public dispose(): void
