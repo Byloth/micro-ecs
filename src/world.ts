@@ -9,20 +9,28 @@ import QueryManager from "./query-manager.js";
 import type { Instances } from "./types.js";
 import { AttachmentException } from "./exceptions.js";
 
-export interface WorldEventsMap
+type SystemEvents = Record<`system:${number}:${"attach" | "detach" | "update"}`, (...args: unknown[]) => void>;
+
+export type WorldEventsMap =
 {
-    "entity:component:add": (entity: Entity, component: Component) => void;
-    "entity:component:remove": (entity: Entity, component: Component) => void;
+    "entity:component:add"?: (entity: Entity, component: Component) => void;
+    "entity:component:remove"?: (entity: Entity, component: Component) => void;
 
-    "entity:child:add": (entity: Entity, child: Entity) => void;
-    "entity:child:remove": (entity: Entity, child: Entity) => void;
+    "entity:child:add"?: (entity: Entity, child: Entity) => void;
+    "entity:child:remove"?: (entity: Entity, child: Entity) => void;
 
-    "system:add": (system: System) => void;
-    "system:remove": (system: System) => void;
+    "system:add"?: (system: System) => void;
+    "system:remove"?: (system: System) => void;
 
-    "system:enable": (system: System) => void;
-    "system:disable": (system: System) => void;
-}
+    "system:enable"?: (system: System) => void;
+    "system:disable"?: (system: System) => void;
+
+} & SystemEvents;
+
+const asdf: WorldEventsMap = {
+    "entity:component:add": () => { /* ... */ },
+    "system:12:attach": () => { /* ... */ },
+};
 
 export default class World<
     // eslint-disable-next-line @typescript-eslint/no-empty-object-type
