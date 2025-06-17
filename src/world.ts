@@ -81,9 +81,9 @@ export default class World<
         return index;
     }
 
-    protected async _addChildEntity<E extends Entity>(parent: Entity, child: E): Promise<void>
+    protected _addChildEntity<E extends Entity>(parent: Entity, child: E): void
     {
-        await this.addEntity(child);
+        this.addEntity(child);
 
         // @ts-expect-error - Parameters type is correct.
         this.publish("entity:child:add", parent, child);
@@ -111,11 +111,11 @@ export default class World<
         this._publisher.publish("system:disable", system);
     }
 
-    public async addEntity<E extends Entity>(entity: E): Promise<E>
+    public addEntity<E extends Entity>(entity: E): E
     {
         try
         {
-            await entity.onAttach(this);
+            entity.onAttach(this);
         }
         catch (error)
         {
@@ -130,7 +130,10 @@ export default class World<
             this._publisher.publish("entity:component:add", entity, component);
         }
 
-        await Promise.all(entity.children.values().map((child) => this._addChildEntity(entity, child)));
+        for (const child of entity.children.values())
+        {
+            this._addChildEntity(entity, child);
+        }
 
         return entity;
     }
@@ -179,11 +182,11 @@ export default class World<
         return this._queryManager.getView<C, R>(...types);
     }
 
-    public async addSystem<S extends System>(system: S): Promise<S>
+    public addSystem<S extends System>(system: S): S
     {
         try
         {
-            await system.onAttach(this);
+            system.onAttach(this);
         }
         catch (error)
         {

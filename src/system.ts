@@ -42,7 +42,7 @@ export default class System<W extends World = World>
         this._world?._disableSystem(this);
     }
 
-    public async onAttach(world: W): Promise<void>
+    public onAttach(world: W): void
     {
         if (this._world) { throw new ReferenceException("The system is already attached to a world."); }
         this._world = world;

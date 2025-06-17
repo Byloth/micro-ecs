@@ -9,20 +9,20 @@ describe("World", () =>
 
     beforeEach(() => { _world = new World(); });
 
-    it("Should add an entity to the world", async () =>
+    it("Should add an entity to the world", () =>
     {
         const entity = new Entity();
-        await _world.addEntity(entity);
+        _world.addEntity(entity);
 
         expect(_world.entities.size).toBe(1);
         expect(_world.entities.get(entity.id)).toBe(entity);
     });
 
-    it("Should remove an entity from the world", async () =>
+    it("Should remove an entity from the world", () =>
     {
         const entity = new Entity();
 
-        await _world.addEntity(entity);
+        _world.addEntity(entity);
         _world.removeEntity(entity.id);
 
         expect(_world.entities.size).toBe(0);
@@ -35,7 +35,7 @@ describe("World", () =>
         expect(() => _world.removeEntity(entity.id)).toThrow(ReferenceException);
     });
 
-    it("Should add a system to the world", async () =>
+    it("Should add a system to the world", () =>
     {
         const _update = vi.fn(() => { /* ... */ });
         class TestSystem extends System
@@ -47,7 +47,7 @@ describe("World", () =>
         }
 
         const system = new TestSystem();
-        await _world.addSystem(system);
+        _world.addSystem(system);
 
         expect(_world.systems.length).toBe(1);
         expect(_world.systems[0]).toBe(system);
@@ -60,7 +60,7 @@ describe("World", () =>
         expect(_update).toHaveBeenCalledTimes(3);
     });
 
-    it("Should remove a system from the world", async () =>
+    it("Should remove a system from the world", () =>
     {
         const _update = vi.fn(() => { /* ... */ });
         class TestSystem extends System
@@ -73,7 +73,7 @@ describe("World", () =>
 
         const system = new TestSystem();
 
-        await _world.addSystem(system);
+        _world.addSystem(system);
         _world.removeSystem(system);
 
         _world.update(16);
@@ -89,7 +89,7 @@ describe("World", () =>
         expect(() => _world.removeSystem(system)).toThrow(ReferenceException);
     });
 
-    it("Should call update on all enabled systems", async () =>
+    it("Should call update on all enabled systems", () =>
     {
         const _update1 = vi.fn(() => { /* ... */ });
         const _update2 = vi.fn(() => { /* ... */ });
@@ -111,8 +111,8 @@ describe("World", () =>
         const system1 = new TestSystem1();
         const system2 = new TestSystem2();
 
-        await _world.addSystem(system1);
-        await _world.addSystem(system2);
+        _world.addSystem(system1);
+        _world.addSystem(system2);
 
         _world.update(16);
         expect(_update1).toHaveBeenCalledTimes(1);
@@ -147,7 +147,7 @@ describe("World", () =>
         expect(_update2).toHaveBeenCalledTimes(4);
     });
 
-    it("Should dispose all entities and systems", async () =>
+    it("Should dispose all entities and systems", () =>
     {
         const _disposeEntity = vi.fn(() => { /* ... */ });
         const _disposeSystem = vi.fn(() => { /* ... */ });
@@ -169,12 +169,12 @@ describe("World", () =>
             }
         }
 
-        await _world.addEntity(new TestEntity());
-        await _world.addEntity(new TestEntity());
-        await _world.addEntity(new TestEntity());
+        _world.addEntity(new TestEntity());
+        _world.addEntity(new TestEntity());
+        _world.addEntity(new TestEntity());
 
-        await _world.addSystem(new TestSystem());
-        await _world.addSystem(new TestSystem());
+        _world.addSystem(new TestSystem());
+        _world.addSystem(new TestSystem());
 
         _world.dispose();
 
@@ -202,14 +202,14 @@ describe("World", () =>
         _world.createScope(system);
         expect(() => _world.createScope(system)).toThrow(ReferenceException);
     });
-    it("Should clear & remove the scope when the system is removed", async () =>
+    it("Should clear & remove the scope when the system is removed", () =>
     {
         const _clear = vi.fn(() => { /* ... */ });
 
         let scope: Publisher;
         class TestSystem extends System
         {
-            public override async onAttach(world: World): Promise<void>
+            public override onAttach(world: World): void
             {
                 super.onAttach(world);
 
@@ -218,7 +218,7 @@ describe("World", () =>
         }
 
         const system = new TestSystem();
-        await _world.addSystem(system);
+        _world.addSystem(system);
 
         expect(scope!).toBeInstanceOf(Publisher);
         scope!.subscribe("__internals__:clear", _clear);
