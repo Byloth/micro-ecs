@@ -3,39 +3,18 @@ import type { CallbackMap, Constructor, Publishable, ReadonlyMapView, SmartItera
 
 import type Entity from "./entity.js";
 import type Component from "./component.js";
-import type System from "./system.js";
+import System from "./system.js";
 
 import QueryManager from "./query-manager.js";
-import type { Instances } from "./types.js";
+import type { Instances, WorldEventsMap } from "./types.js";
 import { AttachmentException } from "./exceptions.js";
 
-type SystemEvents = Record<`system:${number}:${"attach" | "detach" | "update"}`, (...args: unknown[]) => void>;
-
-export type WorldEventsMap =
-{
-    "entity:component:add"?: (entity: Entity, component: Component) => void;
-    "entity:component:remove"?: (entity: Entity, component: Component) => void;
-
-    "entity:child:add"?: (entity: Entity, child: Entity) => void;
-    "entity:child:remove"?: (entity: Entity, child: Entity) => void;
-
-    "system:add"?: (system: System) => void;
-    "system:remove"?: (system: System) => void;
-
-    "system:enable"?: (system: System) => void;
-    "system:disable"?: (system: System) => void;
-
-} & SystemEvents;
-
-const asdf: WorldEventsMap = {
-    "entity:component:add": () => { /* ... */ },
-    "system:12:attach": () => { /* ... */ },
-};
+type Signals = Record<`${"entity" | "component" | "system"}:${number}:${string}`, (...args: unknown[]) => void>;
 
 export default class World<
     // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     T extends CallbackMap<T> = { },
-    W extends CallbackMap = T & WorldEventsMap
+    W extends CallbackMap = T & WorldEventsMap & Signals
 > implements Publishable<W>
 {
     private readonly _entities: Map<number, Entity>;
@@ -287,3 +266,7 @@ export default class World<
         this._publisher.clear();
     }
 }
+
+const world = new World<{ }>();
+
+world.publish("");

@@ -3,8 +3,7 @@ import type { CallbackMap, Constructor, Publisher, ReadonlyMapView } from "@bylo
 
 import type Entity from "./entity.js";
 import Component from "./component.js";
-import type { WorldEventsMap } from "./world.js";
-import type { Instances } from "./types.js";
+import type { Instances, WorldEventsMap } from "./types.js";
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export default class QueryManager<T extends CallbackMap<T> = { }>

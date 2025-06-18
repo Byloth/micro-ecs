@@ -7,11 +7,10 @@ export { Entity, Component, System };
 
 import World from "./world.js";
 export { World };
-export type { WorldEventsMap } from "./world.js";
 
 export { AdoptionException, AttachmentException } from "./exceptions.js";
 
 import QueryManager from "./query-manager.js";
 export { QueryManager };
 
-export type { Instances } from "./types.js";
+export type { Instances, WorldEventsMap } from "./types.js";

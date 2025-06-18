@@ -1,6 +1,6 @@
 import type { CallbackMap, Publisher } from "@byloth/core";
 
-import type { WorldEventsMap } from "./world.js";
+import type { WorldEventsMap } from "./types.js";
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export default class Context<T extends CallbackMap<T> = { }, U extends CallbackMap = T & WorldEventsMap>
