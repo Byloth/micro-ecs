@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@byloth/core':
-        specifier: ^2.1.6
-        version: 2.1.6
+        specifier: ^2.1.7
+        version: 2.1.7
     devDependencies:
       '@byloth/eslint-config-typescript':
         specifier: ^3.1.0
@@ -73,8 +73,8 @@ packages:
     resolution: {integrity: sha512-6zABk/ECA/QYSCQ1NGiVwwbQerUCZ+TQbp64Q3AgmfNvurHH0j8TtXa1qbShXA6qqkpAj4V5W8pP6mLe1mcMqA==}
     engines: {node: '>=18'}
 
-  '@byloth/core@2.1.6':
-    resolution: {integrity: sha512-M5aOmyHiVM3ThhglQyYaqZQIcki+g53wUrY/EeQtPx0uz6Lh4S4o4fHHXXNTixAm2YI+/x/qJ6eu3oRpI6KnJw==}
+  '@byloth/core@2.1.7':
+    resolution: {integrity: sha512-vRixsCJ2Tymi3hV4mu56hQKTb7nP4LJdmYYHBEk6WrIE5/oTnERZMDFQPJoV94KxLxaWX9pGmQD0FVmPtWXyXQ==}
 
   '@byloth/eslint-config-typescript@3.1.0':
     resolution: {integrity: sha512-BBET8WS/LrPfeLaPIdJiqnjcFv7oJ2CJnCrnAXH6C17BMfsAVFUBOEdzNkrb6eldsGNxkJV7u0SMpmu3+SLcTg==}
@@ -1411,7 +1411,7 @@ snapshots:
 
   '@bcoe/v8-coverage@1.0.2': {}
 
-  '@byloth/core@2.1.6': {}
+  '@byloth/core@2.1.7': {}
 
   '@byloth/eslint-config-typescript@3.1.0(eslint@9.29.0)(typescript@5.8.3)':
     dependencies:
