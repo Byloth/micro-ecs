@@ -35,7 +35,7 @@ export default class Context<T extends CallbackMap<T> = { }>
     {
         const _callback = (...args: unknown[]): unknown =>
         {
-            this._publisher.unsubscribe(event, callback);
+            this._publisher.unsubscribe(event, _callback);
 
             return callback(...args);
         };
