@@ -1,7 +1,7 @@
-import { Publisher, ReferenceException } from "@byloth/core";
+import { ReferenceException } from "@byloth/core";
 import { beforeEach, describe, it, expect, vi } from "vitest";
 
-import { Entity, System, World } from "../src/index.js";
+import { Entity, Context, System, World } from "../src/index.js";
 
 describe("World", () =>
 {
@@ -184,44 +184,46 @@ describe("World", () =>
         expect(_world.systems.length).toBe(0);
     });
 
-    it("Should provide a scope for each system", () =>
+    it("Should provide a context for each system", () =>
     {
         class TestSystem extends System { }
 
         const system = new TestSystem();
-        const scope = _world.createScope(system);
+        const context = _world.getContext(system);
 
-        expect(scope).toBeInstanceOf(Publisher);
+        expect(context).toBeInstanceOf(Context);
     });
-    it("Should throw when adding the same system scope twice", () =>
+    it("Should provide the same context when getting it the same system", () =>
     {
         class TestSystem extends System { }
 
         const system = new TestSystem();
 
-        _world.createScope(system);
-        expect(() => _world.createScope(system)).toThrow(ReferenceException);
+        const context1 = _world.getContext(system);
+        const context2 = _world.getContext(system);
+
+        expect(context1).toBe(context2);
     });
-    it("Should clear & remove the scope when the system is removed", () =>
+    it("Should clear & remove the context when the system is removed", () =>
     {
         const _clear = vi.fn(() => { /* ... */ });
 
-        let scope: Publisher;
+        let context: Context;
         class TestSystem extends System
         {
             public override onAttach(world: World): void
             {
                 super.onAttach(world);
 
-                scope = world.createScope(this);
+                context = world.getContext(this);
             }
         }
 
         const system = new TestSystem();
         _world.addSystem(system);
 
-        expect(scope!).toBeInstanceOf(Publisher);
-        scope!.subscribe("__internals__:clear", _clear);
+        expect(context!).toBeInstanceOf(Context);
+        context!.on("__internals__:clear", _clear);
 
         _world.removeSystem(system);
 

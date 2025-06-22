@@ -56,7 +56,7 @@ export default class Entity<W extends World = World>
         {
             component.onMount();
 
-            this._world.publish("entity:component:add", this, component);
+            this._world.emit("entity:component:add", this, component);
         }
 
         return component;
@@ -82,7 +82,7 @@ export default class Entity<W extends World = World>
             this._components.delete(type);
             component.onDetach();
 
-            this._world.publish("entity:component:remove", this, component);
+            this._world.emit("entity:component:remove", this, component);
         }
         else
         {

@@ -1,4 +1,4 @@
-import type { Constructor } from "@byloth/core";
+import type { Callback, Constructor } from "@byloth/core";
 
 import type Entity from "./entity.js";
 import type Component from "./component.js";
@@ -9,15 +9,17 @@ export type Instances<T extends Constructor[]> = T extends [infer F, ...infer R]
 
 export interface WorldEventsMap
 {
-    "entity:component:add"?: (entity: Entity, component: Component) => void;
-    "entity:component:remove"?: (entity: Entity, component: Component) => void;
+    "entity:component:add": (entity: Entity, component: Component) => void;
+    "entity:component:remove": (entity: Entity, component: Component) => void;
 
-    "entity:child:add"?: (entity: Entity, child: Entity) => void;
-    "entity:child:remove"?: (entity: Entity, child: Entity) => void;
+    "entity:child:add": (entity: Entity, child: Entity) => void;
+    "entity:child:remove": (entity: Entity, child: Entity) => void;
 
-    "system:add"?: (system: System) => void;
-    "system:remove"?: (system: System) => void;
+    "system:add": (system: System) => void;
+    "system:remove": (system: System) => void;
 
-    "system:enable"?: (system: System) => void;
-    "system:disable"?: (system: System) => void;
+    "system:enable": (system: System) => void;
+    "system:disable": (system: System) => void;
 }
+
+export type SignalEventsMap = Record<`${"entity" | "component" | "system"}:${number}:${string}`, Callback<unknown[]>>;

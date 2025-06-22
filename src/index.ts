@@ -10,6 +10,9 @@ export { World };
 
 export { AdoptionException, AttachmentException } from "./exceptions.js";
 
+import Context from "./context.js";
+export { Context };
+
 import QueryManager from "./query-manager.js";
 export { QueryManager };
 

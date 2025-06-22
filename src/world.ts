@@ -1,21 +1,20 @@
 import { Publisher, ReferenceException } from "@byloth/core";
-import type { CallbackMap, Constructor, Publishable, ReadonlyMapView, SmartIterator } from "@byloth/core";
+import type { CallbackMap, Constructor, InternalsEventsMap, ReadonlyMapView, SmartIterator } from "@byloth/core";
 
 import type Entity from "./entity.js";
 import type Component from "./component.js";
 import System from "./system.js";
 
 import QueryManager from "./query-manager.js";
-import type { Instances, WorldEventsMap } from "./types.js";
+import type { Instances, SignalEventsMap, WorldEventsMap } from "./types.js";
 import { AttachmentException } from "./exceptions.js";
+import Context from "./context.js";
 
-type Signals = Record<`${"entity" | "component" | "system"}:${number}:${string}`, (...args: unknown[]) => void>;
+type W = WorldEventsMap & SignalEventsMap;
+type P = W & InternalsEventsMap;
 
-export default class World<
-    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-    T extends CallbackMap<T> = { },
-    W extends CallbackMap = T & WorldEventsMap & Signals
-> implements Publishable<W>
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export default class World<T extends CallbackMap<T> = { }>
 {
     private readonly _entities: Map<number, Entity>;
     public get entities(): ReadonlyMap<number, Entity> { return this._entities; }
@@ -24,8 +23,8 @@ export default class World<
     private readonly _enabledSystems: System[];
     public get systems(): readonly System[] { return this._systems; }
 
-    private readonly _publisher: Publisher<W>;
-    private readonly _scopes: Map<System, Publisher<W>>;
+    private readonly _publisher: Publisher;
+    private readonly _contexts: Map<System, Context<CallbackMap>>;
 
     private readonly _queryManager: QueryManager;
 
@@ -37,7 +36,7 @@ export default class World<
         this._enabledSystems = [];
 
         this._publisher = new Publisher();
-        this._scopes = new Map();
+        this._contexts = new Map();
 
         this._queryManager = new QueryManager(this._entities, this._publisher);
     }
@@ -72,29 +71,25 @@ export default class World<
     {
         this.addEntity(child);
 
-        // @ts-expect-error - Parameters type is correct.
-        this.publish("entity:child:add", parent, child);
+        this._publisher.publish("entity:child:add", parent, child);
     }
     protected _removeChildEntity(parent: Entity, child: Entity): void
     {
         this.removeEntity(child.id);
 
-        // @ts-expect-error - Parameters type is correct.
-        this.publish("entity:child:remove", parent, child);
+        this._publisher.publish("entity:child:remove", parent, child);
     }
 
     protected _enableSystem(system: System): void
     {
         this._insertSystem(this._enabledSystems, system);
 
-        // @ts-expect-error - Parameters type is correct.
         this._publisher.publish("system:enable", system);
     }
     protected _disableSystem(system: System): void
     {
         this._removeSystem(this._enabledSystems, system);
 
-        // @ts-expect-error - Parameters type is correct.
         this._publisher.publish("system:disable", system);
     }
 
@@ -113,7 +108,6 @@ export default class World<
 
         for (const component of entity.components.values())
         {
-            // @ts-expect-error - Parameters type is correct.
             this._publisher.publish("entity:component:add", entity, component);
         }
 
@@ -136,7 +130,6 @@ export default class World<
 
         for (const component of entity.components.values())
         {
-            // @ts-expect-error - Parameters type is correct.
             this._publisher.publish("entity:component:remove", entity, component);
         }
 
@@ -183,7 +176,6 @@ export default class World<
         this._insertSystem(this._systems, system);
         if (system.enabled) { this._insertSystem(this._enabledSystems, system); }
 
-        // @ts-expect-error - Parameter type is correct.
         this._publisher.publish("system:add", system);
 
         return system;
@@ -199,34 +191,36 @@ export default class World<
 
         system.onDetach();
 
-        const scope = this._scopes.get(system);
-        if (scope)
+        const context = this._contexts.get(system);
+        if (context)
         {
-            scope.clear();
+            context.dispose();
 
-            this._scopes.delete(system);
+            this._contexts.delete(system);
         }
 
-        // @ts-expect-error - Parameter type is correct.
         this._publisher.publish("system:remove", system);
 
         return this;
     }
 
-    public createScope<S extends W = W>(instance: System): Publisher<S>
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
+    public getContext<U extends CallbackMap<U> = { }>(instance: System): Context<U & T>
     {
-        if (this._scopes.has(instance))
-        {
-            throw new ReferenceException("The scope already exists for this instance.");
-        }
+        let context = this._contexts.get(instance);
+        if (context) { return context; }
 
-        const scope = this._publisher.createScope<S>();
-        this._scopes.set(instance, scope);
+        const scope = this._publisher.createScope();
+        context = new Context(scope);
 
-        return scope;
+        this._contexts.set(instance, context);
+
+        return context;
     }
 
-    public publish<K extends keyof W>(event: K & string, ...args: Parameters<W[K]>): ReturnType<W[K]>[]
+    public emit<K extends keyof T>(event: K & string, ...args: Parameters<T[K]>): ReturnType<T[K]>[];
+    public emit<K extends keyof P>(event: K & string, ...args: Parameters<P[K]>): ReturnType<P[K]>[];
+    public emit(event: string, ...args: unknown[]): unknown[]
     {
         return this._publisher.publish(event, ...args);
     }
@@ -262,11 +256,12 @@ export default class World<
 
         this._entities.clear();
 
-        this._scopes.clear();
+        for (const context of this._contexts.values())
+        {
+            context.dispose();
+        }
+
+        this._contexts.clear();
         this._publisher.clear();
     }
 }
-
-const world = new World<{ }>();
-
-world.publish("");
