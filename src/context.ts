@@ -1,4 +1,13 @@
-import type { Callback, CallbackMap, InternalsEventsMap, Publisher, WildcardEventsMap } from "@byloth/core";
+import { TimedPromise } from "@byloth/core";
+import type {
+    Callback,
+    CallbackMap,
+    InternalsEventsMap,
+    PromiseResolver,
+    Publisher,
+    WildcardEventsMap
+
+} from "@byloth/core";
 
 import type { SignalEventsMap, WorldEventsMap } from "./types.js";
 
@@ -29,6 +38,7 @@ export default class Context<T extends CallbackMap<T> = { }>
     {
         return this._publisher.subscribe(event, callback);
     }
+
     public once<K extends keyof T>(event: K & string, callback: T[K]): () => void;
     public once<K extends keyof S>(event: K & string, callback: S[K]): () => void;
     public once(event: string, callback: Callback<unknown[], unknown>): () => void
@@ -42,6 +52,29 @@ export default class Context<T extends CallbackMap<T> = { }>
 
         return this._publisher.subscribe(event, _callback);
     }
+    public wait<K extends keyof T>(event: K & string): Promise<Parameters<T[K]>>;
+    public wait<K extends keyof T>(event: K & string, timeout: number): TimedPromise<Parameters<T[K]>>;
+    public wait<K extends keyof S>(event: K & string): Promise<Parameters<S[K]>>;
+    public wait<K extends keyof S>(event: K & string, timeout: number): TimedPromise<Parameters<S[K]>>;
+    public wait(event: string, timeout?: number): Promise<unknown[]>
+    {
+        const _executor = (resolve: PromiseResolver<unknown[]>) =>
+        {
+            const callback = (...args: unknown[]): void =>
+            {
+                this._publisher.unsubscribe(event, callback);
+
+                resolve(args);
+            };
+
+            this._publisher.subscribe(event, callback);
+        };
+
+        if (timeout) { return new TimedPromise(_executor, timeout); }
+
+        return new Promise(_executor);
+    }
+
     public off<K extends keyof T>(event: K & string, callback: T[K]): void;
     public off<K extends keyof S>(event: K & string, callback: S[K]): void;
     public off(event: string, callback: Callback<unknown[], unknown>): void
