@@ -1,17 +1,13 @@
 import { ReferenceException, RuntimeException } from "@byloth/core";
 import type { Constructor } from "@byloth/core";
 
+import μObject from "./core.js";
 import type Component from "./component.js";
 import { AdoptionException, AttachmentException } from "./exceptions.js";
 import type World from "./world.js";
 
-export default class Entity<W extends World = World>
+export default class Entity<W extends World = World> extends μObject
 {
-    // eslint-disable-next-line camelcase
-    private static __μECS_nextId__ = 0;
-
-    public readonly id: number;
-
     private _world: W | null;
     public get world(): W | null { return this._world; }
 
@@ -26,7 +22,7 @@ export default class Entity<W extends World = World>
 
     public constructor()
     {
-        this.id = (Entity["__μECS_nextId__"] += 1);
+        super();
 
         this._world = null;
 

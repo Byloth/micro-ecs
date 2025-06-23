@@ -1,8 +1,9 @@
 import { ReferenceException, RuntimeException } from "@byloth/core";
 
+import μObject from "./core.js";
 import type World from "./world.js";
 
-export default class System<W extends World = World>
+export default class System<W extends World = World> extends μObject
 {
     public static Sort(a: System, b: System): number
     {
@@ -19,6 +20,8 @@ export default class System<W extends World = World>
 
     public constructor(priority = 0, enabled = true)
     {
+        super();
+
         this.priority = priority;
 
         this._enabled = enabled;

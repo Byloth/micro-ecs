@@ -1,14 +1,17 @@
 import { ReferenceException, RuntimeException } from "@byloth/core";
 
+import μObject from "./core.js";
 import type Entity from "./entity.js";
 
-export default class Component<E extends Entity = Entity>
+export default class Component<E extends Entity = Entity> extends μObject
 {
     private _entity: E | null;
     public get entity(): E | null { return this._entity; }
 
     public constructor()
     {
+        super();
+
         this._entity = null;
     }
 
