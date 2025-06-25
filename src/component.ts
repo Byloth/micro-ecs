@@ -2,17 +2,22 @@ import { ReferenceException, RuntimeException } from "@byloth/core";
 
 import μObject from "./core.js";
 import type Entity from "./entity.js";
+import type World from "./world.js";
 
-export default class Component<E extends Entity = Entity> extends μObject
+export default class Component<W extends World = World, E extends Entity<W> = Entity<W>> extends μObject
 {
     private _entity: E | null;
     public get entity(): E | null { return this._entity; }
+
+    private _world: W | null;
+    public get world(): W | null { return this._world; }
 
     public constructor()
     {
         super();
 
         this._entity = null;
+        this._world = null;
     }
 
     public onAttach(entity: E): void
@@ -26,8 +31,16 @@ export default class Component<E extends Entity = Entity> extends μObject
         this._entity = null;
     }
 
-    public onMount(): void { /* ... */ }
-    public onUnmount(): void { /* ... */ }
+    public onMount(world: W): void
+    {
+        if (this._world) { throw new ReferenceException("The component is already mounted in a world."); }
+        this._world = world;
+    }
+    public onUnmount(): void
+    {
+        if (!(this._world)) { throw new ReferenceException("The component isn't mounted in any world."); }
+        this._world = null;
+    }
 
     public dispose(): void
     {

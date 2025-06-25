@@ -130,9 +130,9 @@ describe("Component", () =>
         const _onMount = vi.fn(() => { /* ... */ });
         class TestComponent extends Component
         {
-            public override onMount(): void
+            public override onMount(world: World): void
             {
-                super.onMount();
+                super.onMount(world);
 
                 _onMount();
             }
@@ -152,9 +152,9 @@ describe("Component", () =>
         const _onMount = vi.fn(() => { /* ... */ });
         class TestComponent extends Component
         {
-            public override onMount(): void
+            public override onMount(world: World): void
             {
-                super.onMount();
+                super.onMount(world);
 
                 _onMount();
             }
@@ -176,9 +176,9 @@ describe("Component", () =>
         const _onMount = vi.fn(() => { /* ... */ });
         class TestComponent extends Component
         {
-            public override onMount(): void
+            public override onMount(world: World): void
             {
-                super.onMount();
+                super.onMount(world);
 
                 _onMount();
             }

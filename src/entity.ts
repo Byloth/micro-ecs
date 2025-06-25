@@ -50,7 +50,7 @@ export default class Entity<W extends World = World> extends μObject
 
         if (this._world)
         {
-            component.onMount();
+            component.onMount(this._world);
 
             this._world.emit("entity:component:add", this, component);
         }
@@ -135,7 +135,7 @@ export default class Entity<W extends World = World> extends μObject
 
         for (const component of this._components.values())
         {
-            component.onMount();
+            component.onMount(world);
         }
     }
     public onDetach(): void
