@@ -52,27 +52,29 @@ export default class Context<T extends CallbackMap<T> = { }>
 
         return this._publisher.subscribe(event, _callback);
     }
-    public wait<K extends keyof T>(event: K & string): Promise<Parameters<T[K]>>;
-    public wait<K extends keyof T>(event: K & string, timeout: number): TimedPromise<Parameters<T[K]>>;
-    public wait<K extends keyof S>(event: K & string): Promise<Parameters<S[K]>>;
-    public wait<K extends keyof S>(event: K & string, timeout: number): TimedPromise<Parameters<S[K]>>;
-    public wait(event: string, timeout?: number): Promise<unknown[]>
+    public async wait<K extends keyof T>(event: K & string, timeout?: number): Promise<Parameters<T[K]>>;
+    public async wait<K extends keyof S>(event: K & string, timeout?: number): Promise<Parameters<S[K]>>;
+    public async wait(event: string, timeout?: number): Promise<unknown[]>
     {
-        const _executor = (resolve: PromiseResolver<unknown[]>) =>
+        let _callback: Callback<unknown[]>;
+
+        const executor = (resolve: PromiseResolver<unknown[]>) =>
         {
-            const callback = (...args: unknown[]): void =>
-            {
-                this._publisher.unsubscribe(event, callback);
+            _callback = (...args) => { resolve(args); };
 
-                resolve(args);
-            };
-
-            this._publisher.subscribe(event, callback);
+            this._publisher.subscribe(event, _callback);
         };
 
-        if (timeout) { return new TimedPromise(_executor, timeout); }
+        try
+        {
+            if (timeout) { return await new TimedPromise(executor, timeout); }
 
-        return new Promise(_executor);
+            return await new Promise(executor);
+        }
+        finally
+        {
+            this._publisher.unsubscribe(event, _callback!);
+        }
     }
 
     public off<K extends keyof T>(event: K & string, callback: T[K]): void;

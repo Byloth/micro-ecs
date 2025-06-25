@@ -1,5 +1,5 @@
-import { ReferenceException } from "@byloth/core";
-import { describe, it, expect, vi } from "vitest";
+import { ReferenceException, TimeoutException } from "@byloth/core";
+import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 
 import { Context, System, World } from "../src/index.js";
 
@@ -22,6 +22,9 @@ describe("Context", () =>
 
         context = world.getContext(system);
     };
+
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.clearAllTimers());
 
     it("Should allow subscribing to an event", () =>
     {
@@ -92,6 +95,39 @@ describe("Context", () =>
         world.emit("player:move", { x: 70, y: 80 });
         expect(_moveHandler1).toHaveBeenCalledTimes(2);
         expect(_moveHandler2).toHaveBeenCalledTimes(2);
+    });
+
+    it("Should allow waiting for an event", async () =>
+    {
+        const _moveHandler = vi.fn();
+
+        _populateWorld(new System());
+
+        setTimeout(() => world.emit("player:spawn", { x: 5, y: 6 }), 100);
+
+        let _executed = false;
+        context.wait("player:spawn")
+            .then(([evt]) => _moveHandler(evt))
+            .finally(() => { _executed = true; });
+
+        await vi.advanceTimersByTimeAsync(100);
+
+        expect(_executed).toBe(true);
+        expect(_moveHandler).toHaveBeenCalledWith({ x: 5, y: 6 });
+    });
+    it("Should timeout if event is not emitted in time", async () =>
+    {
+        _populateWorld(new System());
+
+        const _expectTimeoutPromise = expect(context.wait("player:move", 100)).rejects
+            .toThrow(TimeoutException);
+
+        expect(context["_publisher"]["_subscribers"].size).toBe(1);
+
+        await vi.advanceTimersByTimeAsync(100);
+        await _expectTimeoutPromise;
+
+        expect(context["_publisher"]["_subscribers"].size).toBe(0);
     });
 
     it("Should allow unsubscribing from an event", () =>
