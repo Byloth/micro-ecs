@@ -212,6 +212,7 @@ export default class World<T extends CallbackMap<T> = { }>
 
         const scope = this._publisher.createScope();
         context = new Context(scope);
+        context.once("__internals__:clear", () => this._contexts.delete(instance));
 
         this._contexts.set(instance, context);
 

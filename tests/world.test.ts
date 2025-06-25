@@ -204,6 +204,31 @@ describe("World", () =>
 
         expect(context1).toBe(context2);
     });
+
+    it("Should clear & remove the context when the context itself is disposed", () =>
+    {
+        const _clear = vi.fn(() => { /* ... */ });
+
+        let context: Context;
+        class TestSystem extends System
+        {
+            public override onAttach(world: World): void
+            {
+                super.onAttach(world);
+
+                context = world.getContext(this);
+            }
+        }
+
+        const system = new TestSystem();
+        _world.addSystem(system);
+
+        expect(context!).toBeInstanceOf(Context);
+        context!.on("__internals__:clear", _clear);
+        context!.dispose();
+
+        expect(_clear).toHaveBeenCalledTimes(1);
+    });
     it("Should clear & remove the context when the system is removed", () =>
     {
         const _clear = vi.fn(() => { /* ... */ });

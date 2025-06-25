@@ -122,12 +122,12 @@ describe("Context", () =>
         const _expectTimeoutPromise = expect(context.wait("player:move", 100)).rejects
             .toThrow(TimeoutException);
 
-        expect(context["_publisher"]["_subscribers"].size).toBe(1);
+        expect(context["_publisher"]["_subscribers"].size).toBe(2);
 
         await vi.advanceTimersByTimeAsync(100);
         await _expectTimeoutPromise;
 
-        expect(context["_publisher"]["_subscribers"].size).toBe(0);
+        expect(context["_publisher"]["_subscribers"].size).toBe(1);
     });
 
     it("Should allow unsubscribing from an event", () =>
