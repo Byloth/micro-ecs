@@ -1,7 +1,9 @@
+import type { Constructor } from "@byloth/core";
 import { describe, it, expect, vi } from "vitest";
+
 import { Component, Entity, World } from "../src/index.js";
 
-describe("getComponentViewManager", () =>
+describe("QueryManager", () =>
 {
     class TestComponent1 extends Component { }
     class TestComponent2 extends Component { }
@@ -10,24 +12,26 @@ describe("getComponentViewManager", () =>
 
     const _populateWorld = (world: World): void =>
     {
-        const definitions = [
-            [TestComponent1],
-            [TestComponent2, TestComponent1],
-            [TestComponent1, TestComponent3],
-            [TestComponent3],
-            [TestComponent2, TestComponent3, TestComponent1],
-            [TestComponent3, TestComponent2],
-            [TestComponent2]
+        const definitions: [[Constructor<Component>, boolean][], boolean][] = [
+            [[[TestComponent3, false], [TestComponent1, true]], true],
+            [[[TestComponent2, true], [TestComponent1, true]], true],
+            [[[TestComponent1, true], [TestComponent3, true]], true],
+            [[[TestComponent2, false], [TestComponent3, true]], true],
+            [[[TestComponent2, true], [TestComponent3, true], [TestComponent1, true]], true],
+            [[[TestComponent2, true], [TestComponent3, true], [TestComponent1, true]], false],
+            [[[TestComponent3, true], [TestComponent2, true]], true],
+            [[[TestComponent2, true], [TestComponent1, false]], true],
+            [[[TestComponent1, false], [TestComponent3, false], [TestComponent2, false]], true]
         ];
 
         let index = 0;
-        for (const components of definitions)
+        for (const [components, entityEnabled] of definitions)
         {
-            const entity = new Entity();
+            const entity = new Entity(entityEnabled);
 
-            for (const C of components)
+            for (const [C, componentEnabled] of components)
             {
-                entity.addComponent(new C());
+                entity.addComponent(new C(componentEnabled));
             }
 
             Object.defineProperty(entity, "id", { value: (index += 1) });
@@ -56,59 +60,161 @@ describe("getComponentViewManager", () =>
         expect(iterator.length).toBe(4);
         expect(iterator[0][0].entity!.id).toBe(2);
         expect(iterator[1][0].entity!.id).toBe(5);
-        expect(iterator[2][0].entity!.id).toBe(6);
-        expect(iterator[3][0].entity!.id).toBe(7);
+        expect(iterator[2][0].entity!.id).toBe(7);
+        expect(iterator[3][0].entity!.id).toBe(8);
 
         expect(first[0].entity!.id).toBe(3);
         expect(second).toBeUndefined();
     });
 
-    it("Should reactively update entities when entities are added", () =>
+    describe("When components are manipulated", () =>
     {
-        const world = new World();
+        it("Should reactively update entities when components are added", () =>
+        {
+            const world = new World();
 
-        _populateWorld(world);
+            _populateWorld(world);
 
-        const view = world.getComponentView(TestComponent1, TestComponent3);
+            const view = world.getComponentView(TestComponent1, TestComponent3);
 
-        const before = Array.from(view.values());
-        expect(before.length).toBe(2);
-        expect(before[0][0].entity!.id).toBe(3);
-        expect(before[1][0].entity!.id).toBe(5);
+            const before = Array.from(view.values());
+            expect(before.length).toBe(2);
+            expect(before[0][0].entity!.id).toBe(3);
+            expect(before[1][0].entity!.id).toBe(5);
 
-        const entity = new Entity();
-        entity.addComponent(new TestComponent3());
-        entity.addComponent(new TestComponent1());
+            const entity = world.entities.get(2)!;
+            entity.addComponent(new TestComponent3());
 
-        Object.defineProperty(entity, "id", { value: 10 });
+            const after = Array.from(view.values());
+            expect(after.length).toBe(3);
+            expect(after[0][0].entity!.id).toBe(3);
+            expect(after[1][0].entity!.id).toBe(5);
+            expect(after[2][0].entity!.id).toBe(2);
+        });
+        it("Should reactively update entities when components are enabled", () =>
+        {
+            const world = new World();
 
-        world.addEntity(entity);
+            _populateWorld(world);
 
-        const after = Array.from(view.values());
-        expect(after.length).toBe(3);
-        expect(after[0][0].entity!.id).toBe(3);
-        expect(after[1][0].entity!.id).toBe(5);
-        expect(after[2][0].entity!.id).toBe(10);
+            const view = world.getComponentView(TestComponent1, TestComponent3);
+
+            const before = Array.from(view.values());
+            expect(before.length).toBe(2);
+            expect(before[0][0].entity!.id).toBe(3);
+            expect(before[1][0].entity!.id).toBe(5);
+
+            const entity1 = world.entities.get(1)!;
+            entity1.components.get(TestComponent3)!
+                .enable();
+
+            const entity2 = world.entities.get(9)!;
+            entity2.components.get(TestComponent1)!
+                .enable();
+
+            entity2.components.get(TestComponent3)!
+                .enable();
+
+            const after = Array.from(view.values());
+            expect(after.length).toBe(4);
+            expect(after[0][0].entity!.id).toBe(3);
+            expect(after[1][0].entity!.id).toBe(5);
+            expect(after[2][0].entity!.id).toBe(1);
+            expect(after[3][0].entity!.id).toBe(9);
+        });
+
+        it("Should reactively update entities when components are removed", () =>
+        {
+            const world = new World();
+
+            _populateWorld(world);
+
+            const view = world.getComponentView(TestComponent1, TestComponent3);
+
+            const before = Array.from(view.values());
+            expect(before.length).toBe(2);
+            expect(before[0][0].entity!.id).toBe(3);
+            expect(before[1][0].entity!.id).toBe(5);
+
+            const { entity } = before[0][0];
+            entity!.removeComponent(TestComponent1);
+
+            const after = Array.from(view.values());
+            expect(after.length).toBe(1);
+            expect(after[0][0].entity!.id).toBe(5);
+        });
+        it("Should reactively update entities when components are disabled", () =>
+        {
+            const world = new World();
+
+            _populateWorld(world);
+
+            const view = world.getComponentView(TestComponent1, TestComponent3);
+
+            const before = Array.from(view.values());
+            expect(before.length).toBe(2);
+            expect(before[0][0].entity!.id).toBe(3);
+            expect(before[1][0].entity!.id).toBe(5);
+
+            const [entity1, entity2] = before;
+            entity1[1].disable();
+            entity2[0].disable();
+
+            const after = Array.from(view.values());
+            expect(after.length).toBe(0);
+        });
     });
-    it("Should reactively update entities when entities are removed", () =>
+
+    describe("When entities are manipulated", () =>
     {
-        const world = new World();
+        it("Should reactively update entities when entities are added", () =>
+        {
+            const world = new World();
 
-        _populateWorld(world);
+            _populateWorld(world);
 
-        const view = world.getComponentView(TestComponent2, TestComponent3);
+            const view = world.getComponentView(TestComponent1, TestComponent3);
 
-        const before = Array.from(view.values());
-        expect(before.length).toBe(2);
-        expect(before[0][0].entity!.id).toBe(5);
-        expect(before[1][0].entity!.id).toBe(6);
+            const before = Array.from(view.values());
+            expect(before.length).toBe(2);
+            expect(before[0][0].entity!.id).toBe(3);
+            expect(before[1][0].entity!.id).toBe(5);
 
-        const { entity } = before[1][0];
-        entity!.removeComponent(TestComponent2);
+            const entity = new Entity();
+            entity.addComponent(new TestComponent3());
+            entity.addComponent(new TestComponent1());
 
-        const after = Array.from(view.values());
-        expect(after.length).toBe(1);
-        expect(after[0][0].entity!.id).toBe(5);
+            Object.defineProperty(entity, "id", { value: 10 });
+
+            world.addEntity(entity);
+
+            const after = Array.from(view.values());
+            expect(after.length).toBe(3);
+            expect(after[0][0].entity!.id).toBe(3);
+            expect(after[1][0].entity!.id).toBe(5);
+            expect(after[2][0].entity!.id).toBe(10);
+        });
+
+        it("Should reactively update entities when entities are removed", () =>
+        {
+            const world = new World();
+
+            _populateWorld(world);
+
+            const view = world.getComponentView(TestComponent2, TestComponent3);
+
+            const before = Array.from(view.values());
+            expect(before.length).toBe(2);
+            expect(before[0][0].entity!.id).toBe(5);
+            expect(before[1][0].entity!.id).toBe(7);
+
+            const { entity } = before[1][0];
+            entity!.removeComponent(TestComponent2);
+
+            const after = Array.from(view.values());
+            expect(after.length).toBe(1);
+            expect(after[0][0].entity!.id).toBe(5);
+        });
     });
 
     it("Should reactively be called once when an entity with multiple components is added", () =>
@@ -138,7 +244,7 @@ describe("getComponentViewManager", () =>
         expect(before[0][0].entity!.id).toBe(3);
         expect(before[1][0].entity!.id).toBe(4);
         expect(before[2][0].entity!.id).toBe(5);
-        expect(before[3][0].entity!.id).toBe(6);
+        expect(before[3][0].entity!.id).toBe(7);
 
         world.dispose();
 
