@@ -122,27 +122,6 @@ describe("QueryManager", () =>
             expect(after[2][0].entity!.id).toBe(1);
             expect(after[3][0].entity!.id).toBe(9);
         });
-
-        it("Should reactively update entities when components are removed", () =>
-        {
-            const world = new World();
-
-            _populateWorld(world);
-
-            const view = world.getComponentView(TestComponent1, TestComponent3);
-
-            const before = Array.from(view.values());
-            expect(before.length).toBe(2);
-            expect(before[0][0].entity!.id).toBe(3);
-            expect(before[1][0].entity!.id).toBe(5);
-
-            const { entity } = before[0][0];
-            entity!.removeComponent(TestComponent1);
-
-            const after = Array.from(view.values());
-            expect(after.length).toBe(1);
-            expect(after[0][0].entity!.id).toBe(5);
-        });
         it("Should reactively update entities when components are disabled", () =>
         {
             const world = new World();
@@ -163,11 +142,7 @@ describe("QueryManager", () =>
             const after = Array.from(view.values());
             expect(after.length).toBe(0);
         });
-    });
-
-    describe("When entities are manipulated", () =>
-    {
-        it("Should reactively update entities when entities are added", () =>
+        it("Should reactively update entities when components are removed", () =>
         {
             const world = new World();
 
@@ -180,21 +155,85 @@ describe("QueryManager", () =>
             expect(before[0][0].entity!.id).toBe(3);
             expect(before[1][0].entity!.id).toBe(5);
 
+            const { entity } = before[0][0];
+            entity!.removeComponent(TestComponent1);
+
+            const after = Array.from(view.values());
+            expect(after.length).toBe(1);
+            expect(after[0][0].entity!.id).toBe(5);
+        });
+    });
+
+    describe("When entities are manipulated", () =>
+    {
+        it("Should reactively update entities when entities are added", () =>
+        {
+            const world = new World();
+
+            _populateWorld(world);
+
+            const view = world.getComponentView(TestComponent2, TestComponent3);
+
+            const before = Array.from(view.values());
+            expect(before.length).toBe(2);
+            expect(before[0][0].entity!.id).toBe(5);
+            expect(before[1][0].entity!.id).toBe(7);
+
             const entity = new Entity();
             entity.addComponent(new TestComponent3());
-            entity.addComponent(new TestComponent1());
+            entity.addComponent(new TestComponent2());
 
-            Object.defineProperty(entity, "id", { value: 10 });
+            Object.defineProperty(entity, "id", { value: 9 });
 
             world.addEntity(entity);
 
             const after = Array.from(view.values());
             expect(after.length).toBe(3);
-            expect(after[0][0].entity!.id).toBe(3);
-            expect(after[1][0].entity!.id).toBe(5);
-            expect(after[2][0].entity!.id).toBe(10);
+            expect(after[0][0].entity!.id).toBe(5);
+            expect(after[1][0].entity!.id).toBe(7);
+            expect(after[2][0].entity!.id).toBe(9);
         });
+        it("Should reactively update entities when entities are enabled", () =>
+        {
+            const world = new World();
 
+            _populateWorld(world);
+
+            const view = world.getComponentView(TestComponent2, TestComponent3);
+
+            const before = Array.from(view.values());
+            expect(before.length).toBe(2);
+            expect(before[0][0].entity!.id).toBe(5);
+            expect(before[1][0].entity!.id).toBe(7);
+
+            world.entities.get(6)!
+                .enable();
+
+            const after = Array.from(view.values());
+            expect(after.length).toBe(3);
+            expect(after[0][0].entity!.id).toBe(5);
+            expect(after[1][0].entity!.id).toBe(7);
+            expect(after[2][0].entity!.id).toBe(6);
+        });
+        it("Should reactively update entities when components are disabled", () =>
+        {
+            const world = new World();
+
+            _populateWorld(world);
+
+            const view = world.getComponentView(TestComponent2, TestComponent3);
+
+            const before = Array.from(view.values());
+            expect(before.length).toBe(2);
+            expect(before[0][0].entity!.id).toBe(5);
+            expect(before[1][0].entity!.id).toBe(7);
+
+            before[1][0].entity!.disable();
+
+            const after = Array.from(view.values());
+            expect(after.length).toBe(1);
+            expect(after[0][0].entity!.id).toBe(5);
+        });
         it("Should reactively update entities when entities are removed", () =>
         {
             const world = new World();
@@ -208,13 +247,19 @@ describe("QueryManager", () =>
             expect(before[0][0].entity!.id).toBe(5);
             expect(before[1][0].entity!.id).toBe(7);
 
-            const { entity } = before[1][0];
-            entity!.removeComponent(TestComponent2);
+            const entity1 = before[0][0].entity!;
+            const entity2 = before[1][0].entity!;
+
+            world.removeEntity(entity1.id);
+            world.removeEntity(entity2);
 
             const after = Array.from(view.values());
-            expect(after.length).toBe(1);
-            expect(after[0][0].entity!.id).toBe(5);
+            expect(after.length).toBe(0);
         });
+    });
+    describe("When child entities are manipulated", () =>
+    {
+        
     });
 
     it("Should reactively be called once when an entity with multiple components is added", () =>

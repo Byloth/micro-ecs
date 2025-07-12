@@ -75,6 +75,15 @@ describe("Entity", () =>
         expect(parent.children.size).toBe(1);
         expect(child.parent).toBe(parent);
     });
+    it("Should throw an error when adding a child entity that already has a parent", () =>
+    {
+        
+    });
+    it("Should throw an error when adding a child entity that's already attached to the world", () =>
+    {
+        
+    });
+
     it("Should be able to remove a child entity", () =>
     {
         const parent = new Entity();

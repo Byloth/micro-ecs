@@ -46,7 +46,7 @@ export default class Entity<W extends World = World> extends μObject
     public addComponent<C extends Component>(component: C): C
     {
         const type = component.constructor as Constructor<Component>;
-        if (this._components.has(type)) { throw new ReferenceException("The entity already has this component."); }
+        if (this._components.has(type)) { throw new ReferenceException("The component already exists in the entity."); }
 
         try
         {
@@ -75,7 +75,7 @@ export default class Entity<W extends World = World> extends μObject
         const type = (typeof component === "function") ? component : component.constructor as Constructor<Component>;
 
         const _component = this._components.get(type) as C | undefined;
-        if (!(_component)) { throw new ReferenceException("The entity doesn't have this component."); }
+        if (!(_component)) { throw new ReferenceException("The component doesn't exist in the entity."); }
 
         if (this._world)
         {

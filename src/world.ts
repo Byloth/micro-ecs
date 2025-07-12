@@ -146,6 +146,8 @@ export default class World<T extends CallbackMap<T> = { }>
 
     public addEntity<E extends Entity>(entity: E): E
     {
+        if (this._entities.has(entity.id)) { throw new ReferenceException("The entity already exists in the world."); }
+
         if (entity.parent)
         {
             throw new HierarchyException(
@@ -165,7 +167,7 @@ export default class World<T extends CallbackMap<T> = { }>
         const entityId = (typeof entity === "number") ? entity : entity.id;
 
         const _entity = this._entities.get(entityId) as E | undefined;
-        if (!(_entity)) { throw new ReferenceException(`The entity with ID ${entityId} doesn't exist.`); }
+        if (!(_entity)) { throw new ReferenceException("The entity doesn't exist in the world."); }
 
         if (_entity.parent)
         {
@@ -205,7 +207,7 @@ export default class World<T extends CallbackMap<T> = { }>
     public addSystem<S extends System>(system: S): S
     {
         const type = system.constructor as Constructor<System>;
-        if (this._systems.has(type)) { throw new ReferenceException("The world already has this system."); }
+        if (this._systems.has(type)) { throw new ReferenceException("The system already exists in the world."); }
 
         try
         {

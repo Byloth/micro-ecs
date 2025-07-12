@@ -17,6 +17,10 @@ describe("World", () =>
         expect(_world.entities.size).toBe(1);
         expect(_world.entities.get(entity.id)).toBe(entity);
     });
+    it("Should throw an error if the entity already exists", () =>
+    {
+
+    });
 
     it("Should remove an entity from the world", () =>
     {
