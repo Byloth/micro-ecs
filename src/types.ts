@@ -4,22 +4,30 @@ import type Entity from "./entity.js";
 import type Component from "./component.js";
 import type System from "./system.js";
 
+export interface __World__
+{
+    _enabledSystems: System[];
+
+    _addEntity(parent: Entity): void;
+    _removeEntity(parent: Entity): void;
+
+    _enableEntity(entity: Entity): void;
+    _disableEntity(entity: Entity): void;
+
+    _enableComponent(component: Component): void;
+    _disableComponent(component: Component): void;
+
+    _enableSystem(system: System): void;
+    _disableSystem(system: System): void;
+}
+
 export type Instances<T extends Constructor[]> = T extends [infer F, ...infer R] ?
     [InstanceType<F extends Constructor ? F : never>, ...Instances<R extends Constructor[] ? R : []>] : [];
 
 export interface WorldEventsMap
 {
-    "entity:component:add": (entity: Entity, component: Component) => void;
-    "entity:component:remove": (entity: Entity, component: Component) => void;
-
-    "entity:child:add": (entity: Entity, child: Entity) => void;
-    "entity:child:remove": (entity: Entity, child: Entity) => void;
-
-    "system:add": (system: System) => void;
-    "system:remove": (system: System) => void;
-
-    "system:enable": (system: System) => void;
-    "system:disable": (system: System) => void;
+    "entity:component:enable": (entity: Entity, component: Component) => void;
+    "entity:component:disable": (entity: Entity, component: Component) => void;
 }
 
 type EntitySignalEventMap<T extends unknown[]> = Record<`entity:${number}:${string}`, Callback<[Entity, ...T]>>;

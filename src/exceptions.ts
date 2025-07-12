@@ -1,6 +1,6 @@
-import { Exception } from "@byloth/core";
+import { ReferenceException, RuntimeException } from "@byloth/core";
 
-export class AdoptionException extends Exception
+export class AdoptionException extends RuntimeException
 {
     public constructor(message: string, cause?: unknown, name = "AdoptionException")
     {
@@ -9,7 +9,7 @@ export class AdoptionException extends Exception
 
     public override readonly [Symbol.toStringTag]: string = "AdoptionException";
 }
-export class AttachmentException extends Exception
+export class AttachmentException extends RuntimeException
 {
     public constructor(message: string, cause?: unknown, name = "AttachmentException")
     {
@@ -17,4 +17,14 @@ export class AttachmentException extends Exception
     }
 
     public override readonly [Symbol.toStringTag]: string = "AttachmentException";
+}
+
+export class HierarchyException extends ReferenceException
+{
+    public constructor(message: string, cause?: unknown, name = "HierarchyException")
+    {
+        super(message, cause, name);
+    }
+
+    public override readonly [Symbol.toStringTag]: string = "HierarchyException";
 }

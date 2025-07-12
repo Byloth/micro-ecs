@@ -2,6 +2,7 @@ import { ReferenceException, RuntimeException } from "@byloth/core";
 
 import μObject from "./core.js";
 import type World from "./world.js";
+import type { __World__ } from "./types.js";
 
 export default class System<W extends World = World> extends μObject
 {
@@ -33,16 +34,14 @@ export default class System<W extends World = World> extends μObject
         if (this._enabled) { throw new RuntimeException("The system is already enabled."); }
         this._enabled = true;
 
-        // @ts-expect-error - The method exists and is correct.
-        this._world?._enableSystem(this);
+        (this._world as __World__ | null)?._enableSystem(this);
     }
     public disable(): void
     {
         if (!(this._enabled)) { throw new RuntimeException("The system is already disabled."); }
         this._enabled = false;
 
-        // @ts-expect-error - The method exists and is correct.
-        this._world?._disableSystem(this);
+        (this._world as __World__ | null)?._disableSystem(this);
     }
 
     public onAttach(world: W): void

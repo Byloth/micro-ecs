@@ -14,9 +14,9 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
     private readonly _views: Map<string, MapView<Entity, Component[]>>;
 
     private readonly _entities: ReadonlyMap<number, Entity>;
-    private readonly _publisher: Publisher<T & WorldEventsMap>;
+    private readonly _publisher: Publisher;
 
-    private readonly _onEntityComponentAdd = (entity: Entity, component: Component) =>
+    private readonly _onEntityComponentEnable = (entity: Entity, component: Component) =>
     {
         const type = component.constructor as Constructor<Component>;
         const keys = this._typeKeys.get(type);
@@ -37,8 +37,8 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
             do
             {
                 const _type = types[index];
-                const _component = entity.getComponent(_type);
-                if (!(_component))
+                const _component = entity.components.get(_type);
+                if (!(_component) || !(_component.enabled))
                 {
                     found = false;
 
@@ -54,7 +54,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
             if (found) { entities.set(entity, components); }
         }
     };
-    private readonly _onEntityComponentRemove = (entity: Entity, component: Component) =>
+    private readonly _onEntityComponentDisable = (entity: Entity, component: Component) =>
     {
         const type = component.constructor as Constructor<Component>;
         const keys = this._typeKeys.get(type);
@@ -76,12 +76,8 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
 
         this._entities = entities;
         this._publisher = publisher;
-
-        // @ts-expect-error - Parameter type is correct.
-        this._publisher.subscribe("entity:component:add", this._onEntityComponentAdd);
-
-        // @ts-expect-error - Parameter type is correct.
-        this._publisher.subscribe("entity:component:remove", this._onEntityComponentRemove);
+        this._publisher.subscribe("entity:component:enable", this._onEntityComponentEnable);
+        this._publisher.subscribe("entity:component:disable", this._onEntityComponentDisable);
     }
 
     private _addComponentKeys(types: Constructor<Component>[], key: string): void
@@ -112,8 +108,10 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
 
         for (const entity of this._entities.values())
         {
-            const component = entity.getComponent(type);
-            if (component) { return component as R; }
+            if (!(entity.enabled)) { continue; }
+
+            const component = entity.components.get(type);
+            if (component?.enabled) { return component as R; }
         }
 
         return undefined;
@@ -141,13 +139,15 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
 
         for (const entity of this._entities.values())
         {
+            if (!(entity.enabled)) { continue; }
+
             let found = true;
             let index = 0;
             do
             {
                 const type = types[index];
-                const component = entity.getComponent(type);
-                if (!(component))
+                const component = entity.components.get(type);
+                if (!(component) || !(component.enabled))
                 {
                     found = false;
 
@@ -180,6 +180,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         if (view) { return new SmartIterator(view.values()); }
 
         return new SmartIterator(this._entities.values())
+            .filter((entity) => entity.enabled)
             .map((entity) =>
             {
                 const components: Component[] = [];
@@ -189,8 +190,8 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
                 do
                 {
                     const type = types[index];
-                    const component = entity.getComponent(type);
-                    if (!(component))
+                    const component = entity.components.get(type);
+                    if (!(component) || !(component.enabled))
                     {
                         found = false;
 
@@ -225,6 +226,8 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         view = new MapView<Entity, R>();
         for (const entity of this._entities.values())
         {
+            if (!(entity.enabled)) { continue; }
+
             const components: Component[] = [];
 
             let found = true;
@@ -232,8 +235,8 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
             do
             {
                 const type = types[index];
-                const component = entity.getComponent(type);
-                if (!(component))
+                const component = entity.components.get(type);
+                if (!(component) || !(component.enabled))
                 {
                     found = false;
 
@@ -259,11 +262,8 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
 
     public dispose(): void
     {
-        // @ts-expect-error - Parameter type is correct.
-        this._publisher.unsubscribe("entity:component:add", this._onEntityComponentAdd);
-
-        // @ts-expect-error - Parameter type is correct.
-        this._publisher.unsubscribe("entity:component:remove", this._onEntityComponentRemove);
+        this._publisher.unsubscribe("entity:component:enable", this._onEntityComponentEnable);
+        this._publisher.unsubscribe("entity:component:disable", this._onEntityComponentDisable);
 
         for (const view of this._views.values()) { view.clear(); }
         this._views.clear();

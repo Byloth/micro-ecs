@@ -42,9 +42,9 @@ describe("getComponentViewManager", () =>
 
         _populateWorld(world);
 
-        const first = world.getComponents(TestComponent3, TestComponent1)!;
-        const second = world.getComponent(TestComponent4);
-        const iterator = world.findComponents(TestComponent2).toArray();
+        const first = world.getFirstComponents(TestComponent3, TestComponent1)!;
+        const second = world.getFirstComponent(TestComponent4);
+        const iterator = world.findAllComponents(TestComponent2).toArray();
         const view = Array.from(world.getComponentView(TestComponent1).values());
 
         expect(view.length).toBe(4);

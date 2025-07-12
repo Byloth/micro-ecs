@@ -2,6 +2,7 @@ import { ReferenceException, RuntimeException } from "@byloth/core";
 import { describe, it, expect, vi } from "vitest";
 
 import { AttachmentException, System, World } from "../src/index.js";
+import type { __World__ } from "src/types.js";
 
 describe("System", () =>
 {
@@ -135,13 +136,20 @@ describe("System", () =>
 
     it("Should be sortable by priority", () =>
     {
+        class SystemA extends System { }
+        class SystemB extends System { }
+        class SystemC extends System { }
+        class SystemD extends System { }
+        class SystemE extends System { }
+        class SystemF extends System { }
+
         const world = new World();
-        const system0 = new System(2);
-        const system1 = new System(3);
-        const system2 = new System();
-        const system3 = new System(2);
-        const system4 = new System(1);
-        const system5 = new System(-1);
+        const system0 = new SystemA(2);
+        const system1 = new SystemB(3);
+        const system2 = new SystemC();
+        const system3 = new SystemD(2);
+        const system4 = new SystemE(1);
+        const system5 = new SystemF(-1);
 
         world.addSystem(system0);
         world.addSystem(system1);
@@ -150,7 +158,8 @@ describe("System", () =>
         world.addSystem(system4);
         world.addSystem(system5);
 
-        expect(world.systems).toEqual([system5, system2, system4, system0, system3, system1]);
+        expect(((world as unknown) as __World__)._enabledSystems)
+            .toEqual([system5, system2, system4, system0, system3, system1]);
     });
 
     it("Should be disposable", () =>

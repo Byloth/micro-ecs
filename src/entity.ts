@@ -5,14 +5,20 @@ import μObject from "./core.js";
 import type Component from "./component.js";
 import { AdoptionException, AttachmentException } from "./exceptions.js";
 import type World from "./world.js";
+import type { __World__ } from "./types.js";
 
 export default class Entity<W extends World = World> extends μObject
 {
-    private _world: W | null;
-    public get world(): W | null { return this._world; }
+    private _enabled: boolean;
+    public get enabled(): boolean { return this._enabled; }
 
     private readonly _components: Map<Constructor<Component>, Component>;
     public get components(): ReadonlyMap<Constructor<Component>, Component> { return this._components; }
+
+    private get _hierarchyEnabled(): boolean
+    {
+        return this._parent ? (this._parent._hierarchyEnabled && this._parent.enabled) : true;
+    }
 
     private _parent: Entity | null;
     public get parent(): Entity | null { return this._parent; }
@@ -20,16 +26,21 @@ export default class Entity<W extends World = World> extends μObject
     private readonly _children: Set<Entity>;
     public get children(): ReadonlySet<Entity> { return this._children; }
 
-    public constructor()
+    private _world: W | null;
+    public get world(): W | null { return this._world; }
+
+    public constructor(enabled = true)
     {
         super();
 
-        this._world = null;
+        this._enabled = enabled;
 
         this._components = new Map();
 
         this._parent = null;
         this._children = new Set();
+
+        this._world = null;
     }
 
     public addComponent<C extends Component>(component: C): C
@@ -52,41 +63,35 @@ export default class Entity<W extends World = World> extends μObject
         {
             component.onMount(this._world);
 
-            this._world.emit("entity:component:add", this, component);
+            this._world.emit("entity:component:enable", this, component);
         }
 
         return component;
     }
+    public removeComponent<C extends Component>(type: Constructor<C>): C;
+    public removeComponent<C extends Component>(component: Constructor<C>): C;
+    public removeComponent<C extends Component>(component: Constructor<C> | C): C
+    {
+        const type = (typeof component === "function") ? component : component.constructor as Constructor<Component>;
 
-    public getComponent<C extends Component>(type: Constructor<C>): C | undefined
-    {
-        return this._components.get(type) as C | undefined;
-    }
-    public hasComponent<C extends Component>(type: Constructor<C>): boolean
-    {
-        return this._components.has(type);
-    }
-
-    public removeComponent<C extends Component>(type: Constructor<C>): C
-    {
-        const component = this._components.get(type) as C | undefined;
-        if (!(component)) { throw new ReferenceException("The entity doesn't have this component."); }
+        const _component = this._components.get(type) as C | undefined;
+        if (!(_component)) { throw new ReferenceException("The entity doesn't have this component."); }
 
         if (this._world)
         {
-            component.onUnmount();
-            this._components.delete(type);
-            component.onDetach();
+            _component.onUnmount();
+            this._components.delete(_component.constructor as Constructor<Component>);
+            _component.onDetach();
 
-            this._world.emit("entity:component:remove", this, component);
+            this._world.emit("entity:component:disable", this, _component);
         }
         else
         {
-            this._components.delete(type);
-            component.onDetach();
+            this._components.delete(_component.constructor as Constructor<Component>);
+            _component.onDetach();
         }
 
-        return component;
+        return _component;
     }
 
     public addChild<E extends Entity>(child: E): E
@@ -102,15 +107,11 @@ export default class Entity<W extends World = World> extends μObject
 
         this._children.add(child);
 
-        if (this._world)
-        {
-            // @ts-expect-error - The method exists and is correct.
-            this._world._addChildEntity(this, child);
-        }
+        (this._world as __World__ | null)?._addEntity(child);
 
         return child;
     }
-    public removeChild(child: Entity): this
+    public removeChild<E extends Entity>(child: E): E
     {
         if (!(this._children.delete(child)))
         {
@@ -119,13 +120,24 @@ export default class Entity<W extends World = World> extends μObject
 
         child.onUnadoption();
 
-        if (this._world)
-        {
-            // @ts-expect-error - The method exists and is correct.
-            this._world._removeChildEntity(this, child);
-        }
+        (this._world as __World__ | null)?._removeEntity(child);
 
-        return this;
+        return child;
+    }
+
+    public enable(): void
+    {
+        if (this._enabled) { throw new RuntimeException("The entity is already enabled."); }
+        this._enabled = true;
+
+        if (this._hierarchyEnabled) { (this._world as __World__ | null)?._enableEntity(this); }
+    }
+    public disable(): void
+    {
+        if (!(this._enabled)) { throw new RuntimeException("The entity is already disabled."); }
+        this._enabled = false;
+
+        if (this._hierarchyEnabled) { (this._world as __World__ | null)?._disableEntity(this); }
     }
 
     public onAttach(world: W): void

@@ -7,7 +7,7 @@ import System from "./system.js";
 
 import QueryManager from "./query-manager.js";
 import type { Instances, SignalEventsMap, WorldEventsMap } from "./types.js";
-import { AttachmentException } from "./exceptions.js";
+import { AttachmentException, HierarchyException } from "./exceptions.js";
 import Context from "./context.js";
 
 type W = WorldEventsMap & SignalEventsMap;
@@ -19,9 +19,9 @@ export default class World<T extends CallbackMap<T> = { }>
     private readonly _entities: Map<number, Entity>;
     public get entities(): ReadonlyMap<number, Entity> { return this._entities; }
 
-    private readonly _systems: System[];
+    private readonly _systems: Map<Constructor<System>, System>;
     private readonly _enabledSystems: System[];
-    public get systems(): readonly System[] { return this._systems; }
+    public get systems(): ReadonlyMap<Constructor<System>, System> { return this._systems; }
 
     private readonly _publisher: Publisher;
     private readonly _contexts: Map<System, Context<CallbackMap>>;
@@ -32,7 +32,7 @@ export default class World<T extends CallbackMap<T> = { }>
     {
         this._entities = new Map();
 
-        this._systems = [];
+        this._systems = new Map();
         this._enabledSystems = [];
 
         this._publisher = new Publisher();
@@ -41,59 +41,7 @@ export default class World<T extends CallbackMap<T> = { }>
         this._queryManager = new QueryManager(this._entities, this._publisher);
     }
 
-    private _insertSystem(array: System[], system: System): number
-    {
-        let left = 0;
-        let right = array.length;
-
-        while (left < right)
-        {
-            const middle = Math.floor((left + right) / 2);
-            const other = array[middle];
-
-            if (system.priority < other.priority) { right = middle; }
-            else { left = middle + 1; }
-        }
-
-        array.splice(left, 0, system);
-
-        return left;
-    }
-    private _removeSystem(array: System[], system: System): number
-    {
-        const index = array.indexOf(system);
-        if (index !== -1) { array.splice(index, 1); }
-
-        return index;
-    }
-
-    protected _addChildEntity<E extends Entity>(parent: Entity, child: E): void
-    {
-        this.addEntity(child);
-
-        this._publisher.publish("entity:child:add", parent, child);
-    }
-    protected _removeChildEntity(parent: Entity, child: Entity): void
-    {
-        this.removeEntity(child.id);
-
-        this._publisher.publish("entity:child:remove", parent, child);
-    }
-
-    protected _enableSystem(system: System): void
-    {
-        this._insertSystem(this._enabledSystems, system);
-
-        this._publisher.publish("system:enable", system);
-    }
-    protected _disableSystem(system: System): void
-    {
-        this._removeSystem(this._enabledSystems, system);
-
-        this._publisher.publish("system:disable", system);
-    }
-
-    public addEntity<E extends Entity>(entity: E): E
+    private _addEntity(entity: Entity): Entity
     {
         try
         {
@@ -105,52 +53,144 @@ export default class World<T extends CallbackMap<T> = { }>
         }
 
         this._entities.set(entity.id, entity);
-
-        for (const component of entity.components.values())
-        {
-            this._publisher.publish("entity:component:add", entity, component);
-        }
-
         for (const child of entity.children.values())
         {
-            this._addChildEntity(entity, child);
+            this._addEntity(child);
         }
+
+        if (entity.enabled) { this._enableEntity(entity); }
 
         return entity;
     }
-    public removeEntity(entityId: number): Entity
+
+    public _removeEntity(entity: Entity): Entity
     {
-        const entity = this._entities.get(entityId);
-        if (!(entity)) { throw new ReferenceException(`The entity with ID ${entityId} doesn't exist.`); }
+        if (entity.enabled) { this._disableEntity(entity); }
 
         for (const child of entity.children.values())
         {
-            this._removeChildEntity(entity, child);
+            this._removeEntity(child);
         }
 
-        for (const component of entity.components.values())
-        {
-            this._publisher.publish("entity:component:remove", entity, component);
-        }
-
-        this._entities.delete(entityId);
+        this._entities.delete(entity.id);
         entity.onDetach();
 
         return entity;
     }
 
-    public getComponent<C extends Constructor<Component>, R extends InstanceType<C> = InstanceType<C>>(type: C)
+    private _enableEntity(entity: Entity): void
+    {
+        for (const component of entity.components.values())
+        {
+            if (!(component.enabled)) { continue; }
+
+            this._enableComponent(component);
+        }
+
+        for (const child of entity.children.values())
+        {
+            if (!(child.enabled)) { continue; }
+
+            this._enableEntity(child);
+        }
+    }
+    private _disableEntity(entity: Entity): void
+    {
+        for (const component of entity.components.values())
+        {
+            if (!(component.enabled)) { continue; }
+
+            this._disableComponent(component);
+        }
+
+        for (const child of entity.children.values())
+        {
+            if (!(child.enabled)) { continue; }
+
+            this._disableEntity(child);
+        }
+    }
+
+    private _enableComponent(component: Component): void
+    {
+        this._publisher.publish("entity:component:enable", component.entity!, component);
+    }
+    private _disableComponent(component: Component): void
+    {
+        this._publisher.publish("entity:component:disable", component.entity!, component);
+    }
+
+    private _enableSystem(system: System): void
+    {
+        let left = 0;
+        let right = this._enabledSystems.length;
+
+        while (left < right)
+        {
+            const middle = Math.floor((left + right) / 2);
+            const other = this._enabledSystems[middle];
+
+            if (system.priority < other.priority) { right = middle; }
+            else { left = middle + 1; }
+        }
+
+        this._enabledSystems.splice(left, 0, system);
+    }
+    private _disableSystem(system: System): void
+    {
+        const index = this._enabledSystems.indexOf(system);
+        if (index === -1) { return; }
+
+        this._enabledSystems.splice(index, 1);
+    }
+
+    public addEntity<E extends Entity>(entity: E): E
+    {
+        if (entity.parent)
+        {
+            throw new HierarchyException(
+                "Child entities cannot be added directly to the world. Operate on the parent entity instead."
+            );
+        }
+
+        this._addEntity(entity);
+
+        return entity;
+    }
+
+    public removeEntity<E extends Entity = Entity>(entityId: number): E;
+    public removeEntity<E extends Entity>(entity: E): E;
+    public removeEntity<E extends Entity>(entity: number | E): E
+    {
+        const entityId = (typeof entity === "number") ? entity : entity.id;
+
+        const _entity = this._entities.get(entityId) as E | undefined;
+        if (!(_entity)) { throw new ReferenceException(`The entity with ID ${entityId} doesn't exist.`); }
+
+        if (_entity.parent)
+        {
+            throw new HierarchyException(
+                "Child entities cannot be removed directly from the world. Operate on the parent entity instead."
+            );
+        }
+
+        this._removeEntity(_entity);
+
+        return _entity;
+    }
+
+    public getFirstComponent<C extends Constructor<Component>, R extends InstanceType<C> = InstanceType<C>>(type: C)
         : R | undefined
     {
         return this._queryManager.pickOne<C, R>(type);
     }
-    public getComponents<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(...types: C)
+    public getFirstComponents<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(...types: C)
         : R | undefined
     {
         return this._queryManager.findFirst<C, R>(...types);
     }
 
-    public findComponents<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(...types: C)
+    public findAllComponents<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(...types: C)
         : SmartIterator<R>
     {
         return this._queryManager.findAll<C, R>(...types);
@@ -164,6 +204,9 @@ export default class World<T extends CallbackMap<T> = { }>
 
     public addSystem<S extends System>(system: S): S
     {
+        const type = system.constructor as Constructor<System>;
+        if (this._systems.has(type)) { throw new ReferenceException("The world already has this system."); }
+
         try
         {
             system.onAttach(this);
@@ -173,35 +216,35 @@ export default class World<T extends CallbackMap<T> = { }>
             throw new AttachmentException("It wasn't possible to attach this system to the world.", error);
         }
 
-        this._insertSystem(this._systems, system);
-        if (system.enabled) { this._insertSystem(this._enabledSystems, system); }
-
-        this._publisher.publish("system:add", system);
+        this._systems.set(type, system);
+        if (system.enabled) { this._enableSystem(system); }
 
         return system;
     }
-    public removeSystem(system: System): this
+
+    public removeSystem<S extends System>(type: Constructor<S>): S;
+    public removeSystem<S extends System>(system: S): S;
+    public removeSystem<S extends System>(system: Constructor<S> | S): S
     {
-        if (this._removeSystem(this._systems, system) === -1)
-        {
-            throw new ReferenceException("The system doesn't exist in the world.");
-        }
+        const type = (typeof system === "function") ? system : system.constructor as Constructor<System>;
 
-        this._removeSystem(this._enabledSystems, system);
+        const _system = this._systems.get(type) as S | undefined;
+        if (!(_system)) { throw new ReferenceException("The system doesn't exist in the world."); }
 
-        system.onDetach();
-
-        const context = this._contexts.get(system);
+        const context = this._contexts.get(_system);
         if (context)
         {
             context.dispose();
 
-            this._contexts.delete(system);
+            this._contexts.delete(_system);
         }
 
-        this._publisher.publish("system:remove", system);
+        this._disableSystem(_system);
+        this._systems.delete(_system.constructor as Constructor<System>);
 
-        return this;
+        _system.onDetach();
+
+        return _system;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-empty-object-type
@@ -238,13 +281,13 @@ export default class World<T extends CallbackMap<T> = { }>
     {
         this._queryManager.dispose();
 
-        for (const system of this._systems)
+        for (const system of this._systems.values())
         {
             system.onDetach();
             system.dispose();
         }
 
-        this._systems.length = 0;
+        this._systems.clear();
         this._enabledSystems.length = 0;
 
         for (const entity of this._entities.values())

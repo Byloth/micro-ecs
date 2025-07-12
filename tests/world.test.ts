@@ -49,8 +49,8 @@ describe("World", () =>
         const system = new TestSystem();
         _world.addSystem(system);
 
-        expect(_world.systems.length).toBe(1);
-        expect(_world.systems[0]).toBe(system);
+        expect(_world.systems.size).toBe(1);
+        expect(_world.systems.values().next().value).toBe(system);
 
         _world.update(16);
         expect(_update).toHaveBeenCalledTimes(1);
@@ -79,8 +79,8 @@ describe("World", () =>
         _world.update(16);
         expect(_update).toHaveBeenCalledTimes(0);
 
-        expect(_world.systems.length).toBe(0);
-        expect(_world.systems[0]).toBeUndefined();
+        expect(_world.systems.size).toBe(0);
+        expect(_world.systems.values().next().value).toBeUndefined();
     });
     it("Should throw an error if the system does not exist", () =>
     {
@@ -160,6 +160,7 @@ describe("World", () =>
                 _disposeEntity();
             }
         }
+
         class TestSystem extends System
         {
             public override dispose(): void
@@ -168,20 +169,22 @@ describe("World", () =>
                 _disposeSystem();
             }
         }
+        class TestSystemA extends TestSystem { }
+        class TestSystemB extends TestSystem { }
 
         _world.addEntity(new TestEntity());
         _world.addEntity(new TestEntity());
         _world.addEntity(new TestEntity());
 
-        _world.addSystem(new TestSystem());
-        _world.addSystem(new TestSystem());
+        _world.addSystem(new TestSystemA());
+        _world.addSystem(new TestSystemB());
 
         _world.dispose();
 
         expect(_disposeEntity).toHaveBeenCalledTimes(3);
         expect(_disposeSystem).toHaveBeenCalledTimes(2);
         expect(_world.entities.size).toBe(0);
-        expect(_world.systems.length).toBe(0);
+        expect(_world.systems.size).toBe(0);
     });
 
     it("Should provide a context for each system", () =>
