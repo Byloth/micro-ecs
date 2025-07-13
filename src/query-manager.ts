@@ -180,7 +180,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         if (view) { return new SmartIterator(view.values()); }
 
         return new SmartIterator(this._entities.values())
-            .filter((entity) => entity.enabled)
+            .filter((entity) => (entity.enabled))
             .map((entity) =>
             {
                 const components: Component[] = [];

@@ -77,11 +77,24 @@ describe("Entity", () =>
     });
     it("Should throw an error when adding a child entity that already has a parent", () =>
     {
-        
+        const parent1 = new Entity();
+        const parent2 = new Entity();
+        const child = new Entity();
+
+        parent1.addChild(child);
+
+        expect(() => parent2.addChild(child)).toThrow(ReferenceException);
     });
     it("Should throw an error when adding a child entity that's already attached to the world", () =>
     {
-        
+        const world = new World();
+        const parent = new Entity();
+        const child = new Entity();
+
+        world.addEntity(parent);
+        world.addEntity(child);
+
+        expect(() => parent.addChild(child)).toThrow(ReferenceException);
     });
 
     it("Should be able to remove a child entity", () =>

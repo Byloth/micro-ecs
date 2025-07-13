@@ -5,20 +5,14 @@ import μObject from "./core.js";
 import type Component from "./component.js";
 import { AdoptionException, AttachmentException } from "./exceptions.js";
 import type World from "./world.js";
-import type { __World__ } from "./types.js";
 
 export default class Entity<W extends World = World> extends μObject
 {
     private _enabled: boolean;
-    public get enabled(): boolean { return this._enabled; }
+    public get enabled(): boolean { return (this._enabled && (this._parent ? this._parent.enabled : true)); }
 
     private readonly _components: Map<Constructor<Component>, Component>;
     public get components(): ReadonlyMap<Constructor<Component>, Component> { return this._components; }
-
-    private get _hierarchyEnabled(): boolean
-    {
-        return this._parent ? (this._parent._hierarchyEnabled && this._parent.enabled) : true;
-    }
 
     private _parent: Entity | null;
     public get parent(): Entity | null { return this._parent; }
@@ -96,6 +90,9 @@ export default class Entity<W extends World = World> extends μObject
 
     public addChild<E extends Entity>(child: E): E
     {
+        if (child.parent) { throw new ReferenceException("The entity already has a parent."); }
+        if (child.world) { throw new ReferenceException("The entity is already attached to a world."); }
+
         try
         {
             child.onAdoption(this);
@@ -107,7 +104,7 @@ export default class Entity<W extends World = World> extends μObject
 
         this._children.add(child);
 
-        (this._world as __World__ | null)?._addEntity(child);
+        this._world?.["_addEntity"](child, this.enabled);
 
         return child;
     }
@@ -120,7 +117,7 @@ export default class Entity<W extends World = World> extends μObject
 
         child.onUnadoption();
 
-        (this._world as __World__ | null)?._removeEntity(child);
+        this._world?.["_removeEntity"](child, this.enabled);
 
         return child;
     }
@@ -130,14 +127,14 @@ export default class Entity<W extends World = World> extends μObject
         if (this._enabled) { throw new RuntimeException("The entity is already enabled."); }
         this._enabled = true;
 
-        if (this._hierarchyEnabled) { (this._world as __World__ | null)?._enableEntity(this); }
+        if (this._parent ? this._parent.enabled : true) { this._world?.["_enableEntity"](this); }
     }
     public disable(): void
     {
         if (!(this._enabled)) { throw new RuntimeException("The entity is already disabled."); }
         this._enabled = false;
 
-        if (this._hierarchyEnabled) { (this._world as __World__ | null)?._disableEntity(this); }
+        if (this._parent ? this._parent.enabled : true) { this._world?.["_disableEntity"](this); }
     }
 
     public onAttach(world: W): void

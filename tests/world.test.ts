@@ -19,7 +19,10 @@ describe("World", () =>
     });
     it("Should throw an error if the entity already exists", () =>
     {
+        const entity = new Entity();
+        _world.addEntity(entity);
 
+        expect(() => _world.addEntity(entity)).toThrow(ReferenceException);
     });
 
     it("Should remove an entity from the world", () =>
@@ -32,7 +35,7 @@ describe("World", () =>
         expect(_world.entities.size).toBe(0);
         expect(_world.entities.get(entity.id)).toBeUndefined();
     });
-    it("Should throw an error if the entity does not exist", () =>
+    it("Should throw an error if the entity doesn't exist", () =>
     {
         const entity = new Entity();
 
@@ -86,7 +89,7 @@ describe("World", () =>
         expect(_world.systems.size).toBe(0);
         expect(_world.systems.values().next().value).toBeUndefined();
     });
-    it("Should throw an error if the system does not exist", () =>
+    it("Should throw an error if the system doesn't exist", () =>
     {
         const system = new System();
 

@@ -41,7 +41,7 @@ export default class World<T extends CallbackMap<T> = { }>
         this._queryManager = new QueryManager(this._entities, this._publisher);
     }
 
-    private _addEntity(entity: Entity): Entity
+    private _addEntity(entity: Entity, enable = true): Entity
     {
         try
         {
@@ -55,21 +55,21 @@ export default class World<T extends CallbackMap<T> = { }>
         this._entities.set(entity.id, entity);
         for (const child of entity.children.values())
         {
-            this._addEntity(child);
+            this._addEntity(child, entity.enabled);
         }
 
-        if (entity.enabled) { this._enableEntity(entity); }
+        if (entity["_enabled"] && enable) { this._enableEntity(entity); }
 
         return entity;
     }
 
-    public _removeEntity(entity: Entity): Entity
+    public _removeEntity(entity: Entity, enabled = true): Entity
     {
-        if (entity.enabled) { this._disableEntity(entity); }
+        if (entity["_enabled"], enabled) { this._disableEntity(entity); }
 
         for (const child of entity.children.values())
         {
-            this._removeEntity(child);
+            this._removeEntity(child, entity.enabled);
         }
 
         this._entities.delete(entity.id);

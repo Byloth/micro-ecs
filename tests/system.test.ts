@@ -2,7 +2,6 @@ import { ReferenceException, RuntimeException } from "@byloth/core";
 import { describe, it, expect, vi } from "vitest";
 
 import { AttachmentException, System, World } from "../src/index.js";
-import type { __World__ } from "src/types.js";
 
 describe("System", () =>
 {
@@ -158,7 +157,7 @@ describe("System", () =>
         world.addSystem(system4);
         world.addSystem(system5);
 
-        expect(((world as unknown) as __World__)._enabledSystems)
+        expect(world["_enabledSystems"])
             .toEqual([system5, system2, system4, system0, system3, system1]);
     });
 

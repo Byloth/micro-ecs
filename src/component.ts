@@ -3,7 +3,6 @@ import { ReferenceException, RuntimeException } from "@byloth/core";
 import μObject from "./core.js";
 import type Entity from "./entity.js";
 import type World from "./world.js";
-import type { __World__ } from "./types.js";
 
 export default class Component<W extends World = World, E extends Entity<W> = Entity<W>> extends μObject
 {
@@ -31,14 +30,14 @@ export default class Component<W extends World = World, E extends Entity<W> = En
         if (this._enabled) { throw new RuntimeException("The component is already enabled."); }
         this._enabled = true;
 
-        (this._world as __World__ | null)?._enableComponent(this);
+        this._world?.["_enableComponent"](this);
     }
     public disable(): void
     {
         if (!(this._enabled)) { throw new RuntimeException("The component is already disabled."); }
         this._enabled = false;
 
-        (this._world as __World__ | null)?._disableComponent(this);
+        this._world?.["_disableComponent"](this);
     }
 
     public onAttach(entity: E): void

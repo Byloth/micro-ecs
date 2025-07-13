@@ -115,7 +115,7 @@ describe("Context", () =>
         expect(_executed).toBe(true);
         expect(_moveHandler).toHaveBeenCalledWith({ x: 5, y: 6 });
     });
-    it("Should timeout if event is not emitted in time", async () =>
+    it("Should timeout if event isn't emitted in time", async () =>
     {
         _populateWorld(new System());
 
@@ -160,7 +160,7 @@ describe("Context", () =>
         expect(_moveHandler3).toHaveBeenCalledTimes(2);
     });
 
-    it("Should throw if unsubscribing from an event that does not exist", () =>
+    it("Should throw if unsubscribing from an event that doesn't exist", () =>
     {
         const _moveHandler = vi.fn();
         const _spawnHandler = vi.fn();
@@ -170,7 +170,7 @@ describe("Context", () =>
         context.on("player:move", _moveHandler);
         expect(() => context.off("player:spawn", _spawnHandler)).toThrow(ReferenceException);
     });
-    it("Should throw if unsubscribing a handler that was not subscribed", () =>
+    it("Should throw if unsubscribing a handler that wasn't subscribed", () =>
     {
         const _moveHandler = vi.fn();
         const _spawnHandler1 = vi.fn();
