@@ -97,14 +97,14 @@ describe("QueryManager", () =>
             expect(before[1][0].entity!.id).toBe(5);
 
             const entity1 = _world.entities.get(1)!;
-            entity1.components.get(TestComponent3)!
+            entity1.getComponent(TestComponent3)
                 .enable();
 
             const entity2 = _world.entities.get(9)!;
-            entity2.components.get(TestComponent1)!
+            entity2.getComponent(TestComponent1)
                 .enable();
 
-            entity2.components.get(TestComponent3)!
+            entity2.getComponent(TestComponent3)
                 .enable();
 
             const after = Array.from(view.values());

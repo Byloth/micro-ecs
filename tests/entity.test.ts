@@ -27,8 +27,8 @@ describe("Entity", () =>
 
         entity.addComponent(component);
 
-        expect(entity.components.has(TestComponent)).toBe(true);
-        expect(entity.components.get(TestComponent)).toBe(component);
+        expect(entity.hasComponent(TestComponent)).toBe(true);
+        expect(entity.getComponent(TestComponent)).toBe(component);
         expect(entity.components.size).toBe(1);
     });
     it("Should throw an error when adding a duplicate component", () =>
@@ -53,7 +53,7 @@ describe("Entity", () =>
         entity.addComponent(component);
         entity.removeComponent(TestComponent);
 
-        expect(entity.components.has(TestComponent)).toBe(false);
+        expect(entity.hasComponent(TestComponent)).toBe(false);
         expect(entity.components.size).toBe(0);
     });
     it("Should throw an error when removing a non-existent component", () =>
@@ -248,7 +248,7 @@ describe("Entity", () =>
 
         expect(parent.world).toBeNull();
 
-        expect(parent.components.has(TestComponent)).toBe(false);
+        expect(parent.hasComponent(TestComponent)).toBe(false);
         expect(parent.components.size).toBe(0);
 
         expect(parent.children.has(child)).toBe(false);

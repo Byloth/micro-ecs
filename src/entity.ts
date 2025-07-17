@@ -62,6 +62,19 @@ export default class Entity<W extends World = World> extends μObject
 
         return component;
     }
+
+    public getComponent<C extends Component>(type: Constructor<C>): C
+    {
+        const component = this._components.get(type) as C | undefined;
+        if (!(component)) { throw new ReferenceException("The component doesn't exist in the entity."); }
+
+        return component;
+    }
+    public hasComponent(type: Constructor<Component>): boolean
+    {
+        return this._components.has(type);
+    }
+
     public removeComponent<C extends Component>(type: Constructor<C>): C;
     public removeComponent<C extends Component>(component: Constructor<C>): C;
     public removeComponent<C extends Component>(component: Constructor<C> | C): C

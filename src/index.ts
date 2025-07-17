@@ -1,4 +1,4 @@
-export const VERSION = "1.0.18";
+export const VERSION = "1.0.19";
 
 import Entity from "./entity.js";
 import Component from "./component.js";
