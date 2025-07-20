@@ -3,7 +3,8 @@ import type { Constructor } from "@byloth/core";
 
 import μObject from "./core.js";
 import type Component from "./component.js";
-import { AdoptionException, AttachmentException } from "./exceptions.js";
+import EntityContext from "./contexts/entity.js";
+import { AdoptionException, AttachmentException, DependencyException } from "./exceptions.js";
 import type World from "./world.js";
 
 export default class Entity<W extends World = World> extends μObject
@@ -23,6 +24,21 @@ export default class Entity<W extends World = World> extends μObject
     private _world: W | null;
     public get world(): W | null { return this._world; }
 
+    private readonly _contexts: Map<Component, EntityContext>;
+    private readonly _dependencies: Map<Component, Set<Component>>;
+
+    private _onContextDispose = (context: EntityContext): void =>
+    {
+        const dependant = context["_component"];
+        for (const dependency of context.dependencies)
+        {
+            this._dependencies.get(dependency)!
+                .delete(dependant);
+        }
+
+        this._contexts.delete(dependant);
+    };
+
     public constructor(enabled = true)
     {
         super();
@@ -35,6 +51,42 @@ export default class Entity<W extends World = World> extends μObject
         this._children = new Set();
 
         this._world = null;
+
+        this._contexts = new Map();
+        this._dependencies = new Map();
+    }
+
+    private _addDependency(component: Component, type: Constructor<Component>): Component
+    {
+        const dependency = this._components.get(type);
+        if (!(dependency)) { throw new DependencyException("The dependency doesn't exist in the entity."); }
+
+        const dependants = this._dependencies.get(dependency);
+        if (dependants)
+        {
+            if (dependants.has(component))
+            {
+                throw new DependencyException("The dependant already depends on this component.");
+            }
+
+            dependants.add(component);
+        }
+        else { this._dependencies.set(dependency, new Set([component])); }
+
+        return dependency;
+    }
+    private _removeDependency(component: Component, type: Constructor<Component>): Component
+    {
+        const dependency = this._components.get(type)!;
+        const dependants = this._dependencies.get(dependency);
+        if (!(dependants?.delete(component)))
+        {
+            throw new DependencyException("The dependant doesn't depend on this component.");
+        }
+
+        if (dependants.size === 0) { this._dependencies.delete(dependency); }
+
+        return dependency;
     }
 
     public addComponent<C extends Component>(component: C): C
@@ -84,6 +136,13 @@ export default class Entity<W extends World = World> extends μObject
         const _component = this._components.get(type) as C | undefined;
         if (!(_component)) { throw new ReferenceException("The component doesn't exist in the entity."); }
 
+        if (this._dependencies.has(_component))
+        {
+            throw new DependencyException(
+                "The component has dependants and cannot be removed. Remove them first."
+            );
+        }
+
         if (this._world)
         {
             _component.onUnmount();
@@ -102,6 +161,17 @@ export default class Entity<W extends World = World> extends μObject
     }
 
     public getContext(component: Component): EntityContext
+    {
+        let context = this._contexts.get(component);
+        if (context) { return context; }
+
+        context = new EntityContext(component);
+        context["_onDispose"] = this._onContextDispose;
+
+        this._contexts.set(component, context);
+
+        return context;
+    }
 
     public addChild<E extends Entity>(child: E): E
     {
@@ -210,5 +280,8 @@ export default class Entity<W extends World = World> extends μObject
         }
 
         this._children.clear();
+
+        this._contexts.clear();
+        this._dependencies.clear();
     }
 }

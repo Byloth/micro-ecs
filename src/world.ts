@@ -5,7 +5,7 @@ import type Entity from "./entity.js";
 import type Component from "./component.js";
 import System from "./system.js";
 
-import { WorldContext } from "./contexts/index.js";
+import WorldContext from "./contexts/world.js";
 import { AttachmentException, HierarchyException } from "./exceptions.js";
 import QueryManager from "./query-manager.js";
 import type { Instances, SignalEventsMap, WorldEventsMap } from "./types.js";
@@ -27,6 +27,13 @@ export default class World<T extends CallbackMap<T> = { }>
     private readonly _contexts: Map<System, WorldContext<CallbackMap>>;
 
     private readonly _queryManager: QueryManager;
+
+    private _onContextDispose = (context: WorldContext): void =>
+    {
+        const system = context["_system"];
+
+        this._contexts.delete(system);
+    };
 
     public constructor()
     {
@@ -250,16 +257,15 @@ export default class World<T extends CallbackMap<T> = { }>
     }
 
     // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-    public getContext<U extends CallbackMap<U> = { }>(instance: System): WorldContext<U & T>
+    public getContext<U extends CallbackMap<U> = { }>(system: System): WorldContext<U & T>
     {
-        let context = this._contexts.get(instance);
+        let context = this._contexts.get(system);
         if (context) { return context; }
 
-        const scope = this._publisher.createScope();
-        context = new WorldContext(scope);
-        context.once("__internals__:clear", () => this._contexts.delete(instance));
+        context = new WorldContext(system, this._publisher.createScope());
+        context["_onDispose"] = this._onContextDispose;
 
-        this._contexts.set(instance, context);
+        this._contexts.set(system, context);
 
         return context;
     }

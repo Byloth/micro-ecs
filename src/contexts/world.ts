@@ -9,6 +9,7 @@ import type {
 
 } from "@byloth/core";
 
+import type System from "../system.js";
 import type { SignalEventsMap, WorldEventsMap } from "../types.js";
 
 type W = WorldEventsMap & SignalEventsMap;
@@ -18,10 +19,14 @@ type S = W & WildcardEventsMap & InternalsEventsMap;
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export default class WorldContext<T extends CallbackMap<T> = { }>
 {
+    private readonly _system: System;
     private readonly _publisher: Publisher;
 
-    public constructor(publisher: Publisher)
+    private _onDispose?: (context: WorldContext) => void;
+
+    public constructor(system: System, publisher: Publisher)
     {
+        this._system = system;
         this._publisher = publisher;
     }
 
@@ -86,6 +91,12 @@ export default class WorldContext<T extends CallbackMap<T> = { }>
 
     public dispose(): void
     {
+        if (this._onDispose)
+        {
+            this._onDispose(this);
+            this._onDispose = undefined;
+        }
+
         this._publisher.clear();
     }
 }
