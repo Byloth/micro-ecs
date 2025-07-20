@@ -101,6 +101,8 @@ export default class Entity<W extends World = World> extends μObject
         return _component;
     }
 
+    public getContext(component: Component): EntityContext
+
     public addChild<E extends Entity>(child: E): E
     {
         if (child.parent) { throw new ReferenceException("The entity already has a parent."); }

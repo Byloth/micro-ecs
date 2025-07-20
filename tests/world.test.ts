@@ -1,7 +1,7 @@
 import { ReferenceException } from "@byloth/core";
 import { beforeEach, describe, it, expect, vi } from "vitest";
 
-import { Entity, Context, System, World } from "../src/index.js";
+import { Entity, WorldContext, System, World } from "../src/index.js";
 
 describe("World", () =>
 {
@@ -201,7 +201,7 @@ describe("World", () =>
         const system = new TestSystem();
         const context = _world.getContext(system);
 
-        expect(context).toBeInstanceOf(Context);
+        expect(context).toBeInstanceOf(WorldContext);
     });
     it("Should provide the same context when getting it the same system", () =>
     {
@@ -219,7 +219,7 @@ describe("World", () =>
     {
         const _clear = vi.fn(() => { /* ... */ });
 
-        let context: Context;
+        let context: WorldContext;
         class TestSystem extends System
         {
             public override onAttach(world: World): void
@@ -233,7 +233,7 @@ describe("World", () =>
         const system = new TestSystem();
         _world.addSystem(system);
 
-        expect(context!).toBeInstanceOf(Context);
+        expect(context!).toBeInstanceOf(WorldContext);
         context!.on("__internals__:clear", _clear);
         context!.dispose();
 
@@ -243,7 +243,7 @@ describe("World", () =>
     {
         const _clear = vi.fn(() => { /* ... */ });
 
-        let context: Context;
+        let context: WorldContext;
         class TestSystem extends System
         {
             public override onAttach(world: World): void
@@ -257,7 +257,7 @@ describe("World", () =>
         const system = new TestSystem();
         _world.addSystem(system);
 
-        expect(context!).toBeInstanceOf(Context);
+        expect(context!).toBeInstanceOf(WorldContext);
         context!.on("__internals__:clear", _clear);
 
         _world.removeSystem(system);

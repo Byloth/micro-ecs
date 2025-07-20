@@ -9,14 +9,14 @@ import type {
 
 } from "@byloth/core";
 
-import type { SignalEventsMap, WorldEventsMap } from "./types.js";
+import type { SignalEventsMap, WorldEventsMap } from "../types.js";
 
 type W = WorldEventsMap & SignalEventsMap;
 type P = W & InternalsEventsMap;
 type S = W & WildcardEventsMap & InternalsEventsMap;
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export default class Context<T extends CallbackMap<T> = { }>
+export default class WorldContext<T extends CallbackMap<T> = { }>
 {
     private readonly _publisher: Publisher;
 

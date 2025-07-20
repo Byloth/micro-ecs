@@ -5,10 +5,10 @@ import type Entity from "./entity.js";
 import type Component from "./component.js";
 import System from "./system.js";
 
+import { WorldContext } from "./contexts/index.js";
+import { AttachmentException, HierarchyException } from "./exceptions.js";
 import QueryManager from "./query-manager.js";
 import type { Instances, SignalEventsMap, WorldEventsMap } from "./types.js";
-import { AttachmentException, HierarchyException } from "./exceptions.js";
-import Context from "./context.js";
 
 type W = WorldEventsMap & SignalEventsMap;
 type P = W & InternalsEventsMap;
@@ -24,7 +24,7 @@ export default class World<T extends CallbackMap<T> = { }>
     public get systems(): ReadonlyMap<Constructor<System>, System> { return this._systems; }
 
     private readonly _publisher: Publisher;
-    private readonly _contexts: Map<System, Context<CallbackMap>>;
+    private readonly _contexts: Map<System, WorldContext<CallbackMap>>;
 
     private readonly _queryManager: QueryManager;
 
@@ -250,13 +250,13 @@ export default class World<T extends CallbackMap<T> = { }>
     }
 
     // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-    public getContext<U extends CallbackMap<U> = { }>(instance: System): Context<U & T>
+    public getContext<U extends CallbackMap<U> = { }>(instance: System): WorldContext<U & T>
     {
         let context = this._contexts.get(instance);
         if (context) { return context; }
 
         const scope = this._publisher.createScope();
-        context = new Context(scope);
+        context = new WorldContext(scope);
         context.once("__internals__:clear", () => this._contexts.delete(instance));
 
         this._contexts.set(instance, context);

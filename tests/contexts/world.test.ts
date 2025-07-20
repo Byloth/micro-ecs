@@ -1,7 +1,7 @@
 import { ReferenceException, TimeoutException } from "@byloth/core";
 import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 
-import { Context, System, World } from "../src/index.js";
+import { WorldContext, System, World } from "../../src/index.js";
 
 interface EventsMap
 {
@@ -10,10 +10,10 @@ interface EventsMap
     "player:death": () => void;
 }
 
-describe("Context", () =>
+describe("WorldContext", () =>
 {
     let world: World<EventsMap>;
-    let context: Context<EventsMap>;
+    let context: WorldContext<EventsMap>;
 
     const _populateWorld = (system: System): void =>
     {

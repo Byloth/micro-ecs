@@ -8,10 +8,8 @@ export { Entity, Component, System };
 import World from "./world.js";
 export { World };
 
+export { EntityContext, WorldContext } from "./contexts/index.js";
 export { AdoptionException, AttachmentException } from "./exceptions.js";
-
-import Context from "./context.js";
-export { Context };
 
 import QueryManager from "./query-manager.js";
 export { QueryManager };
