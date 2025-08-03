@@ -13,11 +13,11 @@ export interface WorldEventsMap
     "entity:component:disable": (entity: Entity, component: Component) => void;
 }
 
-type EntitySignalEventMap<T extends unknown[]> = Record<`entity:${number}:${string}`, Callback<[Entity, ...T]>>;
-type ComponentSignalEventMap<T extends unknown[]> =
+type EntitySignalEventsMap<T extends unknown[]> = Record<`entity:${number}:${string}`, Callback<[Entity, ...T]>>;
+type ComponentSignalEventsMap<T extends unknown[]> =
     Record<`component:${number}:${string}`, Callback<[Component, ...T]>>;
 
-type SystemSignalEventMap<T extends unknown[]> = Record<`system:${number}:${string}`, Callback<[System, ...T]>>;
+type SystemSignalEventsMap<T extends unknown[]> = Record<`system:${number}:${string}`, Callback<[System, ...T]>>;
 
 export type SignalEventsMap<T extends unknown[] = unknown[]> =
-    EntitySignalEventMap<T> & ComponentSignalEventMap<T> & SystemSignalEventMap<T>;
+    EntitySignalEventsMap<T> & ComponentSignalEventsMap<T> & SystemSignalEventsMap<T>;
