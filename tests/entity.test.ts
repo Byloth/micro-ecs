@@ -285,6 +285,13 @@ describe("Entity", () =>
             expect(context1).toBe(context2);
         });
 
+        it("Should throw an error when getting a context for a component not attached to the entity", () => { });
+        it("Should throw an error when defining a dependency for a component not attached to the entity", () => { });
+        it("Should throw an error when defining a circular dependency", () => { });
+
+        it("Should throw an error when trying to remove a dependency that still has dependants", () => { });
+        it("Should allow removing a dependency when all dependants are removed", () => { });
+
         it("Should clear & remove the context when the context itself is disposed", () =>
         {
             let context: EntityContext;
