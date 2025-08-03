@@ -1,7 +1,7 @@
 import { ReferenceException, RuntimeException } from "@byloth/core";
 import { describe, it, expect, vi } from "vitest";
 
-import { AttachmentException, Component, Entity, World } from "../src/index.js";
+import { AttachmentException, Component, Entity, EntityContext, World } from "../src/index.js";
 
 describe("Entity", () =>
 {
@@ -258,5 +258,100 @@ describe("Entity", () =>
         expect(child.parent).toBeNull();
 
         expect(_dispose).toHaveBeenCalledTimes(2);
+    });
+
+    describe("Context", () =>
+    {
+        it("Should provide a context for each component", () =>
+        {
+            class TestComponent extends Component { }
+
+            const entity = new Entity();
+            const component = new TestComponent();
+            const context = entity.getContext(component);
+
+            expect(context).toBeInstanceOf(EntityContext);
+        });
+        it("Should provide the same context when getting it the same component", () =>
+        {
+            class TestComponent extends Component { }
+
+            const entity = new Entity();
+            const component = new TestComponent();
+
+            const context1 = entity.getContext(component);
+            const context2 = entity.getContext(component);
+
+            expect(context1).toBe(context2);
+        });
+
+        it("Should clear & remove the context when the context itself is disposed", () =>
+        {
+            let context: EntityContext;
+
+            class DependencyComponent extends Component { }
+            class DependantComponent extends Component
+            {
+                public override onAttach(entity: Entity): void
+                {
+                    super.onAttach(entity);
+
+                    context = entity.getContext(this);
+                    context.depend(DependencyComponent);
+                }
+            }
+
+            const entity = new Entity();
+            const dependency = new DependencyComponent();
+            const dependant = new DependantComponent();
+
+            entity.addComponent(dependency);
+            entity.addComponent(dependant);
+
+            expect(context!).toBeInstanceOf(EntityContext);
+            expect(context!.dependencies.size).toBe(1);
+            expect(entity["_contexts"].has(dependant)).toBe(true);
+            expect(entity["_dependencies"].has(dependency)).toBe(true);
+
+            context!.dispose();
+
+            expect(context!.dependencies.size).toBe(0);
+            expect(entity["_contexts"].has(dependant)).toBe(false);
+            expect(entity["_dependencies"].has(dependency)).toBe(false);
+        });
+        it("Should clear & remove the context when the entity is disposed", () =>
+        {
+            let context: EntityContext;
+
+            class DependencyComponent extends Component { }
+            class DependantComponent extends Component
+            {
+                public override onAttach(entity: Entity): void
+                {
+                    super.onAttach(entity);
+
+                    context = entity.getContext(this);
+                    context.depend(DependencyComponent);
+                }
+            }
+
+            const entity = new Entity();
+            const dependency = new DependencyComponent();
+            const dependant = new DependantComponent();
+
+            entity.addComponent(dependency);
+            entity.addComponent(dependant);
+
+            expect(context!).toBeInstanceOf(EntityContext);
+            expect(context!.dependencies.size).toBe(1);
+            expect(entity["_contexts"].has(dependant)).toBe(true);
+            expect(entity["_dependencies"].has(dependency)).toBe(true);
+
+            entity.dispose();
+
+            expect(context!.dependencies.size).toBe(0);
+            expect(entity["_contexts"].has(dependant)).toBe(false);
+            expect(entity["_dependencies"].has(dependency)).toBe(false);
+        });
     });
 });

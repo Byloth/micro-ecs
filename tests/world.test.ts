@@ -194,74 +194,77 @@ describe("World", () =>
         expect(_world.systems.size).toBe(0);
     });
 
-    it("Should provide a context for each system", () =>
+    describe("Context", () =>
     {
-        class TestSystem extends System { }
-
-        const system = new TestSystem();
-        const context = _world.getContext(system);
-
-        expect(context).toBeInstanceOf(WorldContext);
-    });
-    it("Should provide the same context when getting it the same system", () =>
-    {
-        class TestSystem extends System { }
-
-        const system = new TestSystem();
-
-        const context1 = _world.getContext(system);
-        const context2 = _world.getContext(system);
-
-        expect(context1).toBe(context2);
-    });
-
-    it("Should clear & remove the context when the context itself is disposed", () =>
-    {
-        const _clear = vi.fn(() => { /* ... */ });
-
-        let context: WorldContext;
-        class TestSystem extends System
+        it("Should provide a context for each system", () =>
         {
-            public override onAttach(world: World): void
-            {
-                super.onAttach(world);
+            class TestSystem extends System { }
 
-                context = world.getContext(this);
-            }
-        }
+            const system = new TestSystem();
+            const context = _world.getContext(system);
 
-        const system = new TestSystem();
-        _world.addSystem(system);
-
-        expect(context!).toBeInstanceOf(WorldContext);
-        context!.on("__internals__:clear", _clear);
-        context!.dispose();
-
-        expect(_clear).toHaveBeenCalledTimes(1);
-    });
-    it("Should clear & remove the context when the system is removed", () =>
-    {
-        const _clear = vi.fn(() => { /* ... */ });
-
-        let context: WorldContext;
-        class TestSystem extends System
+            expect(context).toBeInstanceOf(WorldContext);
+        });
+        it("Should provide the same context when getting it the same system", () =>
         {
-            public override onAttach(world: World): void
+            class TestSystem extends System { }
+
+            const system = new TestSystem();
+
+            const context1 = _world.getContext(system);
+            const context2 = _world.getContext(system);
+
+            expect(context1).toBe(context2);
+        });
+
+        it("Should clear & remove the context when the context itself is disposed", () =>
+        {
+            const _clear = vi.fn(() => { /* ... */ });
+
+            let context: WorldContext;
+            class TestSystem extends System
             {
-                super.onAttach(world);
+                public override onAttach(world: World): void
+                {
+                    super.onAttach(world);
 
-                context = world.getContext(this);
+                    context = world.getContext(this);
+                }
             }
-        }
 
-        const system = new TestSystem();
-        _world.addSystem(system);
+            const system = new TestSystem();
+            _world.addSystem(system);
 
-        expect(context!).toBeInstanceOf(WorldContext);
-        context!.on("__internals__:clear", _clear);
+            expect(context!).toBeInstanceOf(WorldContext);
+            context!.on("__internals__:clear", _clear);
+            context!.dispose();
 
-        _world.removeSystem(system);
+            expect(_clear).toHaveBeenCalledTimes(1);
+        });
+        it("Should clear & remove the context when the system is removed", () =>
+        {
+            const _clear = vi.fn(() => { /* ... */ });
 
-        expect(_clear).toHaveBeenCalledTimes(1);
+            let context: WorldContext;
+            class TestSystem extends System
+            {
+                public override onAttach(world: World): void
+                {
+                    super.onAttach(world);
+
+                    context = world.getContext(this);
+                }
+            }
+
+            const system = new TestSystem();
+            _world.addSystem(system);
+
+            expect(context!).toBeInstanceOf(WorldContext);
+            context!.on("__internals__:clear", _clear);
+
+            _world.removeSystem(system);
+
+            expect(_clear).toHaveBeenCalledTimes(1);
+        });
     });
 });

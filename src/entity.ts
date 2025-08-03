@@ -32,8 +32,10 @@ export default class Entity<W extends World = World> extends μObject
         const dependant = context["_component"];
         for (const dependency of context.dependencies)
         {
-            this._dependencies.get(dependency)!
-                .delete(dependant);
+            const dependants = this._dependencies.get(dependency)!;
+            dependants.delete(dependant);
+
+            if (dependants.size === 0) { this._dependencies.delete(dependency); }
         }
 
         this._contexts.delete(dependant);
@@ -280,6 +282,11 @@ export default class Entity<W extends World = World> extends μObject
         }
 
         this._children.clear();
+
+        for (const context of this._contexts.values())
+        {
+            context.dispose();
+        }
 
         this._contexts.clear();
         this._dependencies.clear();
