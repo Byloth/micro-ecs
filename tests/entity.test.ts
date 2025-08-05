@@ -1,7 +1,7 @@
 import { ReferenceException, RuntimeException } from "@byloth/core";
 import { describe, it, expect, vi } from "vitest";
 
-import { AttachmentException, Component, Entity, World } from "../src/index.js";
+import { AttachmentException, Component, DependencyException, Entity, EntityContext, World } from "../src/index.js";
 
 describe("Entity", () =>
 {
@@ -23,9 +23,7 @@ describe("Entity", () =>
         class TestComponent extends Component { }
 
         const entity = new Entity();
-        const component = new TestComponent();
-
-        entity.addComponent(component);
+        const component = entity.addComponent(new TestComponent());
 
         expect(entity.hasComponent(TestComponent)).toBe(true);
         expect(entity.getComponent(TestComponent)).toBe(component);
@@ -36,9 +34,7 @@ describe("Entity", () =>
         class TestComponent extends Component { }
 
         const entity = new Entity();
-        const component = new TestComponent();
-
-        entity.addComponent(component);
+        const component = entity.addComponent(new TestComponent());
 
         expect(() => entity.addComponent(component)).toThrow(ReferenceException);
     });
@@ -48,10 +44,9 @@ describe("Entity", () =>
         class TestComponent extends Component { }
 
         const entity = new Entity();
-        const component = new TestComponent();
+        const component = entity.addComponent(new TestComponent());
 
-        entity.addComponent(component);
-        entity.removeComponent(TestComponent);
+        entity.removeComponent(component);
 
         expect(entity.hasComponent(TestComponent)).toBe(false);
         expect(entity.components.size).toBe(0);
@@ -67,9 +62,7 @@ describe("Entity", () =>
     it("Should be able to add and retrieve a child entity", () =>
     {
         const parent = new Entity();
-        const child = new Entity();
-
-        parent.addChild(child);
+        const child = parent.addChild(new Entity());
 
         expect(parent.children.has(child)).toBe(true);
         expect(parent.children.size).toBe(1);
@@ -79,20 +72,17 @@ describe("Entity", () =>
     {
         const parent1 = new Entity();
         const parent2 = new Entity();
-        const child = new Entity();
 
-        parent1.addChild(child);
+        const child = parent1.addChild(new Entity());
 
         expect(() => parent2.addChild(child)).toThrow(ReferenceException);
     });
     it("Should throw an error when adding a child entity that's already attached to the world", () =>
     {
         const world = new World();
-        const parent = new Entity();
-        const child = new Entity();
 
-        world.addEntity(parent);
-        world.addEntity(child);
+        const parent = world.addEntity(new Entity());
+        const child = world.addEntity(new Entity());
 
         expect(() => parent.addChild(child)).toThrow(ReferenceException);
     });
@@ -100,9 +90,8 @@ describe("Entity", () =>
     it("Should be able to remove a child entity", () =>
     {
         const parent = new Entity();
-        const child = new Entity();
+        const child = parent.addChild(new Entity());
 
-        parent.addChild(child);
         parent.removeChild(child);
 
         expect(parent.children.has(child)).toBe(false);
@@ -120,11 +109,9 @@ describe("Entity", () =>
     it("Should share the same world with its children", () =>
     {
         const world = new World();
-        const parent = new Entity();
-        const child = new Entity();
 
-        parent.addChild(child);
-        world.addEntity(parent);
+        const parent = world.addEntity(new Entity());
+        const child = parent.addChild(new Entity());
 
         expect(parent.world).toBe(world);
         expect(child.world).toBe(world);
@@ -144,9 +131,7 @@ describe("Entity", () =>
         }
 
         const world = new World();
-        const entity = new TestEntity();
-
-        world.addEntity(entity);
+        const entity = world.addEntity(new TestEntity());
 
         expect(entity.world).toBe(world);
         expect(_onAttach).toHaveBeenCalledTimes(1);
@@ -166,9 +151,8 @@ describe("Entity", () =>
 
         const world1 = new World();
         const world2 = new World();
-        const entity = new TestEntity();
 
-        world1.addEntity(entity);
+        const entity = world1.addEntity(new TestEntity());
 
         expect(() => world2.addEntity(entity)).toThrow(AttachmentException);
     });
@@ -187,10 +171,9 @@ describe("Entity", () =>
         }
 
         const world = new World();
-        const entity = new TestEntity();
+        const entity = world.addEntity(new TestEntity());
 
-        world.addEntity(entity);
-        world.removeEntity(entity.id);
+        world.removeEntity(entity);
 
         expect(entity.world).toBeNull();
         expect(_onDetach).toHaveBeenCalledTimes(1);
@@ -209,12 +192,11 @@ describe("Entity", () =>
         }
 
         const world = new World();
-        const entity = new TestEntity();
+        const entity = world.addEntity(new TestEntity());
 
-        world.addEntity(entity);
         world.removeEntity(entity.id);
 
-        expect(() => world.removeEntity(entity.id)).toThrow(ReferenceException);
+        expect(() => world.removeEntity(entity)).toThrow(ReferenceException);
     });
 
     it("Should be disposable", () =>
@@ -233,13 +215,11 @@ describe("Entity", () =>
         }
 
         const world = new World();
-        const parent = new TestEntity();
-        const child = new TestEntity();
 
-        parent.addChild(child);
+        const parent = world.addEntity(new TestEntity());
+        const child = parent.addChild(new TestEntity());
+
         parent.addComponent(new TestComponent());
-
-        world.addEntity(parent);
 
         expect(() => parent.dispose()).toThrow(RuntimeException);
 
@@ -258,5 +238,171 @@ describe("Entity", () =>
         expect(child.parent).toBeNull();
 
         expect(_dispose).toHaveBeenCalledTimes(2);
+    });
+
+    describe("Context", () =>
+    {
+        it("Should provide a context for each component", () =>
+        {
+            class TestComponent extends Component { }
+
+            const entity = new Entity();
+            const component = entity.addComponent(new TestComponent());
+            const context = entity.getContext(component);
+
+            expect(context).toBeInstanceOf(EntityContext);
+        });
+        it("Should provide the same context when getting it the same component", () =>
+        {
+            class TestComponent extends Component { }
+
+            const entity = new Entity();
+            const component = entity.addComponent(new TestComponent());
+
+            const context1 = entity.getContext(component);
+            const context2 = entity.getContext(component);
+
+            expect(context1).toBe(context2);
+        });
+
+        it("Should throw an error when defining a dependency for a component not attached to the entity", () =>
+        {
+            class DependencyComponent extends Component { }
+            class DependantComponent extends Component
+            {
+                public override onAttach(entity: Entity): void
+                {
+                    super.onAttach(entity);
+
+                    entity.getContext(this)
+                        .depend(DependencyComponent);
+                }
+            }
+
+            const entity = new Entity();
+
+            expect(() => entity.addComponent(new DependantComponent()))
+                .toThrow(AttachmentException);
+        });
+
+        it("Should block removing a dependency that still has dependants", () =>
+        {
+            class DependencyComponent extends Component { }
+            class DependantComponent extends Component
+            {
+                public override onAttach(entity: Entity): void
+                {
+                    super.onAttach(entity);
+
+                    entity.getContext(this)
+                        .depend(DependencyComponent);
+                }
+            }
+
+            const entity = new Entity();
+
+            const dependency = entity.addComponent(new DependencyComponent());
+            const dependant = entity.addComponent(new DependantComponent());
+
+            expect(() => entity.removeComponent(dependency))
+                .toThrow(DependencyException);
+
+            entity.removeComponent(dependant);
+            entity.removeComponent(DependencyComponent);
+        });
+
+        it("Should clear & remove the context when the context itself is disposed", () =>
+        {
+            let context: EntityContext;
+
+            class DependencyComponent extends Component { }
+            class DependantComponent extends Component
+            {
+                public override onAttach(entity: Entity): void
+                {
+                    super.onAttach(entity);
+
+                    context = entity.getContext(this);
+                    context.depend(DependencyComponent);
+                }
+            }
+
+            const entity = new Entity();
+            const dependency = entity.addComponent(new DependencyComponent());
+            const dependant = entity.addComponent(new DependantComponent());
+
+            expect(context!).toBeInstanceOf(EntityContext);
+            expect(context!.dependencies.size).toBe(1);
+            expect(entity["_contexts"].has(dependant)).toBe(true);
+            expect(entity["_dependencies"].has(dependency)).toBe(true);
+
+            context!.dispose();
+
+            expect(context!.dependencies.size).toBe(0);
+            expect(entity["_contexts"].has(dependant)).toBe(false);
+            expect(entity["_dependencies"].has(dependency)).toBe(false);
+        });
+        it("Should clear & remove the context when the component is removed", () =>
+        {
+            let context: EntityContext;
+
+            class DependencyComponent extends Component { }
+            class DependantComponent extends Component
+            {
+                public override onAttach(entity: Entity): void
+                {
+                    super.onAttach(entity);
+
+                    context = entity.getContext(this);
+                    context.depend(DependencyComponent);
+                }
+            }
+
+            const entity = new Entity();
+            const dependency = entity.addComponent(new DependencyComponent());
+            const dependant = entity.addComponent(new DependantComponent());
+
+            expect(context!).toBeInstanceOf(EntityContext);
+            expect(context!.dependencies.size).toBe(1);
+            expect(entity["_contexts"].has(dependant)).toBe(true);
+            expect(entity["_dependencies"].has(dependency)).toBe(true);
+
+            entity.removeComponent(dependant);
+
+            expect(context!.dependencies.size).toBe(0);
+            expect(entity["_contexts"].has(dependant)).toBe(false);
+            expect(entity["_dependencies"].has(dependency)).toBe(false);
+        });
+        it("Should clear & remove the context when the entity is disposed", () =>
+        {
+            let context: EntityContext;
+
+            class DependencyComponent extends Component { }
+            class DependantComponent extends Component
+            {
+                public override onAttach(entity: Entity): void
+                {
+                    super.onAttach(entity);
+
+                    context = entity.getContext(this);
+                    context.depend(DependencyComponent);
+                }
+            }
+
+            const entity = new Entity();
+            const dependency = entity.addComponent(new DependencyComponent());
+            const dependant = entity.addComponent(new DependantComponent());
+
+            expect(context!).toBeInstanceOf(EntityContext);
+            expect(context!.dependencies.size).toBe(1);
+            expect(entity["_contexts"].has(dependant)).toBe(true);
+            expect(entity["_dependencies"].has(dependency)).toBe(true);
+
+            entity.dispose();
+
+            expect(context!.dependencies.size).toBe(0);
+            expect(entity["_contexts"].has(dependant)).toBe(false);
+            expect(entity["_dependencies"].has(dependency)).toBe(false);
+        });
     });
 });

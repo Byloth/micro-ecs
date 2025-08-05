@@ -1,7 +1,7 @@
 import { ReferenceException, TimeoutException } from "@byloth/core";
 import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 
-import { Context, System, World } from "../src/index.js";
+import { WorldContext, System, World } from "../../src/index.js";
 
 interface EventsMap
 {
@@ -10,10 +10,10 @@ interface EventsMap
     "player:death": () => void;
 }
 
-describe("Context", () =>
+describe("WorldContext", () =>
 {
     let world: World<EventsMap>;
-    let context: Context<EventsMap>;
+    let context: WorldContext<EventsMap>;
 
     const _populateWorld = (system: System): void =>
     {
@@ -122,12 +122,12 @@ describe("Context", () =>
         const _expectTimeoutPromise = expect(context.wait("player:move", 100)).rejects
             .toThrow(TimeoutException);
 
-        expect(context["_publisher"]["_subscribers"].size).toBe(2);
+        expect(context["_publisher"]["_subscribers"].size).toBe(1);
 
         await vi.advanceTimersByTimeAsync(100);
         await _expectTimeoutPromise;
 
-        expect(context["_publisher"]["_subscribers"].size).toBe(1);
+        expect(context["_publisher"]["_subscribers"].size).toBe(0);
     });
 
     it("Should allow unsubscribing from an event", () =>
