@@ -1,6 +1,6 @@
 {
   "name": "@byloth/micro-ecs",
-  "version": "1.0.19",
+  "version": "1.0.20",
   "description": "A simple & lightweight ECS (Entity Component System) library for JavaScript and TypeScript. 🕹",
   "keywords": [
     "ECS",
