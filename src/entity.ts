@@ -130,7 +130,7 @@ export default class Entity<W extends World = World> extends μObject
     }
 
     public removeComponent<C extends Component>(type: Constructor<C>): C;
-    public removeComponent<C extends Component>(component: Constructor<C>): C;
+    public removeComponent<C extends Component>(component: C): C;
     public removeComponent<C extends Component>(component: Constructor<C> | C): C
     {
         const type = (typeof component === "function") ? component : component.constructor as Constructor<Component>;
@@ -143,6 +143,14 @@ export default class Entity<W extends World = World> extends μObject
             throw new DependencyException(
                 "The component has dependants and cannot be removed. Remove them first."
             );
+        }
+
+        const context = this._contexts.get(_component);
+        if (context)
+        {
+            context.dispose();
+
+            this._contexts.delete(_component);
         }
 
         if (this._world)

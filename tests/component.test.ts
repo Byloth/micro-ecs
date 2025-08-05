@@ -24,10 +24,8 @@ describe("Component", () =>
             }
         }
 
-        const component = new TestComponent();
         const entity = new Entity();
-
-        entity.addComponent(component);
+        const component = entity.addComponent(new TestComponent());
 
         expect(component.entity).toBe(entity);
         expect(_onAttach).toHaveBeenCalledTimes(1);
@@ -45,11 +43,9 @@ describe("Component", () =>
             }
         }
 
-        const component = new TestComponent();
         const entity1 = new Entity();
         const entity2 = new Entity();
-
-        entity1.addComponent(component);
+        const component = entity1.addComponent(new TestComponent());
 
         expect(() => entity2.addComponent(component)).toThrow(AttachmentException);
     });
@@ -67,11 +63,10 @@ describe("Component", () =>
             }
         }
 
-        const component = new TestComponent();
         const entity = new Entity();
+        const component = entity.addComponent(new TestComponent());
 
-        entity.addComponent(component);
-        entity.removeComponent(TestComponent);
+        entity.removeComponent(component);
 
         expect(component.entity).toBeNull();
         expect(_onDetach).toHaveBeenCalledTimes(1);
@@ -89,13 +84,12 @@ describe("Component", () =>
             }
         }
 
-        const component = new TestComponent();
         const entity = new Entity();
+        const component = entity.addComponent(new TestComponent());
 
-        entity.addComponent(component);
         entity.removeComponent(TestComponent);
 
-        expect(() => entity.removeComponent(TestComponent)).toThrow(ReferenceException);
+        expect(() => entity.removeComponent(component)).toThrow(ReferenceException);
         expect(_onDetach).toHaveBeenCalledTimes(1);
     });
 
@@ -112,10 +106,9 @@ describe("Component", () =>
             }
         }
 
-        const component = new TestComponent();
         const entity = new Entity();
+        const component = entity.addComponent(new TestComponent());
 
-        entity.addComponent(component);
         expect(() => component.dispose()).toThrow(RuntimeException);
 
         entity.removeComponent(TestComponent);
@@ -138,11 +131,10 @@ describe("Component", () =>
             }
         }
 
-        const component = new TestComponent();
         const entity = new Entity();
-        const world = new World();
+        entity.addComponent(new TestComponent());
 
-        entity.addComponent(component);
+        const world = new World();
         world.addEntity(entity);
 
         expect(_onMount).toHaveBeenCalledTimes(1);
@@ -160,13 +152,12 @@ describe("Component", () =>
             }
         }
 
-        const component = new TestComponent();
-        const parent = new Entity();
         const child = new Entity();
-        const world = new World();
+        child.addComponent(new TestComponent());
 
-        world.addEntity(parent);
-        child.addComponent(component);
+        const world = new World();
+        const parent = world.addEntity(new Entity());
+
         parent.addChild(child);
 
         expect(_onMount).toHaveBeenCalledTimes(1);
@@ -184,12 +175,10 @@ describe("Component", () =>
             }
         }
 
-        const component = new TestComponent();
-        const entity = new Entity();
         const world = new World();
+        const entity = world.addEntity(new Entity());
 
-        world.addEntity(entity);
-        entity.addComponent(component);
+        entity.addComponent(new TestComponent());
 
         expect(_onMount).toHaveBeenCalledTimes(1);
     });
@@ -207,12 +196,10 @@ describe("Component", () =>
             }
         }
 
-        const component = new TestComponent();
-        const entity = new Entity();
         const world = new World();
+        const entity = world.addEntity(new Entity());
 
-        entity.addComponent(component);
-        world.addEntity(entity);
+        entity.addComponent(new TestComponent());
         world.removeEntity(entity.id);
 
         expect(_onUnmount).toHaveBeenCalledTimes(1);
@@ -230,14 +217,12 @@ describe("Component", () =>
             }
         }
 
-        const component = new TestComponent();
-        const parent = new Entity();
-        const child = new Entity();
         const world = new World();
 
-        world.addEntity(parent);
-        child.addComponent(component);
-        parent.addChild(child);
+        const parent = world.addEntity(new Entity());
+        const child = parent.addChild(new Entity());
+
+        child.addComponent(new TestComponent());
         parent.removeChild(child);
 
         expect(_onUnmount).toHaveBeenCalledTimes(1);

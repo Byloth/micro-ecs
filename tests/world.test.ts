@@ -1,7 +1,7 @@
 import { ReferenceException } from "@byloth/core";
 import { beforeEach, describe, it, expect, vi } from "vitest";
 
-import { Entity, WorldContext, System, World } from "../src/index.js";
+import { Entity, WorldContext, System, World, HierarchyException } from "../src/index.js";
 
 describe("World", () =>
 {
@@ -11,26 +11,31 @@ describe("World", () =>
 
     it("Should add an entity to the world", () =>
     {
-        const entity = new Entity();
-        _world.addEntity(entity);
+        const entity = _world.addEntity(new Entity());
 
         expect(_world.entities.size).toBe(1);
         expect(_world.entities.get(entity.id)).toBe(entity);
     });
     it("Should throw an error if the entity already exists", () =>
     {
-        const entity = new Entity();
-        _world.addEntity(entity);
+        const entity = _world.addEntity(new Entity());
 
         expect(() => _world.addEntity(entity)).toThrow(ReferenceException);
     });
 
+    it("Should throw an error when trying to add a child entity directly to the world", () =>
+    {
+        const parent = new Entity();
+        const child = parent.addChild(new Entity());
+
+        expect(() => _world.addEntity(child))
+            .toThrow(HierarchyException);
+    });
+
     it("Should remove an entity from the world", () =>
     {
-        const entity = new Entity();
-
-        _world.addEntity(entity);
-        _world.removeEntity(entity.id);
+        const entity = _world.addEntity(new Entity());
+        _world.removeEntity(entity);
 
         expect(_world.entities.size).toBe(0);
         expect(_world.entities.get(entity.id)).toBeUndefined();
@@ -40,6 +45,15 @@ describe("World", () =>
         const entity = new Entity();
 
         expect(() => _world.removeEntity(entity.id)).toThrow(ReferenceException);
+    });
+
+    it("Should throw an error when trying to remove a child entity directly from the world", () =>
+    {
+        const parent = _world.addEntity(new Entity());
+        const child = parent.addChild(new Entity());
+
+        expect(() => _world.removeEntity(child))
+            .toThrow(HierarchyException);
     });
 
     it("Should add a system to the world", () =>
@@ -53,8 +67,7 @@ describe("World", () =>
             }
         }
 
-        const system = new TestSystem();
-        _world.addSystem(system);
+        const system = _world.addSystem(new TestSystem());
 
         expect(_world.systems.size).toBe(1);
         expect(_world.systems.values().next().value).toBe(system);
@@ -78,12 +91,10 @@ describe("World", () =>
             }
         }
 
-        const system = new TestSystem();
-
-        _world.addSystem(system);
-        _world.removeSystem(system);
-
+        _world.addSystem(new TestSystem());
+        _world.removeSystem(TestSystem);
         _world.update(16);
+
         expect(_update).toHaveBeenCalledTimes(0);
 
         expect(_world.systems.size).toBe(0);
@@ -115,11 +126,8 @@ describe("World", () =>
             }
         }
 
-        const system1 = new TestSystem1();
-        const system2 = new TestSystem2();
-
-        _world.addSystem(system1);
-        _world.addSystem(system2);
+        const system1 = _world.addSystem(new TestSystem1());
+        const system2 = _world.addSystem(new TestSystem2());
 
         _world.update(16);
         expect(_update1).toHaveBeenCalledTimes(1);
@@ -232,8 +240,7 @@ describe("World", () =>
                 }
             }
 
-            const system = new TestSystem();
-            _world.addSystem(system);
+            _world.addSystem(new TestSystem());
 
             expect(context!).toBeInstanceOf(WorldContext);
             context!.on("__internals__:clear", _clear);
@@ -256,13 +263,12 @@ describe("World", () =>
                 }
             }
 
-            const system = new TestSystem();
-            _world.addSystem(system);
+            _world.addSystem(new TestSystem());
 
             expect(context!).toBeInstanceOf(WorldContext);
             context!.on("__internals__:clear", _clear);
 
-            _world.removeSystem(system);
+            _world.removeSystem(TestSystem);
 
             expect(_clear).toHaveBeenCalledTimes(1);
         });

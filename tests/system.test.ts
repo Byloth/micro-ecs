@@ -63,9 +63,7 @@ describe("System", () =>
         }
 
         const world = new World();
-        const system = new TestSystem();
-
-        world.addSystem(system);
+        const system = world.addSystem(new TestSystem());
 
         expect(system.world).toBe(world);
         expect(_onAttach).toHaveBeenCalledTimes(1);
@@ -85,9 +83,7 @@ describe("System", () =>
 
         const world1 = new World();
         const world2 = new World();
-        const system = new TestSystem();
-
-        world1.addSystem(system);
+        const system = world1.addSystem(new TestSystem());
 
         expect(() => world2.addSystem(system)).toThrow(AttachmentException);
         expect(_onAttach).toHaveBeenCalledTimes(1);
@@ -106,10 +102,9 @@ describe("System", () =>
         }
 
         const world = new World();
-        const system = new TestSystem();
+        const system = world.addSystem(new TestSystem());
 
-        world.addSystem(system);
-        world.removeSystem(system);
+        world.removeSystem(TestSystem);
 
         expect(system.world).toBeNull();
         expect(_onDetach).toHaveBeenCalledTimes(1);
@@ -173,10 +168,9 @@ describe("System", () =>
             }
         }
 
-        const system = new TestSystem();
         const world = new World();
+        const system = world.addSystem(new TestSystem());
 
-        world.addSystem(system);
         expect(() => system.dispose()).toThrow(RuntimeException);
 
         world.removeSystem(system);
