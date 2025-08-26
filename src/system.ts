@@ -12,8 +12,8 @@ export default class System<W extends World = World> extends μObject
 
     public readonly priority: number;
 
-    private _enabled: boolean;
-    public get enabled(): boolean { return this._enabled; }
+    private _isEnabled: boolean;
+    public get isEnabled(): boolean { return this._isEnabled; }
 
     private _world: W | null;
     public get world(): W | null { return this._world; }
@@ -24,21 +24,21 @@ export default class System<W extends World = World> extends μObject
 
         this.priority = priority;
 
-        this._enabled = enabled;
+        this._isEnabled = enabled;
         this._world = null;
     }
 
     public enable(): void
     {
-        if (this._enabled) { throw new RuntimeException("The system is already enabled."); }
-        this._enabled = true;
+        if (this._isEnabled) { throw new RuntimeException("The system is already enabled."); }
+        this._isEnabled = true;
 
         this._world?.["_enableSystem"](this);
     }
     public disable(): void
     {
-        if (!(this._enabled)) { throw new RuntimeException("The system is already disabled."); }
-        this._enabled = false;
+        if (!(this._isEnabled)) { throw new RuntimeException("The system is already disabled."); }
+        this._isEnabled = false;
 
         this._world?.["_disableSystem"](this);
     }

@@ -38,7 +38,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
             {
                 const _type = types[index];
                 const _component = entity.components.get(_type);
-                if (!(_component) || !(_component.enabled))
+                if (!(_component) || !(_component.isEnabled))
                 {
                     found = false;
 
@@ -108,10 +108,10 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
 
         for (const entity of this._entities.values())
         {
-            if (!(entity.enabled)) { continue; }
+            if (!(entity.isEnabled)) { continue; }
 
             const component = entity.components.get(type);
-            if (component?.enabled) { return component as R; }
+            if (component?.isEnabled) { return component as R; }
         }
 
         return undefined;
@@ -139,7 +139,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
 
         for (const entity of this._entities.values())
         {
-            if (!(entity.enabled)) { continue; }
+            if (!(entity.isEnabled)) { continue; }
 
             let found = true;
             let index = 0;
@@ -147,7 +147,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
             {
                 const type = types[index];
                 const component = entity.components.get(type);
-                if (!(component) || !(component.enabled))
+                if (!(component) || !(component.isEnabled))
                 {
                     found = false;
 
@@ -180,7 +180,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         if (view) { return new SmartIterator(view.values()); }
 
         return new SmartIterator(this._entities.values())
-            .filter((entity) => (entity.enabled))
+            .filter((entity) => (entity.isEnabled))
             .map((entity) =>
             {
                 const components: Component[] = [];
@@ -191,7 +191,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
                 {
                     const type = types[index];
                     const component = entity.components.get(type);
-                    if (!(component) || !(component.enabled))
+                    if (!(component) || !(component.isEnabled))
                     {
                         found = false;
 
@@ -226,7 +226,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         view = new MapView<Entity, R>();
         for (const entity of this._entities.values())
         {
-            if (!(entity.enabled)) { continue; }
+            if (!(entity.isEnabled)) { continue; }
 
             const components: Component[] = [];
 
@@ -236,7 +236,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
             {
                 const type = types[index];
                 const component = entity.components.get(type);
-                if (!(component) || !(component.enabled))
+                if (!(component) || !(component.isEnabled))
                 {
                     found = false;
 

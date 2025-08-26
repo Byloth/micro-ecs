@@ -6,8 +6,8 @@ import type World from "./world.js";
 
 export default class Component<W extends World = World, E extends Entity<W> = Entity<W>> extends μObject
 {
-    private _enabled: boolean;
-    public get enabled(): boolean { return this._enabled; }
+    private _isEnabled: boolean;
+    public get isEnabled(): boolean { return this._isEnabled; }
 
     private _entity: E | null;
     public get entity(): E | null { return this._entity; }
@@ -19,7 +19,7 @@ export default class Component<W extends World = World, E extends Entity<W> = En
     {
         super();
 
-        this._enabled = enabled;
+        this._isEnabled = enabled;
 
         this._entity = null;
         this._world = null;
@@ -27,17 +27,17 @@ export default class Component<W extends World = World, E extends Entity<W> = En
 
     public enable(): void
     {
-        if (this._enabled) { throw new RuntimeException("The component is already enabled."); }
-        this._enabled = true;
+        if (this._isEnabled) { throw new RuntimeException("The component is already enabled."); }
+        this._isEnabled = true;
 
-        this._world?.["_enableComponent"](this);
+        this._world?.["_enableComponent"](this._entity!, this);
     }
     public disable(): void
     {
-        if (!(this._enabled)) { throw new RuntimeException("The component is already disabled."); }
-        this._enabled = false;
+        if (!(this._isEnabled)) { throw new RuntimeException("The component is already disabled."); }
+        this._isEnabled = false;
 
-        this._world?.["_disableComponent"](this);
+        this._world?.["_disableComponent"](this._entity!, this);
     }
 
     public onAttach(entity: E): void

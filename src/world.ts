@@ -48,7 +48,7 @@ export default class World<T extends CallbackMap<T> = { }>
         this._queryManager = new QueryManager(this._entities, this._publisher);
     }
 
-    private _addEntity(entity: Entity, enable = true): Entity
+    private _addEntity(entity: Entity, enabled = true): Entity
     {
         try
         {
@@ -62,21 +62,21 @@ export default class World<T extends CallbackMap<T> = { }>
         this._entities.set(entity.id, entity);
         for (const child of entity.children.values())
         {
-            this._addEntity(child, entity.enabled);
+            this._addEntity(child, entity.isEnabled);
         }
 
-        if (entity["_enabled"] && enable) { this._enableEntity(entity); }
+        if (entity["_isEnabled"] && enabled) { this._enableEntity(entity); }
 
         return entity;
     }
 
     public _removeEntity(entity: Entity, enabled = true): Entity
     {
-        if (entity["_enabled"], enabled) { this._disableEntity(entity); }
+        if (entity["_isEnabled"] && enabled) { this._disableEntity(entity); }
 
         for (const child of entity.children.values())
         {
-            this._removeEntity(child, entity.enabled);
+            this._removeEntity(child, entity.isEnabled);
         }
 
         this._entities.delete(entity.id);
@@ -89,14 +89,14 @@ export default class World<T extends CallbackMap<T> = { }>
     {
         for (const component of entity.components.values())
         {
-            if (!(component.enabled)) { continue; }
+            if (!(component.isEnabled)) { continue; }
 
-            this._enableComponent(component);
+            this._enableComponent(entity, component);
         }
 
         for (const child of entity.children.values())
         {
-            if (!(child.enabled)) { continue; }
+            if (!(child.isEnabled)) { continue; }
 
             this._enableEntity(child);
         }
@@ -105,26 +105,26 @@ export default class World<T extends CallbackMap<T> = { }>
     {
         for (const component of entity.components.values())
         {
-            if (!(component.enabled)) { continue; }
+            if (!(component.isEnabled)) { continue; }
 
-            this._disableComponent(component);
+            this._disableComponent(entity, component);
         }
 
         for (const child of entity.children.values())
         {
-            if (!(child.enabled)) { continue; }
+            if (!(child.isEnabled)) { continue; }
 
             this._disableEntity(child);
         }
     }
 
-    private _enableComponent(component: Component): void
+    private _enableComponent(entity: Entity, component: Component): void
     {
-        this._publisher.publish("entity:component:enable", component.entity!, component);
+        this._publisher.publish("entity:component:enable", entity, component);
     }
-    private _disableComponent(component: Component): void
+    private _disableComponent(entity: Entity, component: Component): void
     {
-        this._publisher.publish("entity:component:disable", component.entity!, component);
+        this._publisher.publish("entity:component:disable", entity, component);
     }
 
     private _enableSystem(system: System): void
@@ -226,7 +226,7 @@ export default class World<T extends CallbackMap<T> = { }>
         }
 
         this._systems.set(type, system);
-        if (system.enabled) { this._enableSystem(system); }
+        if (system.isEnabled) { this._enableSystem(system); }
 
         return system;
     }

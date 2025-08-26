@@ -32,19 +32,19 @@ describe("System", () =>
         }
 
         const system = new TestSystem();
-        expect(system.enabled).toBe(true);
+        expect(system.isEnabled).toBe(true);
         expect(() => system.enable()).toThrow(RuntimeException);
         expect(_enable).not.toHaveBeenCalled();
         expect(_disable).not.toHaveBeenCalled();
 
         system.disable();
-        expect(system.enabled).toBe(false);
+        expect(system.isEnabled).toBe(false);
         expect(() => system.disable()).toThrow(RuntimeException);
         expect(_enable).toHaveBeenCalledTimes(0);
         expect(_disable).toHaveBeenCalledTimes(1);
 
         system.enable();
-        expect(system.enabled).toBe(true);
+        expect(system.isEnabled).toBe(true);
         expect(_enable).toHaveBeenCalledTimes(1);
         expect(_disable).toHaveBeenCalledTimes(1);
     });

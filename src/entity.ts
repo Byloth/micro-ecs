@@ -9,8 +9,8 @@ import type World from "./world.js";
 
 export default class Entity<W extends World = World> extends μObject
 {
-    private _enabled: boolean;
-    public get enabled(): boolean { return (this._enabled && (this._parent ? this._parent.enabled : true)); }
+    private _isEnabled: boolean;
+    public get isEnabled(): boolean { return (this._isEnabled && (this._parent ? this._parent.isEnabled : true)); }
 
     private readonly _components: Map<Constructor<Component>, Component>;
     public get components(): ReadonlyMap<Constructor<Component>, Component> { return this._components; }
@@ -45,7 +45,7 @@ export default class Entity<W extends World = World> extends μObject
     {
         super();
 
-        this._enabled = enabled;
+        this._isEnabled = enabled;
 
         this._components = new Map();
 
@@ -111,7 +111,7 @@ export default class Entity<W extends World = World> extends μObject
         {
             component.onMount(this._world);
 
-            this._world.emit("entity:component:enable", this, component);
+            if (this.isEnabled && component.isEnabled) { this._world["_enableComponent"](this, component); }
         }
 
         return component;
@@ -159,7 +159,7 @@ export default class Entity<W extends World = World> extends μObject
             this._components.delete(_component.constructor as Constructor<Component>);
             _component.onDetach();
 
-            this._world.emit("entity:component:disable", this, _component);
+            if (this.isEnabled && _component.isEnabled) { this._world["_disableComponent"](this, _component); }
         }
         else
         {
@@ -199,7 +199,7 @@ export default class Entity<W extends World = World> extends μObject
 
         this._children.add(child);
 
-        this._world?.["_addEntity"](child, this.enabled);
+        this._world?.["_addEntity"](child, this.isEnabled);
 
         return child;
     }
@@ -212,24 +212,24 @@ export default class Entity<W extends World = World> extends μObject
 
         child.onUnadoption();
 
-        this._world?.["_removeEntity"](child, this.enabled);
+        this._world?.["_removeEntity"](child, this.isEnabled);
 
         return child;
     }
 
     public enable(): void
     {
-        if (this._enabled) { throw new RuntimeException("The entity is already enabled."); }
-        this._enabled = true;
+        if (this._isEnabled) { throw new RuntimeException("The entity is already enabled."); }
+        this._isEnabled = true;
 
-        if (this._parent ? this._parent.enabled : true) { this._world?.["_enableEntity"](this); }
+        if (this._parent ? this._parent.isEnabled : true) { this._world?.["_enableEntity"](this); }
     }
     public disable(): void
     {
-        if (!(this._enabled)) { throw new RuntimeException("The entity is already disabled."); }
-        this._enabled = false;
+        if (!(this._isEnabled)) { throw new RuntimeException("The entity is already disabled."); }
+        this._isEnabled = false;
 
-        if (this._parent ? this._parent.enabled : true) { this._world?.["_disableEntity"](this); }
+        if (this._parent ? this._parent.isEnabled : true) { this._world?.["_disableEntity"](this); }
     }
 
     public onAttach(world: W): void
