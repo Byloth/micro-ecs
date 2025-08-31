@@ -275,7 +275,7 @@ describe("Entity", () =>
                     super.onAttach(entity);
 
                     entity.getContext(this)
-                        .depend(DependencyComponent);
+                        .useComponent(DependencyComponent);
                 }
             }
 
@@ -295,7 +295,7 @@ describe("Entity", () =>
                     super.onAttach(entity);
 
                     entity.getContext(this)
-                        .depend(DependencyComponent);
+                        .useComponent(DependencyComponent);
                 }
             }
 
@@ -323,7 +323,7 @@ describe("Entity", () =>
                     super.onAttach(entity);
 
                     context = entity.getContext(this);
-                    context.depend(DependencyComponent);
+                    context.useComponent(DependencyComponent);
                 }
             }
 
@@ -354,7 +354,7 @@ describe("Entity", () =>
                     super.onAttach(entity);
 
                     context = entity.getContext(this);
-                    context.depend(DependencyComponent);
+                    context.useComponent(DependencyComponent);
                 }
             }
 
@@ -385,7 +385,7 @@ describe("Entity", () =>
                     super.onAttach(entity);
 
                     context = entity.getContext(this);
-                    context.depend(DependencyComponent);
+                    context.useComponent(DependencyComponent);
                 }
             }
 
