@@ -4,6 +4,7 @@ import type { CallbackMap, Constructor, InternalsEventsMap, ReadonlyMapView, Sma
 import type Entity from "./entity.js";
 import type Component from "./component.js";
 import System from "./system.js";
+import Service from "./service.js";
 
 import WorldContext from "./contexts/world.js";
 import { AttachmentException, HierarchyException } from "./exceptions.js";
@@ -23,6 +24,9 @@ export default class World<T extends CallbackMap<T> = { }>
     private readonly _enabledSystems: System[];
     public get systems(): ReadonlyMap<Constructor<System>, System> { return this._systems; }
 
+    private readonly _services: Map<Constructor<Service>, Service>;
+    public get services(): ReadonlyMap<Constructor<Service>, Service> { return this._services; }
+
     private readonly _publisher: Publisher;
     private readonly _contexts: Map<System, WorldContext<CallbackMap>>;
 
@@ -41,6 +45,8 @@ export default class World<T extends CallbackMap<T> = { }>
 
         this._systems = new Map();
         this._enabledSystems = [];
+
+        this._services = new Map();
 
         this._publisher = new Publisher();
         this._contexts = new Map();
@@ -256,6 +262,49 @@ export default class World<T extends CallbackMap<T> = { }>
         return _system;
     }
 
+    public addService<S extends Service>(service: S): S
+    {
+        const type = service.constructor as Constructor<Service>;
+        if (this._services.has(type)) { throw new ReferenceException("The service already exists in the world."); }
+
+        try
+        {
+            service.onAttach(this);
+        }
+        catch (error)
+        {
+            throw new AttachmentException("It wasn't possible to attach this service to the world.", error);
+        }
+
+        this._services.set(type, service);
+
+        return service;
+    }
+
+    public getService<S extends Service>(type: Constructor<S>): S
+    {
+        const service = this._services.get(type) as S | undefined;
+        if (!(service)) { throw new ReferenceException("The service doesn't exist in the world."); }
+
+        return service;
+    }
+
+    public removeService<S extends Service>(type: Constructor<S>): S;
+    public removeService<S extends Service>(service: S): S;
+    public removeService<S extends Service>(service: Constructor<S> | S): S
+    {
+        const type = (typeof service === "function") ? service : service.constructor as Constructor<Service>;
+
+        const _service = this._services.get(type) as S | undefined;
+        if (!(_service)) { throw new ReferenceException("The service doesn't exist in the world."); }
+
+        this._services.delete(_service.constructor as Constructor<Service>);
+
+        _service.onDetach();
+
+        return _service;
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     public getContext<U extends CallbackMap<U> = { }>(system: System): WorldContext<U & T>
     {
@@ -297,6 +346,14 @@ export default class World<T extends CallbackMap<T> = { }>
 
         this._systems.clear();
         this._enabledSystems.length = 0;
+
+        for (const service of this._services.values())
+        {
+            service.onDetach();
+            service.dispose();
+        }
+
+        this._services.clear();
 
         for (const entity of this._entities.values())
         {

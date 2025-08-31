@@ -3,6 +3,7 @@ import type { Callback, Constructor } from "@byloth/core";
 import type Entity from "./entity.js";
 import type Component from "./component.js";
 import type System from "./system.js";
+import type Service from "./service.js";
 
 export type Instances<T extends Constructor[]> = T extends [infer F, ...infer R] ?
     [InstanceType<F extends Constructor ? F : never>, ...Instances<R extends Constructor[] ? R : []>] : [];
@@ -18,6 +19,7 @@ type ComponentSignalEventsMap<T extends unknown[]> =
     Record<`component:${number}:${string}`, Callback<[Component, ...T]>>;
 
 type SystemSignalEventsMap<T extends unknown[]> = Record<`system:${number}:${string}`, Callback<[System, ...T]>>;
+type ServiceSignalEventsMap<T extends unknown[]> = Record<`service:${number}:${string}`, Callback<[Service, ...T]>>;
 
 export type SignalEventsMap<T extends unknown[] = unknown[]> =
-    EntitySignalEventsMap<T> & ComponentSignalEventsMap<T> & SystemSignalEventsMap<T>;
+    EntitySignalEventsMap<T> & ComponentSignalEventsMap<T> & SystemSignalEventsMap<T> & ServiceSignalEventsMap<T>;
