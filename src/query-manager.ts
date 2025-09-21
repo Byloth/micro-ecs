@@ -2,7 +2,7 @@ import { KeyException, MapView, SmartIterator, ValueException } from "@byloth/co
 import type { CallbackMap, Constructor, Publisher, ReadonlyMapView } from "@byloth/core";
 
 import type Entity from "./entity.js";
-import Component from "./component.js";
+import type Component from "./component.js";
 import type { Instances, WorldEventsMap } from "./types.js";
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
@@ -117,8 +117,9 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         return undefined;
     }
 
-    public findFirst<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(...types: C)
-        : R | undefined
+    public findFirst<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(
+        ...types: C
+    ): R | undefined
     {
         if (!(types.length)) { throw new ValueException("At least one type must be provided."); }
 
@@ -167,8 +168,9 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
 
         return undefined;
     }
-    public findAll<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(...types: C)
-        : SmartIterator<R>
+    public findAll<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(
+        ...types: C
+    ): SmartIterator<R>
     {
         if (!(types.length)) { throw new ValueException("At least one type must be provided."); }
 
@@ -211,8 +213,9 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
             .filter<R>(((component) => component !== undefined));
     }
 
-    public getView<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(...types: C)
-        : ReadonlyMapView<Entity, R>
+    public getView<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(
+        ...types: C
+    ): ReadonlyMapView<Entity, R>
     {
         if (!(types.length)) { throw new ValueException("At least one type must be provided."); }
 

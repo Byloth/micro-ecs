@@ -1,7 +1,8 @@
 import { ReferenceException, TimeoutException } from "@byloth/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { WorldContext, System, World } from "../../src/index.js";
+import type { WorldContext } from "../../src/index.js";
+import { System, World } from "../../src/index.js";
 
 interface EventsMap
 {

@@ -7,10 +7,10 @@ export default defineConfig({
       entry: fileURLToPath(new URL("src/index.ts", import.meta.url)),
       fileName: (format) =>
       {
-        if (format === "cjs") { return `micro-ecs.cjs`; }
-        if (format === "es") { return `micro-ecs.esm.js`; }
-        if (format === "iife") { return `micro-ecs.global.js`; }
-        if (format === "umd") { return `micro-ecs.umd.cjs`; }
+        if (format === "cjs") { return "micro-ecs.cjs"; }
+        if (format === "es") { return "micro-ecs.esm.js"; }
+        if (format === "iife") { return "micro-ecs.global.js"; }
+        if (format === "umd") { return "micro-ecs.umd.cjs"; }
 
         throw new Error(`Unknown build format: ${format}`);
       },

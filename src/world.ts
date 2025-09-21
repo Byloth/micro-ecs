@@ -3,8 +3,8 @@ import type { CallbackMap, Constructor, InternalsEventsMap, ReadonlyMapView, Sma
 
 import type Entity from "./entity.js";
 import type Component from "./component.js";
-import System from "./system.js";
-import Resource from "./resource.js";
+import type System from "./system.js";
+import type Resource from "./resource.js";
 
 import WorldContext from "./contexts/world.js";
 import { AttachmentException, DependencyException, HierarchyException } from "./exceptions.js";
@@ -238,25 +238,29 @@ export default class World<T extends CallbackMap<T> = { }>
         return _entity;
     }
 
-    public getFirstComponent<C extends Constructor<Component>, R extends InstanceType<C> = InstanceType<C>>(type: C)
-        : R | undefined
+    public getFirstComponent<C extends Constructor<Component>, R extends InstanceType<C> = InstanceType<C>>(
+        type: C
+    ): R | undefined
     {
         return this._queryManager.pickOne<C, R>(type);
     }
-    public getFirstComponents<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(...types: C)
-        : R | undefined
+    public getFirstComponents<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(
+        ...types: C
+    ): R | undefined
     {
         return this._queryManager.findFirst<C, R>(...types);
     }
 
-    public findAllComponents<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(...types: C)
-        : SmartIterator<R>
+    public findAllComponents<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(
+        ...types: C
+    ): SmartIterator<R>
     {
         return this._queryManager.findAll<C, R>(...types);
     }
 
-    public getComponentView<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(...types: C)
-        : ReadonlyMapView<Entity, R>
+    public getComponentView<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(
+        ...types: C
+    ): ReadonlyMapView<Entity, R>
     {
         return this._queryManager.getView<C, R>(...types);
     }
