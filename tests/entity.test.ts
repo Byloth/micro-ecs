@@ -1,5 +1,5 @@
 import { ReferenceException, RuntimeException } from "@byloth/core";
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { AttachmentException, Component, DependencyException, Entity, EntityContext, World } from "../src/index.js";
 
@@ -265,6 +265,89 @@ describe("Entity", () =>
             expect(context1).toBe(context2);
         });
 
+        it("Should allow using and releasing component dependencies", () =>
+        {
+            class DependencyComponent extends Component { }
+            class DependantComponent extends Component { }
+
+            const entity = new Entity();
+            const dependency = entity.addComponent(new DependencyComponent());
+            const dependant = entity.addComponent(new DependantComponent());
+
+            const context = entity.getContext(dependant);
+            const _dependency = context.useComponent(DependencyComponent);
+
+            expect(_dependency).toBe(dependency);
+            expect(context.dependencies.size).toBe(1);
+            expect(context.dependencies.has(dependency)).toBe(true);
+
+            context.releaseComponent(DependencyComponent);
+
+            expect(context.dependencies.size).toBe(0);
+            expect(context.dependencies.has(dependency)).toBe(false);
+        });
+        it("Should serve multiple dependencies independently", () =>
+        {
+            class DependencyComponent extends Component { }
+
+            class DependantComponent1 extends Component { }
+            class DependantComponent2 extends Component { }
+
+            const entity = new Entity();
+            const dependency = entity.addComponent(new DependencyComponent());
+            const dependant1 = entity.addComponent(new DependantComponent1());
+            const dependant2 = entity.addComponent(new DependantComponent2());
+
+            const context1 = entity.getContext(dependant1);
+            const context2 = entity.getContext(dependant2);
+
+            const dependency1 = context1.useComponent(DependencyComponent);
+            const dependency2 = context2.useComponent(DependencyComponent);
+
+            expect(dependency1).toBe(dependency2);
+
+            expect(entity["_dependencies"].size).toBe(1);
+            expect(entity["_dependencies"].get(dependency)?.size).toBe(2);
+
+            context1.releaseComponent(DependencyComponent);
+
+            expect(entity["_dependencies"].size).toBe(1);
+            expect(entity["_dependencies"].get(dependency)?.size).toBe(1);
+        });
+
+        it("Should throw when trying to use the same dependency twice in the same context", () =>
+        {
+            class DependencyComponent extends Component { }
+            class DependantComponent extends Component { }
+
+            const entity = new Entity();
+
+            entity.addComponent(new DependencyComponent());
+
+            const dependant = entity.addComponent(new DependantComponent());
+            const context = entity.getContext(dependant);
+
+            context.useComponent(DependencyComponent);
+
+            expect(() => context.useComponent(DependencyComponent))
+                .toThrow(DependencyException);
+        });
+        it("Should throw when trying to release a dependency that isn't used in the context", () =>
+        {
+            class DependencyComponent extends Component { }
+            class DependantComponent extends Component { }
+
+            const entity = new Entity();
+
+            entity.addComponent(new DependencyComponent());
+
+            const dependant = entity.addComponent(new DependantComponent());
+            const context = entity.getContext(dependant);
+
+            expect(() => context.releaseComponent(DependencyComponent))
+                .toThrow(DependencyException);
+        });
+
         it("Should throw an error when defining a dependency for a component not attached to the entity", () =>
         {
             class DependencyComponent extends Component { }
@@ -341,6 +424,8 @@ describe("Entity", () =>
             expect(context!.dependencies.size).toBe(0);
             expect(entity["_contexts"].has(dependant)).toBe(false);
             expect(entity["_dependencies"].has(dependency)).toBe(false);
+
+            expect(() => entity.removeComponent(dependency)).not.toThrow();
         });
         it("Should clear & remove the context when the component is removed", () =>
         {
@@ -372,6 +457,8 @@ describe("Entity", () =>
             expect(context!.dependencies.size).toBe(0);
             expect(entity["_contexts"].has(dependant)).toBe(false);
             expect(entity["_dependencies"].has(dependency)).toBe(false);
+
+            expect(() => entity.removeComponent(DependencyComponent)).not.toThrow();
         });
         it("Should clear & remove the context when the entity is disposed", () =>
         {

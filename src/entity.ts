@@ -29,16 +29,17 @@ export default class Entity<W extends World = World> extends μObject
 
     private _onContextDispose = (context: EntityContext): void =>
     {
-        const dependant = context["_component"];
+        const component = context["_component"];
+
         for (const dependency of context.dependencies)
         {
             const dependants = this._dependencies.get(dependency)!;
-            dependants.delete(dependant);
+            dependants.delete(component);
 
             if (dependants.size === 0) { this._dependencies.delete(dependency); }
         }
 
-        this._contexts.delete(dependant);
+        this._contexts.delete(component);
     };
 
     public constructor(enabled = true)

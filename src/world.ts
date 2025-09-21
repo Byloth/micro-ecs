@@ -4,10 +4,10 @@ import type { CallbackMap, Constructor, InternalsEventsMap, ReadonlyMapView, Sma
 import type Entity from "./entity.js";
 import type Component from "./component.js";
 import System from "./system.js";
-import Service from "./service.js";
+import Resource from "./resource.js";
 
 import WorldContext from "./contexts/world.js";
-import { AttachmentException, HierarchyException } from "./exceptions.js";
+import { AttachmentException, DependencyException, HierarchyException } from "./exceptions.js";
 import QueryManager from "./query-manager.js";
 import type { Instances, SignalEventsMap, WorldEventsMap } from "./types.js";
 
@@ -24,17 +24,27 @@ export default class World<T extends CallbackMap<T> = { }>
     private readonly _enabledSystems: System[];
     public get systems(): ReadonlyMap<Constructor<System>, System> { return this._systems; }
 
-    private readonly _services: Map<Constructor<Service>, Service>;
-    public get services(): ReadonlyMap<Constructor<Service>, Service> { return this._services; }
+    private readonly _resources: Map<Constructor<Resource>, Resource>;
+    public get resources(): ReadonlyMap<Constructor<Resource>, Resource> { return this._resources; }
 
     private readonly _publisher: Publisher;
+
     private readonly _contexts: Map<System, WorldContext<CallbackMap>>;
+    private readonly _dependencies: Map<Resource, Set<System>>;
 
     private readonly _queryManager: QueryManager;
 
     private _onContextDispose = (context: WorldContext): void =>
     {
         const system = context["_system"];
+
+        for (const dependency of context.dependencies)
+        {
+            const dependants = this._dependencies.get(dependency)!;
+            dependants.delete(system);
+
+            if (dependants.size === 0) { this._dependencies.delete(dependency); }
+        }
 
         this._contexts.delete(system);
     };
@@ -46,10 +56,11 @@ export default class World<T extends CallbackMap<T> = { }>
         this._systems = new Map();
         this._enabledSystems = [];
 
-        this._services = new Map();
-
+        this._resources = new Map();
         this._publisher = new Publisher();
+
         this._contexts = new Map();
+        this._dependencies = new Map();
 
         this._queryManager = new QueryManager(this._entities, this._publisher);
     }
@@ -157,6 +168,39 @@ export default class World<T extends CallbackMap<T> = { }>
         this._enabledSystems.splice(index, 1);
     }
 
+    private _addDependency(system: System, type: Constructor<Resource>): Resource
+    {
+        const dependency = this._resources.get(type);
+        if (!(dependency)) { throw new DependencyException("The dependency doesn't exist in the world."); }
+
+        const dependants = this._dependencies.get(dependency);
+        if (dependants)
+        {
+            if (dependants.has(system))
+            {
+                throw new DependencyException("The dependant already depends on this resource.");
+            }
+
+            dependants.add(system);
+        }
+        else { this._dependencies.set(dependency, new Set([system])); }
+
+        return dependency;
+    }
+    private _removeDependency(system: System, type: Constructor<Resource>): Resource
+    {
+        const dependency = this._resources.get(type)!;
+        const dependants = this._dependencies.get(dependency);
+        if (!(dependants?.delete(system)))
+        {
+            throw new DependencyException("The dependant doesn't depend on this resource.");
+        }
+
+        if (dependants.size === 0) { this._dependencies.delete(dependency); }
+
+        return dependency;
+    }
+
     public addEntity<E extends Entity>(entity: E): E
     {
         if (this._entities.has(entity.id)) { throw new ReferenceException("The entity already exists in the world."); }
@@ -262,47 +306,54 @@ export default class World<T extends CallbackMap<T> = { }>
         return _system;
     }
 
-    public addService<S extends Service>(service: S): S
+    public addResource<R extends Resource>(resource: R): R
     {
-        const type = service.constructor as Constructor<Service>;
-        if (this._services.has(type)) { throw new ReferenceException("The service already exists in the world."); }
+        const type = resource.constructor as Constructor<Resource>;
+        if (this._resources.has(type)) { throw new ReferenceException("The resource already exists in the world."); }
 
         try
         {
-            service.onAttach(this);
+            resource.onAttach(this);
         }
         catch (error)
         {
-            throw new AttachmentException("It wasn't possible to attach this service to the world.", error);
+            throw new AttachmentException("It wasn't possible to attach this resource to the world.", error);
         }
 
-        this._services.set(type, service);
+        this._resources.set(type, resource);
 
-        return service;
+        return resource;
     }
 
-    public getService<S extends Service>(type: Constructor<S>): S
+    public getResource<R extends Resource>(type: Constructor<R>): R
     {
-        const service = this._services.get(type) as S | undefined;
-        if (!(service)) { throw new ReferenceException("The service doesn't exist in the world."); }
+        const resource = this._resources.get(type) as R | undefined;
+        if (!(resource)) { throw new ReferenceException("The resource doesn't exist in the world."); }
 
-        return service;
+        return resource;
     }
 
-    public removeService<S extends Service>(type: Constructor<S>): S;
-    public removeService<S extends Service>(service: S): S;
-    public removeService<S extends Service>(service: Constructor<S> | S): S
+    public removeResource<R extends Resource>(type: Constructor<R>): R;
+    public removeResource<R extends Resource>(resource: R): R;
+    public removeResource<R extends Resource>(resource: Constructor<R> | R): R
     {
-        const type = (typeof service === "function") ? service : service.constructor as Constructor<Service>;
+        const type = (typeof resource === "function") ? resource : resource.constructor as Constructor<Resource>;
 
-        const _service = this._services.get(type) as S | undefined;
-        if (!(_service)) { throw new ReferenceException("The service doesn't exist in the world."); }
+        const _resource = this._resources.get(type) as R | undefined;
+        if (!(_resource)) { throw new ReferenceException("The resource doesn't exist in the world."); }
 
-        this._services.delete(_service.constructor as Constructor<Service>);
+        if (this._dependencies.has(_resource))
+        {
+            throw new DependencyException(
+                "The resource has dependants and cannot be removed. Remove them first."
+            );
+        }
 
-        _service.onDetach();
+        this._resources.delete(_resource.constructor as Constructor<Resource>);
 
-        return _service;
+        _resource.onDetach();
+
+        return _resource;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-empty-object-type
@@ -347,13 +398,13 @@ export default class World<T extends CallbackMap<T> = { }>
         this._systems.clear();
         this._enabledSystems.length = 0;
 
-        for (const service of this._services.values())
+        for (const resource of this._resources.values())
         {
-            service.onDetach();
-            service.dispose();
+            resource.onDetach();
+            resource.dispose();
         }
 
-        this._services.clear();
+        this._resources.clear();
 
         for (const entity of this._entities.values())
         {

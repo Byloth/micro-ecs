@@ -3,8 +3,8 @@ export const VERSION = "1.0.20";
 import Entity from "./entity.js";
 import Component from "./component.js";
 import System from "./system.js";
-import Service from "./service.js";
-export { Entity, Component, System, Service };
+import Resource from "./resource.js";
+export { Entity, Component, System, Resource };
 
 import World from "./world.js";
 export { World };

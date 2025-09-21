@@ -1,11 +1,11 @@
 import { ReferenceException, RuntimeException } from "@byloth/core";
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { AttachmentException, Component, Entity, World } from "../src/index.js";
 
 describe("Component", () =>
 {
-    it("Should be initialized with a null entity", () =>
+    it("Should be initialized with a `null` entity", () =>
     {
         const component = new Component();
         expect(component.entity).toBeNull();
