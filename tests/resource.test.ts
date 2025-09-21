@@ -5,7 +5,7 @@ import { ReferenceException, RuntimeException } from "@byloth/core";
 
 describe("Resource", () =>
 {
-    it("Should be initialize with a `null` world", () =>
+    it("Should be initialized with a `null` world", () =>
     {
         const resource = new Resource();
         expect(resource.world).toBeNull();
