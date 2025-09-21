@@ -1,7 +1,17 @@
 import { ReferenceException } from "@byloth/core";
-import { beforeEach, describe, it, expect, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { Entity, WorldContext, System, World, HierarchyException } from "../src/index.js";
+import {
+    Entity,
+    WorldContext,
+    System,
+    World,
+    Resource,
+    HierarchyException,
+    DependencyException,
+    AttachmentException
+
+} from "../src/index.js";
 
 describe("World", () =>
 {
@@ -225,11 +235,132 @@ describe("World", () =>
             expect(context1).toBe(context2);
         });
 
-        it("Should clear & remove the context when the context itself is disposed", () =>
+        it("Should allow using and releasing resource dependencies", () =>
+        {
+            class TestResource extends Resource { }
+            class TestSystem extends System { }
+
+            const resource = _world.addResource(new TestResource());
+            const system = _world.addSystem(new TestSystem());
+
+            const context = _world.getContext(system);
+            const _resource = context.useResource(TestResource);
+
+            expect(_resource).toBe(resource);
+            expect(context.dependencies.has(resource)).toBe(true);
+            expect(context.dependencies.size).toBe(1);
+
+            context.releaseResource(TestResource);
+
+            expect(context.dependencies.has(resource)).toBe(false);
+            expect(context.dependencies.size).toBe(0);
+        });
+        it("Should serve multiple dependencies independently", () =>
+        {
+            class TestResource extends Resource { }
+
+            class TestSystem1 extends System { }
+            class TestSystem2 extends System { }
+
+            const resource = _world.addResource(new TestResource());
+            const system1 = _world.addSystem(new TestSystem1());
+            const system2 = _world.addSystem(new TestSystem2());
+
+            const context1 = _world.getContext(system1);
+            const context2 = _world.getContext(system2);
+
+            const _resource1 = context1.useResource(TestResource);
+            const _resource2 = context2.useResource(TestResource);
+
+            expect(_resource1).toBe(_resource2);
+
+            expect(_world["_dependencies"].size).toBe(1);
+            expect(_world["_dependencies"].get(resource)?.size).toBe(2);
+
+            context1.releaseResource(TestResource);
+
+            expect(_world["_dependencies"].size).toBe(1);
+            expect(_world["_dependencies"].get(resource)?.size).toBe(1);
+        });
+
+        it("Should throw when trying to use the same resource twice in the same context", () =>
+        {
+            class TestResource extends Resource { }
+            class TestSystem extends System { }
+
+            _world.addResource(new TestResource());
+
+            const system = _world.addSystem(new TestSystem());
+            const context = _world.getContext(system);
+
+            context.useResource(TestResource);
+
+            expect(() => context.useResource(TestResource))
+                .toThrow(DependencyException);
+        });
+        it("Should throw when trying to release a resource that isn't used in the context", () =>
+        {
+            class TestResource extends Resource { }
+            class TestSystem extends System { }
+
+            _world.addResource(new TestResource());
+
+            const system = _world.addSystem(new TestSystem());
+            const context = _world.getContext(system);
+
+            expect(() => context.releaseResource(TestResource))
+                .toThrow(DependencyException);
+        });
+
+        it("Should throw an error when defining a dependency for a resource not attached to the world", () =>
+        {
+            class TestResource extends Resource { }
+            class TestSystem extends System
+            {
+                public override onAttach(world: World): void
+                {
+                    super.onAttach(world);
+
+                    world.getContext(this)
+                        .useResource(TestResource);
+                }
+            }
+
+            expect(() => _world.addSystem(new TestSystem()))
+                .toThrow(AttachmentException);
+        });
+
+        it("Should block removing a resource that still has dependants", () =>
+        {
+            class TestResource extends Resource { }
+            class TestSystem extends System
+            {
+                public override onAttach(world: World): void
+                {
+                    super.onAttach(world);
+
+                    world.getContext(this)
+                        .useResource(TestResource);
+                }
+            }
+
+            const resource = _world.addResource(new TestResource());
+            const system = _world.addSystem(new TestSystem());
+
+            expect(() => _world.removeResource(resource))
+                .toThrow(DependencyException);
+
+            _world.removeSystem(system);
+            _world.removeResource(TestResource);
+        });
+
+        it("Should clear resource dependencies when the context itself is disposed", () =>
         {
             const _clear = vi.fn(() => { /* ... */ });
 
             let context: WorldContext;
+
+            class TestResource extends Resource { }
             class TestSystem extends System
             {
                 public override onAttach(world: World): void
@@ -237,22 +368,36 @@ describe("World", () =>
                     super.onAttach(world);
 
                     context = world.getContext(this);
+                    context.useResource(TestResource);
                 }
             }
 
-            _world.addSystem(new TestSystem());
+            const resource = _world.addResource(new TestResource());
+            const system = _world.addSystem(new TestSystem());
 
             expect(context!).toBeInstanceOf(WorldContext);
+            expect(context!.dependencies.size).toBe(1);
+            expect(_world["_contexts"].has(system)).toBe(true);
+            expect(_world["_dependencies"].has(resource)).toBe(true);
+
             context!.on("__internals__:clear", _clear);
             context!.dispose();
 
             expect(_clear).toHaveBeenCalledTimes(1);
+            expect(context!.dependencies.size).toBe(0);
+            expect(_world["_contexts"].has(system)).toBe(false);
+            expect(_world["_dependencies"].has(resource)).toBe(false);
+
+            expect(() => _world.removeResource(TestResource)).not.toThrow();
         });
-        it("Should clear & remove the context when the system is removed", () =>
+
+        it("Should clear resource dependencies when the system is removed", () =>
         {
             const _clear = vi.fn(() => { /* ... */ });
 
             let context: WorldContext;
+
+            class TestResource extends Resource { }
             class TestSystem extends System
             {
                 public override onAttach(world: World): void
@@ -260,17 +405,28 @@ describe("World", () =>
                     super.onAttach(world);
 
                     context = world.getContext(this);
+                    context.useResource(TestResource);
                 }
             }
 
-            _world.addSystem(new TestSystem());
+            const resource = _world.addResource(new TestResource());
+            const system = _world.addSystem(new TestSystem());
 
             expect(context!).toBeInstanceOf(WorldContext);
+            expect(context!.dependencies.size).toBe(1);
+            expect(_world["_contexts"].has(system)).toBe(true);
+            expect(_world["_dependencies"].has(resource)).toBe(true);
+
             context!.on("__internals__:clear", _clear);
 
             _world.removeSystem(TestSystem);
 
             expect(_clear).toHaveBeenCalledTimes(1);
+            expect(context!.dependencies.size).toBe(0);
+            expect(_world["_contexts"].has(system)).toBe(false);
+            expect(_world["_dependencies"].has(resource)).toBe(false);
+
+            expect(() => _world.removeResource(resource)).not.toThrow();
         });
     });
 });

@@ -20,15 +20,20 @@ export default class EntityContext
         this._dependencies = new Set();
     }
 
-    public depend<C extends Component>(type: Constructor<C>): C
+    public useComponent<C extends Component>(type: Constructor<C>): C
     {
         const dependency = this._entity["_addDependency"](this._component, type);
         this._dependencies.add(dependency);
 
         return dependency as C;
     }
-    public release(type: Constructor<Component>): void
+
+    public releaseComponent<C extends Component>(type: Constructor<C>): void;
+    public releaseComponent<C extends Component>(component: C): void;
+    public releaseComponent<C extends Component>(component: Constructor<C> | C): void
     {
+        const type = (typeof component === "function") ? component : component.constructor as Constructor<Component>;
+
         const dependency = this._entity["_removeDependency"](this._component, type);
         this._dependencies.delete(dependency);
     }

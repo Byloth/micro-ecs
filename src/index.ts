@@ -1,9 +1,10 @@
-export const VERSION = "1.0.20";
+export const VERSION = "1.0.21";
 
 import Entity from "./entity.js";
 import Component from "./component.js";
 import System from "./system.js";
-export { Entity, Component, System };
+import Resource from "./resource.js";
+export { Entity, Component, System, Resource };
 
 import World from "./world.js";
 export { World };

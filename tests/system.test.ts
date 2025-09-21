@@ -1,5 +1,5 @@
 import { ReferenceException, RuntimeException } from "@byloth/core";
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { AttachmentException, System, World } from "../src/index.js";
 

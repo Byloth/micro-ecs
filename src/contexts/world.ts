@@ -2,6 +2,7 @@ import { TimedPromise } from "@byloth/core";
 import type {
     Callback,
     CallbackMap,
+    Constructor,
     InternalsEventsMap,
     PromiseResolver,
     Publisher,
@@ -10,6 +11,8 @@ import type {
 } from "@byloth/core";
 
 import type System from "../system.js";
+import type Resource from "../resource.js";
+import type World from "../world.js";
 import type { SignalEventsMap, WorldEventsMap } from "../types.js";
 
 type W = WorldEventsMap & SignalEventsMap;
@@ -19,8 +22,13 @@ type S = W & WildcardEventsMap & InternalsEventsMap;
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export default class WorldContext<T extends CallbackMap<T> = { }>
 {
+    private get _world(): World { return this._system.world!; }
+
     private readonly _system: System;
     private readonly _publisher: Publisher;
+
+    private readonly _dependencies: Set<Resource>;
+    public get dependencies(): ReadonlySet<Resource> { return this._dependencies; }
 
     private _onDispose?: (context: WorldContext) => void;
 
@@ -28,6 +36,8 @@ export default class WorldContext<T extends CallbackMap<T> = { }>
     {
         this._system = system;
         this._publisher = publisher;
+
+        this._dependencies = new Set();
     }
 
     public emit<K extends keyof T>(event: K & string, ...args: Parameters<T[K]>): ReturnType<T[K]>[];
@@ -89,6 +99,24 @@ export default class WorldContext<T extends CallbackMap<T> = { }>
         this._publisher.unsubscribe(event, callback);
     }
 
+    public useResource<R extends Resource>(type: Constructor<R>): R
+    {
+        const dependency = this._world["_addDependency"](this._system, type);
+        this._dependencies.add(dependency);
+
+        return dependency as R;
+    }
+
+    public releaseResource<R extends Resource>(type: Constructor<R>): void;
+    public releaseResource<R extends Resource>(resource: R): void;
+    public releaseResource<R extends Resource>(resource: Constructor<R> | R): void
+    {
+        const type = (typeof resource === "function") ? resource : resource.constructor as Constructor<Resource>;
+
+        const dependency = this._world["_removeDependency"](this._system, type);
+        this._dependencies.delete(dependency);
+    }
+
     public dispose(): void
     {
         if (this._onDispose)
@@ -98,5 +126,6 @@ export default class WorldContext<T extends CallbackMap<T> = { }>
         }
 
         this._publisher.clear();
+        this._dependencies.clear();
     }
 }
