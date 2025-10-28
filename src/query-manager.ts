@@ -210,7 +210,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
 
                 return undefined;
             })
-            .filter<R>(((component) => component !== undefined));
+            .filter<R>((component) => component !== undefined);
     }
 
     public getView<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(

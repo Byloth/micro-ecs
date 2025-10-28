@@ -329,14 +329,6 @@ export default class World<T extends CallbackMap<T> = { }>
         return resource;
     }
 
-    public getResource<R extends Resource>(type: Constructor<R>): R
-    {
-        const resource = this._resources.get(type) as R | undefined;
-        if (!(resource)) { throw new ReferenceException("The resource doesn't exist in the world."); }
-
-        return resource;
-    }
-
     public removeResource<R extends Resource>(type: Constructor<R>): R;
     public removeResource<R extends Resource>(resource: R): R;
     public removeResource<R extends Resource>(resource: Constructor<R> | R): R
