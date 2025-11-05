@@ -4,22 +4,16 @@ import type { Constructor } from "@byloth/core";
 import μObject from "./core.js";
 import type Component from "./component.js";
 import EntityContext from "./contexts/entity.js";
-import { AdoptionException, AttachmentException, DependencyException } from "./exceptions.js";
+import { AttachmentException, DependencyException } from "./exceptions.js";
 import type World from "./world.js";
 
 export default class Entity<W extends World = World> extends μObject
 {
     private _isEnabled: boolean;
-    public get isEnabled(): boolean { return (this._isEnabled && (this._parent ? this._parent.isEnabled : true)); }
+    public get isEnabled(): boolean { return this._isEnabled; }
 
     private readonly _components: Map<Constructor<Component>, Component>;
     public get components(): ReadonlyMap<Constructor<Component>, Component> { return this._components; }
-
-    private _parent: Entity | null;
-    public get parent(): Entity | null { return this._parent; }
-
-    private readonly _children: Set<Entity>;
-    public get children(): ReadonlySet<Entity> { return this._children; }
 
     private _world: W | null;
     public get world(): W | null { return this._world; }
@@ -49,9 +43,6 @@ export default class Entity<W extends World = World> extends μObject
         this._isEnabled = enabled;
 
         this._components = new Map();
-
-        this._parent = null;
-        this._children = new Set();
 
         this._world = null;
 
@@ -94,15 +85,15 @@ export default class Entity<W extends World = World> extends μObject
 
     private _enableComponent(component: Component): void
     {
-        if (!(this.isEnabled)) { return; }
+        if (!(this._isEnabled)) { return; }
 
-        this._world?.["_enableComponent"](this, component);
+        this._world?.["_enableEntityComponent"](this, component);
     }
     private _disableComponent(component: Component): void
     {
-        if (!(this.isEnabled)) { return; }
+        if (!(this._isEnabled)) { return; }
 
-        this._world?.["_disableComponent"](this, component);
+        this._world?.["_disableEntityComponent"](this, component);
     }
 
     public addComponent<C extends Component>(component: C): C
@@ -161,8 +152,17 @@ export default class Entity<W extends World = World> extends μObject
             this._contexts.delete(_component);
         }
 
+        try
+        {
+            _component.onDetach();
+        }
+        catch (error)
+        {
+            // eslint-disable-next-line no-console
+            console.warn("An error occurred while detaching this component from the entity.\n\nSuppressed", error);
+        }
+
         this._components.delete(_component.constructor as Constructor<Component>);
-        _component.onDetach();
 
         if (_component.isEnabled) { this._disableComponent(_component); }
         return _component;
@@ -181,53 +181,19 @@ export default class Entity<W extends World = World> extends μObject
         return context;
     }
 
-    public addChild<E extends Entity>(child: E): E
-    {
-        if (child.parent) { throw new ReferenceException("The entity already has a parent."); }
-        if (child.world) { throw new ReferenceException("The entity is already attached to a world."); }
-
-        try
-        {
-            child.onAdoption(this);
-        }
-        catch (error)
-        {
-            throw new AdoptionException("It wasn't possible to adopt this entity as a child.", error);
-        }
-
-        this._children.add(child);
-
-        this._world?.["_addEntity"](child, this.isEnabled);
-
-        return child;
-    }
-    public removeChild<E extends Entity>(child: E): E
-    {
-        if (!(this._children.delete(child)))
-        {
-            throw new ReferenceException("The entity isn't a child of this entity.");
-        }
-
-        child.onUnadoption();
-
-        this._world?.["_removeEntity"](child, this.isEnabled);
-
-        return child;
-    }
-
     public enable(): void
     {
         if (this._isEnabled) { throw new RuntimeException("The entity is already enabled."); }
         this._isEnabled = true;
 
-        if (this._parent ? this._parent.isEnabled : true) { this._world?.["_enableEntity"](this); }
+        this._world?.["_enableEntity"](this);
     }
     public disable(): void
     {
         if (!(this._isEnabled)) { throw new RuntimeException("The entity is already disabled."); }
         this._isEnabled = false;
 
-        if (this._parent ? this._parent.isEnabled : true) { this._world?.["_disableEntity"](this); }
+        this._world?.["_disableEntity"](this);
     }
 
     public onAttach(world: W): void
@@ -241,47 +207,40 @@ export default class Entity<W extends World = World> extends μObject
         this._world = null;
     }
 
-    public onAdoption(parent: Entity): void
-    {
-        if (this._parent) { throw new ReferenceException("The entity is already adopted by another entity."); }
-        this._parent = parent;
-    }
-    public onUnadoption(): void
-    {
-        if (!(this._parent)) { throw new ReferenceException("The entity isn't adopted by any entity."); }
-        this._parent = null;
-    }
-
     public dispose(): void
     {
         if (this._world)
         {
             throw new RuntimeException("The entity must be detached from the world before being disposed.");
         }
-        if (this._parent)
-        {
-            throw new RuntimeException("The entity must be unadopted from its parent before being disposed.");
-        }
 
-        for (const component of this._components.values())
+        try
         {
-            component.onDetach();
-            component.dispose();
+            for (const component of this._components.values())
+            {
+                component.onDetach();
+                component.dispose();
+            }
+        }
+        catch (error)
+        {
+            // eslint-disable-next-line no-console
+            console.warn("An error occurred while disposing components of the entity.\n\nSuppressed", error);
         }
 
         this._components.clear();
 
-        for (const child of this._children)
+        try
         {
-            child.onUnadoption();
-            child.dispose();
+            for (const context of this._contexts.values())
+            {
+                context.dispose();
+            }
         }
-
-        this._children.clear();
-
-        for (const context of this._contexts.values())
+        catch (error)
         {
-            context.dispose();
+            // eslint-disable-next-line no-console
+            console.warn("An error occurred while disposing contexts of the entity.\n\nSuppressed", error);
         }
 
         this._contexts.clear();

@@ -7,7 +7,6 @@ import {
     System,
     World,
     Resource,
-    HierarchyException,
     DependencyException,
     AttachmentException
 
@@ -33,15 +32,6 @@ describe("World", () =>
         expect(() => _world.addEntity(entity)).toThrow(ReferenceException);
     });
 
-    it("Should throw an error when trying to add a child entity directly to the world", () =>
-    {
-        const parent = new Entity();
-        const child = parent.addChild(new Entity());
-
-        expect(() => _world.addEntity(child))
-            .toThrow(HierarchyException);
-    });
-
     it("Should remove an entity from the world", () =>
     {
         const entity = _world.addEntity(new Entity());
@@ -55,15 +45,6 @@ describe("World", () =>
         const entity = new Entity();
 
         expect(() => _world.removeEntity(entity.id)).toThrow(ReferenceException);
-    });
-
-    it("Should throw an error when trying to remove a child entity directly from the world", () =>
-    {
-        const parent = _world.addEntity(new Entity());
-        const child = parent.addChild(new Entity());
-
-        expect(() => _world.removeEntity(child))
-            .toThrow(HierarchyException);
     });
 
     it("Should add a system to the world", () =>

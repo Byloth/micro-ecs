@@ -7,12 +7,11 @@ import type System from "./system.js";
 import type Resource from "./resource.js";
 
 import WorldContext from "./contexts/world.js";
-import { AttachmentException, DependencyException, HierarchyException } from "./exceptions.js";
+import { AttachmentException, DependencyException } from "./exceptions.js";
 import QueryManager from "./query-manager.js";
 import type { Instances, SignalEventsMap } from "./types.js";
 
-type W = SignalEventsMap;
-type P = W & InternalsEventsMap;
+type P = SignalEventsMap & InternalsEventsMap;
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export default class World<T extends CallbackMap<T> = { }>
@@ -20,12 +19,12 @@ export default class World<T extends CallbackMap<T> = { }>
     private readonly _entities: Map<number, Entity>;
     public get entities(): ReadonlyMap<number, Entity> { return this._entities; }
 
+    private readonly _resources: Map<Constructor<Resource>, Resource>;
+    public get resources(): ReadonlyMap<Constructor<Resource>, Resource> { return this._resources; }
+
     private readonly _systems: Map<Constructor<System>, System>;
     private readonly _enabledSystems: System[];
     public get systems(): ReadonlyMap<Constructor<System>, System> { return this._systems; }
-
-    private readonly _resources: Map<Constructor<Resource>, Resource>;
-    public get resources(): ReadonlyMap<Constructor<Resource>, Resource> { return this._resources; }
 
     private readonly _publisher: Publisher;
 
@@ -52,11 +51,11 @@ export default class World<T extends CallbackMap<T> = { }>
     public constructor()
     {
         this._entities = new Map();
+        this._resources = new Map();
 
         this._systems = new Map();
         this._enabledSystems = [];
 
-        this._resources = new Map();
         this._publisher = new Publisher();
 
         this._contexts = new Map();
@@ -65,57 +64,13 @@ export default class World<T extends CallbackMap<T> = { }>
         this._queryManager = new QueryManager(this._entities);
     }
 
-    private _addEntity(entity: Entity, enabled = true): Entity
-    {
-        try
-        {
-            entity.onAttach(this);
-        }
-        catch (error)
-        {
-            throw new AttachmentException("It wasn't possible to attach this entity to the world.", error);
-        }
-
-        this._entities.set(entity.id, entity);
-        for (const child of entity.children.values())
-        {
-            this._addEntity(child, entity.isEnabled);
-        }
-
-        if (entity["_isEnabled"] && enabled) { this._enableEntity(entity); }
-
-        return entity;
-    }
-
-    public _removeEntity(entity: Entity, enabled = true): Entity
-    {
-        if (entity["_isEnabled"] && enabled) { this._disableEntity(entity); }
-
-        for (const child of entity.children.values())
-        {
-            this._removeEntity(child, entity.isEnabled);
-        }
-
-        this._entities.delete(entity.id);
-        entity.onDetach();
-
-        return entity;
-    }
-
     private _enableEntity(entity: Entity): void
     {
         for (const component of entity.components.values())
         {
             if (!(component.isEnabled)) { continue; }
 
-            this._enableComponent(entity, component);
-        }
-
-        for (const child of entity.children.values())
-        {
-            if (!(child.isEnabled)) { continue; }
-
-            this._enableEntity(child);
+            this._enableEntityComponent(entity, component);
         }
     }
     private _disableEntity(entity: Entity): void
@@ -124,22 +79,15 @@ export default class World<T extends CallbackMap<T> = { }>
         {
             if (!(component.isEnabled)) { continue; }
 
-            this._disableComponent(entity, component);
-        }
-
-        for (const child of entity.children.values())
-        {
-            if (!(child.isEnabled)) { continue; }
-
-            this._disableEntity(child);
+            this._disableEntityComponent(entity, component);
         }
     }
 
-    private _enableComponent(entity: Entity, component: Component): void
+    private _enableEntityComponent(entity: Entity, component: Component): void
     {
         this._queryManager["_onEntityComponentEnable"](entity, component);
     }
-    private _disableComponent(entity: Entity, component: Component): void
+    private _disableEntityComponent(entity: Entity, component: Component): void
     {
         this._queryManager["_onEntityComponentDisable"](entity, component);
     }
@@ -205,14 +153,18 @@ export default class World<T extends CallbackMap<T> = { }>
     {
         if (this._entities.has(entity.id)) { throw new ReferenceException("The entity already exists in the world."); }
 
-        if (entity.parent)
+        try
         {
-            throw new HierarchyException(
-                "Child entities cannot be added directly to the world. Operate on the parent entity instead."
-            );
+            entity.onAttach(this);
+        }
+        catch (error)
+        {
+            throw new AttachmentException("It wasn't possible to attach this entity to the world.", error);
         }
 
-        this._addEntity(entity);
+        this._entities.set(entity.id, entity);
+
+        if (entity.isEnabled) { this._enableEntity(entity); }
 
         return entity;
     }
@@ -226,14 +178,10 @@ export default class World<T extends CallbackMap<T> = { }>
         const _entity = this._entities.get(entityId) as E | undefined;
         if (!(_entity)) { throw new ReferenceException("The entity doesn't exist in the world."); }
 
-        if (_entity.parent)
-        {
-            throw new HierarchyException(
-                "Child entities cannot be removed directly from the world. Operate on the parent entity instead."
-            );
-        }
+        if (_entity.isEnabled) { this._disableEntity(_entity); }
 
-        this._removeEntity(_entity);
+        this._entities.delete(_entity.id);
+        _entity.onDetach();
 
         return _entity;
     }
@@ -263,6 +211,48 @@ export default class World<T extends CallbackMap<T> = { }>
     ): ReadonlyMapView<Entity, R>
     {
         return this._queryManager.getView<C, R>(...types);
+    }
+
+    public addResource<R extends Resource>(resource: R): R
+    {
+        const type = resource.constructor as Constructor<Resource>;
+        if (this._resources.has(type)) { throw new ReferenceException("The resource already exists in the world."); }
+
+        try
+        {
+            resource.onAttach(this);
+        }
+        catch (error)
+        {
+            throw new AttachmentException("It wasn't possible to attach this resource to the world.", error);
+        }
+
+        this._resources.set(type, resource);
+
+        return resource;
+    }
+
+    public removeResource<R extends Resource>(type: Constructor<R>): R;
+    public removeResource<R extends Resource>(resource: R): R;
+    public removeResource<R extends Resource>(resource: Constructor<R> | R): R
+    {
+        const type = (typeof resource === "function") ? resource : resource.constructor as Constructor<Resource>;
+
+        const _resource = this._resources.get(type) as R | undefined;
+        if (!(_resource)) { throw new ReferenceException("The resource doesn't exist in the world."); }
+
+        if (this._dependencies.has(_resource))
+        {
+            throw new DependencyException(
+                "The resource has dependants and cannot be removed. Remove them first."
+            );
+        }
+
+        this._resources.delete(_resource.constructor as Constructor<Resource>);
+
+        _resource.onDetach();
+
+        return _resource;
     }
 
     public addSystem<S extends System>(system: S): S
@@ -310,48 +300,6 @@ export default class World<T extends CallbackMap<T> = { }>
         return _system;
     }
 
-    public addResource<R extends Resource>(resource: R): R
-    {
-        const type = resource.constructor as Constructor<Resource>;
-        if (this._resources.has(type)) { throw new ReferenceException("The resource already exists in the world."); }
-
-        try
-        {
-            resource.onAttach(this);
-        }
-        catch (error)
-        {
-            throw new AttachmentException("It wasn't possible to attach this resource to the world.", error);
-        }
-
-        this._resources.set(type, resource);
-
-        return resource;
-    }
-
-    public removeResource<R extends Resource>(type: Constructor<R>): R;
-    public removeResource<R extends Resource>(resource: R): R;
-    public removeResource<R extends Resource>(resource: Constructor<R> | R): R
-    {
-        const type = (typeof resource === "function") ? resource : resource.constructor as Constructor<Resource>;
-
-        const _resource = this._resources.get(type) as R | undefined;
-        if (!(_resource)) { throw new ReferenceException("The resource doesn't exist in the world."); }
-
-        if (this._dependencies.has(_resource))
-        {
-            throw new DependencyException(
-                "The resource has dependants and cannot be removed. Remove them first."
-            );
-        }
-
-        this._resources.delete(_resource.constructor as Constructor<Resource>);
-
-        _resource.onDetach();
-
-        return _resource;
-    }
-
     // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     public getContext<U extends CallbackMap<U> = { }>(system: System): WorldContext<U & T>
     {
@@ -385,36 +333,66 @@ export default class World<T extends CallbackMap<T> = { }>
     {
         this._queryManager.dispose();
 
-        for (const system of this._systems.values())
+        try
         {
-            system.onDetach();
-            system.dispose();
+            for (const system of this._systems.values())
+            {
+                system.onDetach();
+                system.dispose();
+            }
+        }
+        catch (error)
+        {
+            // eslint-disable-next-line no-console
+            console.warn("An error occurred while disposing systems of the world.\n\nSuppressed", error);
         }
 
         this._systems.clear();
         this._enabledSystems.length = 0;
 
-        for (const resource of this._resources.values())
+        try
         {
-            resource.onDetach();
-            resource.dispose();
+            for (const resource of this._resources.values())
+            {
+                resource.onDetach();
+                resource.dispose();
+            }
+        }
+        catch (error)
+        {
+            // eslint-disable-next-line no-console
+            console.warn("An error occurred while disposing resources of the world.\n\nSuppressed", error);
         }
 
         this._resources.clear();
 
-        for (const entity of this._entities.values())
+        try
         {
-            if (entity.parent) { continue; }
-
-            entity.onDetach();
-            entity.dispose();
+            for (const entity of this._entities.values())
+            {
+                entity.onDetach();
+                entity.dispose();
+            }
+        }
+        catch (error)
+        {
+            // eslint-disable-next-line no-console
+            console.warn("An error occurred while disposing entities of the world.\n\nSuppressed", error);
         }
 
         this._entities.clear();
 
-        for (const context of this._contexts.values())
+        try
         {
-            context.dispose();
+            for (const context of this._contexts.values())
+            {
+                context.dispose();
+            }
+        }
+        catch (error)
+        {
+            // eslint-disable-next-line no-console
+            console.warn("An error occurred while disposing contexts of the world.\n\nSuppressed", error);
         }
 
         this._contexts.clear();

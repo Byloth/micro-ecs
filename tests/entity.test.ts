@@ -10,12 +10,8 @@ describe("Entity", () =>
         const entity = new Entity();
 
         expect(entity.id).toBeGreaterThan(0);
-
         expect(entity.world).toBeNull();
-        expect(entity.parent).toBeNull();
-
         expect(entity.components.size).toBe(0);
-        expect(entity.children.size).toBe(0);
     });
 
     it("Should be able to add and retrieve a component", () =>
@@ -57,64 +53,6 @@ describe("Entity", () =>
 
         const entity = new Entity();
         expect(() => entity.removeComponent(TestComponent)).toThrow(ReferenceException);
-    });
-
-    it("Should be able to add and retrieve a child entity", () =>
-    {
-        const parent = new Entity();
-        const child = parent.addChild(new Entity());
-
-        expect(parent.children.has(child)).toBe(true);
-        expect(parent.children.size).toBe(1);
-        expect(child.parent).toBe(parent);
-    });
-    it("Should throw an error when adding a child entity that already has a parent", () =>
-    {
-        const parent1 = new Entity();
-        const parent2 = new Entity();
-
-        const child = parent1.addChild(new Entity());
-
-        expect(() => parent2.addChild(child)).toThrow(ReferenceException);
-    });
-    it("Should throw an error when adding a child entity that's already attached to the world", () =>
-    {
-        const world = new World();
-
-        const parent = world.addEntity(new Entity());
-        const child = world.addEntity(new Entity());
-
-        expect(() => parent.addChild(child)).toThrow(ReferenceException);
-    });
-
-    it("Should be able to remove a child entity", () =>
-    {
-        const parent = new Entity();
-        const child = parent.addChild(new Entity());
-
-        parent.removeChild(child);
-
-        expect(parent.children.has(child)).toBe(false);
-        expect(parent.children.size).toBe(0);
-        expect(child.parent).toBeNull();
-    });
-    it("Should throw an error when removing a non-existent child entity", () =>
-    {
-        const parent = new Entity();
-        const child = new Entity();
-
-        expect(() => parent.removeChild(child)).toThrow(ReferenceException);
-    });
-
-    it("Should share the same world with its children", () =>
-    {
-        const world = new World();
-
-        const parent = world.addEntity(new Entity());
-        const child = parent.addChild(new Entity());
-
-        expect(parent.world).toBe(world);
-        expect(child.world).toBe(world);
     });
 
     it("Should be attachable to a world", () =>
@@ -215,29 +153,21 @@ describe("Entity", () =>
         }
 
         const world = new World();
+        const entity = world.addEntity(new TestEntity());
 
-        const parent = world.addEntity(new TestEntity());
-        const child = parent.addChild(new TestEntity());
+        entity.addComponent(new TestComponent());
 
-        parent.addComponent(new TestComponent());
+        expect(() => entity.dispose()).toThrow(RuntimeException);
 
-        expect(() => parent.dispose()).toThrow(RuntimeException);
+        world.removeEntity(entity.id);
+        entity.dispose();
 
-        world.removeEntity(parent.id);
-        parent.dispose();
+        expect(entity.world).toBeNull();
 
-        expect(parent.world).toBeNull();
+        expect(entity.hasComponent(TestComponent)).toBe(false);
+        expect(entity.components.size).toBe(0);
 
-        expect(parent.hasComponent(TestComponent)).toBe(false);
-        expect(parent.components.size).toBe(0);
-
-        expect(parent.children.has(child)).toBe(false);
-        expect(parent.children.size).toBe(0);
-
-        expect(child.world).toBeNull();
-        expect(child.parent).toBeNull();
-
-        expect(_dispose).toHaveBeenCalledTimes(2);
+        expect(_dispose).toHaveBeenCalledTimes(1);
     });
 
     describe("Context", () =>

@@ -225,140 +225,6 @@ describe("QueryManager", () =>
             expect(after.length).toBe(0);
         });
     });
-    describe("When parent entities are manipulated", () =>
-    {
-        beforeEach(() =>
-        {
-            _world = new World();
-
-            const parent1 = new Entity();
-            const parent2 = new Entity(false);
-
-            Object.defineProperty(parent1, "id", { value: 1 });
-            Object.defineProperty(parent2, "id", { value: 2 });
-
-            const child1 = new Entity(false);
-            const child2 = new Entity();
-            const child3 = new Entity();
-            const child4 = new Entity(false);
-
-            Object.defineProperty(child1, "id", { value: 3 });
-            Object.defineProperty(child2, "id", { value: 4 });
-            Object.defineProperty(child3, "id", { value: 5 });
-            Object.defineProperty(child4, "id", { value: 6 });
-
-            parent1.addChild(child1);
-            parent1.addChild(child2);
-
-            parent2.addChild(child3);
-            parent2.addChild(child4);
-
-            parent1.addComponent(new TestComponent1());
-            parent2.addComponent(new TestComponent2());
-            parent2.addComponent(new TestComponent3());
-
-            child1.addComponent(new TestComponent1());
-            child2.addComponent(new TestComponent1());
-            child2.addComponent(new TestComponent2());
-            child2.addComponent(new TestComponent3());
-
-            child3.addComponent(new TestComponent1());
-            child4.addComponent(new TestComponent2());
-            child4.addComponent(new TestComponent3());
-
-            _world.addEntity(parent1);
-            _world.addEntity(parent2);
-        });
-
-        it("Should reactively update view when parent entities are added", () =>
-        {
-            const view = _world.getComponentView(TestComponent1);
-
-            const before = Array.from(view.values());
-            expect(before.length).toBe(2);
-            expect(before[0][0].entity!.id).toBe(1);
-            expect(before[1][0].entity!.id).toBe(4);
-
-            const parent = new Entity(false);
-            Object.defineProperty(parent, "id", { value: 7 });
-
-            const child = new Entity();
-            Object.defineProperty(child, "id", { value: 8 });
-
-            child.addComponent(new TestComponent1());
-            parent.addChild(child);
-
-            _world.addEntity(parent);
-
-            expect(view.size).toBe(2);
-
-            parent.enable();
-
-            const after = Array.from(view.values());
-            expect(after.length).toBe(3);
-            expect(before[0][0].entity!.id).toBe(1);
-            expect(before[1][0].entity!.id).toBe(4);
-            expect(after[2][0].entity!.id).toBe(8);
-        });
-        it("Should reactively update view when parent entities are enabled", () =>
-        {
-            const view = _world.getComponentView(TestComponent1);
-
-            const before = Array.from(view.values());
-            expect(before.length).toBe(2);
-            expect(before[0][0].entity!.id).toBe(1);
-            expect(before[1][0].entity!.id).toBe(4);
-
-            _world.entities.get(2)!.enable();
-
-            const after = Array.from(view.values());
-            expect(after.length).toBe(3);
-            expect(after[0][0].entity!.id).toBe(1);
-            expect(after[1][0].entity!.id).toBe(4);
-            expect(after[2][0].entity!.id).toBe(5);
-        });
-        it("Should reactively update view when parent entities are disabled", () =>
-        {
-            _world.entities.get(2)!.enable();
-
-            const view = _world.getComponentView(TestComponent2, TestComponent3);
-
-            const before = Array.from(view.values());
-            expect(before.length).toBe(2);
-            expect(before[0][0].entity!.id).toBe(4);
-            expect(before[1][0].entity!.id).toBe(2);
-
-            _world.entities.get(1)!.disable();
-
-            const after = Array.from(view.values());
-            expect(after.length).toBe(2);
-            expect(after[0][0].entity!.id).toBe(4);
-            expect(after[1][0].entity!.id).toBe(2);
-        });
-        it("Should reactively update view when parent entities are removed", () =>
-        {
-            const view = _world.getComponentView(TestComponent2, TestComponent3);
-            expect(view.size).toBe(1);
-
-            _world.entities.get(6)!.enable();
-            expect(view.size).toBe(1);
-
-            _world.entities.get(2)!.enable();
-
-            const before = Array.from(view.values());
-            expect(before.length).toBe(3);
-            expect(before[0][0].entity!.id).toBe(4);
-            expect(before[1][0].entity!.id).toBe(2);
-            expect(before[2][0].entity!.id).toBe(6);
-
-            _world.removeEntity(1);
-            expect(view.size).toBe(2);
-            _world.removeEntity(2);
-
-            const after = Array.from(view.values());
-            expect(after.length).toBe(0);
-        });
-    });
 
     it("Should reactively be called once when an entity with multiple components is added", () =>
     {
@@ -381,7 +247,7 @@ describe("QueryManager", () =>
         expect(_onEntryAdd).toHaveBeenCalledTimes(2);
     });
 
-    it("Should be disposed correctly", () =>
+    it("Should be disposable", () =>
     {
         const entities = _world.getComponentView(TestComponent3);
 

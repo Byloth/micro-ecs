@@ -15,9 +15,8 @@ import type Resource from "../resource.js";
 import type World from "../world.js";
 import type { SignalEventsMap } from "../types.js";
 
-type W = SignalEventsMap;
-type P = W & InternalsEventsMap;
-type S = W & WildcardEventsMap & InternalsEventsMap;
+type P = SignalEventsMap & InternalsEventsMap;
+type S = SignalEventsMap & InternalsEventsMap & WildcardEventsMap;
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export default class WorldContext<T extends CallbackMap<T> = { }>
