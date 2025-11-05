@@ -1,7 +1,7 @@
 import { ReferenceException, RuntimeException } from "@byloth/core";
 import { describe, expect, it, vi } from "vitest";
 
-import { AttachmentException, Component, Entity, World } from "../src/index.js";
+import { AttachmentException, Component, Entity } from "../src/index.js";
 
 describe("Component", () =>
 {
@@ -116,115 +116,5 @@ describe("Component", () =>
 
         expect(component.entity).toBeNull();
         expect(_dispose).toHaveBeenCalledTimes(1);
-    });
-
-    it("Should call `onMount` when the entity is attached to a world", () =>
-    {
-        const _onMount = vi.fn(() => { /* ... */ });
-        class TestComponent extends Component
-        {
-            public override onMount(world: World): void
-            {
-                super.onMount(world);
-
-                _onMount();
-            }
-        }
-
-        const entity = new Entity();
-        entity.addComponent(new TestComponent());
-
-        const world = new World();
-        world.addEntity(entity);
-
-        expect(_onMount).toHaveBeenCalledTimes(1);
-    });
-    it("Should call `onMount` when the entity is adopted by another entity", () =>
-    {
-        const _onMount = vi.fn(() => { /* ... */ });
-        class TestComponent extends Component
-        {
-            public override onMount(world: World): void
-            {
-                super.onMount(world);
-
-                _onMount();
-            }
-        }
-
-        const child = new Entity();
-        child.addComponent(new TestComponent());
-
-        const world = new World();
-        const parent = world.addEntity(new Entity());
-
-        parent.addChild(child);
-
-        expect(_onMount).toHaveBeenCalledTimes(1);
-    });
-    it("Should call `onMount` when the component is attached to an entity already attached to a world", () =>
-    {
-        const _onMount = vi.fn(() => { /* ... */ });
-        class TestComponent extends Component
-        {
-            public override onMount(world: World): void
-            {
-                super.onMount(world);
-
-                _onMount();
-            }
-        }
-
-        const world = new World();
-        const entity = world.addEntity(new Entity());
-
-        entity.addComponent(new TestComponent());
-
-        expect(_onMount).toHaveBeenCalledTimes(1);
-    });
-
-    it("Should call `onUnmount` when the entity is detached from a world", () =>
-    {
-        const _onUnmount = vi.fn(() => { /* ... */ });
-        class TestComponent extends Component
-        {
-            public override onUnmount(): void
-            {
-                super.onUnmount();
-
-                _onUnmount();
-            }
-        }
-
-        const world = new World();
-        const entity = world.addEntity(new Entity());
-
-        entity.addComponent(new TestComponent());
-        world.removeEntity(entity.id);
-
-        expect(_onUnmount).toHaveBeenCalledTimes(1);
-    });
-    it("Should call `onUnmount` when the entity is unadopted from another entity", () =>
-    {
-        const _onUnmount = vi.fn(() => { /* ... */ });
-        class TestComponent extends Component
-        {
-            public override onUnmount(): void
-            {
-                super.onUnmount();
-
-                _onUnmount();
-            }
-        }
-
-        const world = new World();
-
-        const parent = world.addEntity(new Entity());
-        const child = parent.addChild(new Entity());
-
-        child.addComponent(new TestComponent());
-        parent.removeChild(child);
-
-        expect(_onUnmount).toHaveBeenCalledTimes(1);
     });
 });

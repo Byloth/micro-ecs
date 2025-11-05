@@ -92,6 +92,19 @@ export default class Entity<W extends World = World> extends μObject
         return dependency;
     }
 
+    private _enableComponent(component: Component): void
+    {
+        if (!(this.isEnabled)) { return; }
+
+        this._world?.["_enableComponent"](this, component);
+    }
+    private _disableComponent(component: Component): void
+    {
+        if (!(this.isEnabled)) { return; }
+
+        this._world?.["_disableComponent"](this, component);
+    }
+
     public addComponent<C extends Component>(component: C): C
     {
         const type = component.constructor as Constructor<Component>;
@@ -108,13 +121,7 @@ export default class Entity<W extends World = World> extends μObject
 
         this._components.set(type, component);
 
-        if (this._world)
-        {
-            component.onMount(this._world);
-
-            if (this.isEnabled && component.isEnabled) { this._world["_enableComponent"](this, component); }
-        }
-
+        if (component.isEnabled) { this._enableComponent(component); }
         return component;
     }
 
@@ -154,20 +161,10 @@ export default class Entity<W extends World = World> extends μObject
             this._contexts.delete(_component);
         }
 
-        if (this._world)
-        {
-            _component.onUnmount();
-            this._components.delete(_component.constructor as Constructor<Component>);
-            _component.onDetach();
+        this._components.delete(_component.constructor as Constructor<Component>);
+        _component.onDetach();
 
-            if (this.isEnabled && _component.isEnabled) { this._world["_disableComponent"](this, _component); }
-        }
-        else
-        {
-            this._components.delete(_component.constructor as Constructor<Component>);
-            _component.onDetach();
-        }
-
+        if (_component.isEnabled) { this._disableComponent(_component); }
         return _component;
     }
 
@@ -237,21 +234,11 @@ export default class Entity<W extends World = World> extends μObject
     {
         if (this._world) { throw new ReferenceException("The entity is already attached to a world."); }
         this._world = world;
-
-        for (const component of this._components.values())
-        {
-            component.onMount(world);
-        }
     }
     public onDetach(): void
     {
         if (!(this._world)) { throw new ReferenceException("The entity isn't attached to any world."); }
         this._world = null;
-
-        for (const component of this._components.values())
-        {
-            component.onUnmount();
-        }
     }
 
     public onAdoption(parent: Entity): void
