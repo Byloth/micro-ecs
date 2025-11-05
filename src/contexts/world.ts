@@ -13,9 +13,9 @@ import type {
 import type System from "../system.js";
 import type Resource from "../resource.js";
 import type World from "../world.js";
-import type { SignalEventsMap, WorldEventsMap } from "../types.js";
+import type { SignalEventsMap } from "../types.js";
 
-type W = WorldEventsMap & SignalEventsMap;
+type W = SignalEventsMap;
 type P = W & InternalsEventsMap;
 type S = W & WildcardEventsMap & InternalsEventsMap;
 

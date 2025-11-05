@@ -9,9 +9,9 @@ import type Resource from "./resource.js";
 import WorldContext from "./contexts/world.js";
 import { AttachmentException, DependencyException, HierarchyException } from "./exceptions.js";
 import QueryManager from "./query-manager.js";
-import type { Instances, SignalEventsMap, WorldEventsMap } from "./types.js";
+import type { Instances, SignalEventsMap } from "./types.js";
 
-type W = WorldEventsMap & SignalEventsMap;
+type W = SignalEventsMap;
 type P = W & InternalsEventsMap;
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
@@ -62,7 +62,7 @@ export default class World<T extends CallbackMap<T> = { }>
         this._contexts = new Map();
         this._dependencies = new Map();
 
-        this._queryManager = new QueryManager(this._entities, this._publisher);
+        this._queryManager = new QueryManager(this._entities);
     }
 
     private _addEntity(entity: Entity, enabled = true): Entity
@@ -137,11 +137,11 @@ export default class World<T extends CallbackMap<T> = { }>
 
     private _enableComponent(entity: Entity, component: Component): void
     {
-        this._publisher.publish("entity:component:enable", entity, component);
+        this._queryManager["_onEntityComponentEnable"](entity, component);
     }
     private _disableComponent(entity: Entity, component: Component): void
     {
-        this._publisher.publish("entity:component:disable", entity, component);
+        this._queryManager["_onEntityComponentDisable"](entity, component);
     }
 
     private _enableSystem(system: System): void

@@ -1,9 +1,9 @@
 import { KeyException, MapView, SmartIterator, ValueException } from "@byloth/core";
-import type { CallbackMap, Constructor, Publisher, ReadonlyMapView } from "@byloth/core";
+import type { CallbackMap, Constructor, ReadonlyMapView } from "@byloth/core";
 
 import type Entity from "./entity.js";
 import type Component from "./component.js";
-import type { Instances, WorldEventsMap } from "./types.js";
+import type { Instances } from "./types.js";
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export default class QueryManager<T extends CallbackMap<T> = { }>
@@ -14,9 +14,18 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
     private readonly _views: Map<string, MapView<Entity, Component[]>>;
 
     private readonly _entities: ReadonlyMap<number, Entity>;
-    private readonly _publisher: Publisher;
 
-    private readonly _onEntityComponentEnable = (entity: Entity, component: Component) =>
+    public constructor(entities: ReadonlyMap<number, Entity>)
+    {
+        this._typeKeys = new Map();
+        this._keyTypes = new Map();
+
+        this._views = new Map();
+
+        this._entities = entities;
+    }
+
+    private _onEntityComponentEnable(entity: Entity, component: Component)
     {
         const type = component.constructor as Constructor<Component>;
         const keys = this._typeKeys.get(type);
@@ -53,8 +62,8 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
 
             if (found) { entities.set(entity, components); }
         }
-    };
-    private readonly _onEntityComponentDisable = (entity: Entity, component: Component) =>
+    }
+    private _onEntityComponentDisable(entity: Entity, component: Component)
     {
         const type = component.constructor as Constructor<Component>;
         const keys = this._typeKeys.get(type);
@@ -65,19 +74,6 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
             const view = this._views.get(key);
             if (view) { view.delete(entity); }
         }
-    };
-
-    public constructor(entities: ReadonlyMap<number, Entity>, publisher: Publisher<T & WorldEventsMap>)
-    {
-        this._typeKeys = new Map();
-        this._keyTypes = new Map();
-
-        this._views = new Map();
-
-        this._entities = entities;
-        this._publisher = publisher;
-        this._publisher.subscribe("entity:component:enable", this._onEntityComponentEnable);
-        this._publisher.subscribe("entity:component:disable", this._onEntityComponentDisable);
     }
 
     private _addComponentKeys(types: Constructor<Component>[], key: string): void
@@ -265,9 +261,6 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
 
     public dispose(): void
     {
-        this._publisher.unsubscribe("entity:component:enable", this._onEntityComponentEnable);
-        this._publisher.unsubscribe("entity:component:disable", this._onEntityComponentDisable);
-
         for (const view of this._views.values()) { view.clear(); }
         this._views.clear();
 

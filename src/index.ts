@@ -15,4 +15,4 @@ export { AdoptionException, AttachmentException, DependencyException, HierarchyE
 import QueryManager from "./query-manager.js";
 export { QueryManager };
 
-export type { Instances, SignalEventsMap, WorldEventsMap } from "./types.js";
+export type { Instances, SignalEventsMap } from "./types.js";
