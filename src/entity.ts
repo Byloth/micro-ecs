@@ -147,10 +147,21 @@ export default class Entity<W extends World = World> extends μObject
         const context = this._contexts.get(_component);
         if (context)
         {
-            context.dispose();
+            try
+            {
+                context.dispose();
+            }
+            catch (error)
+            {
+                // eslint-disable-next-line no-console
+                console.warn("An error occurred while disposing the context of the component.\n\nSuppressed", error);
+            }
 
             this._contexts.delete(_component);
         }
+
+        if (_component.isEnabled) { this._disableComponent(_component); }
+        this._components.delete(_component.constructor as Constructor<Component>);
 
         try
         {
@@ -162,9 +173,6 @@ export default class Entity<W extends World = World> extends μObject
             console.warn("An error occurred while detaching this component from the entity.\n\nSuppressed", error);
         }
 
-        this._components.delete(_component.constructor as Constructor<Component>);
-
-        if (_component.isEnabled) { this._disableComponent(_component); }
         return _component;
     }
 

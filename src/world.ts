@@ -165,7 +165,6 @@ export default class World<T extends CallbackMap<T> = { }>
         this._entities.set(entity.id, entity);
 
         if (entity.isEnabled) { this._enableEntity(entity); }
-
         return entity;
     }
 
@@ -179,9 +178,17 @@ export default class World<T extends CallbackMap<T> = { }>
         if (!(_entity)) { throw new ReferenceException("The entity doesn't exist in the world."); }
 
         if (_entity.isEnabled) { this._disableEntity(_entity); }
-
         this._entities.delete(_entity.id);
-        _entity.onDetach();
+
+        try
+        {
+            _entity.onDetach();
+        }
+        catch (error)
+        {
+            // eslint-disable-next-line no-console
+            console.warn("An error occurred while detaching this entity from the world.\n\nSuppressed", error);
+        }
 
         return _entity;
     }
@@ -250,7 +257,15 @@ export default class World<T extends CallbackMap<T> = { }>
 
         this._resources.delete(_resource.constructor as Constructor<Resource>);
 
-        _resource.onDetach();
+        try
+        {
+            _resource.onDetach();
+        }
+        catch (error)
+        {
+            // eslint-disable-next-line no-console
+            console.warn("An error occurred while detaching this resource from the world.\n\nSuppressed", error);
+        }
 
         return _resource;
     }
@@ -287,15 +302,31 @@ export default class World<T extends CallbackMap<T> = { }>
         const context = this._contexts.get(_system);
         if (context)
         {
-            context.dispose();
+            try
+            {
+                context.dispose();
+            }
+            catch (error)
+            {
+                // eslint-disable-next-line no-console
+                console.warn("An error occurred while disposing the context of the system.\n\nSuppressed", error);
+            }
 
             this._contexts.delete(_system);
         }
 
-        this._disableSystem(_system);
+        if (_system.isEnabled) { this._disableSystem(_system); }
         this._systems.delete(_system.constructor as Constructor<System>);
 
-        _system.onDetach();
+        try
+        {
+            _system.onDetach();
+        }
+        catch (error)
+        {
+            // eslint-disable-next-line no-console
+            console.warn("An error occurred while detaching this system from the world.\n\nSuppressed", error);
+        }
 
         return _system;
     }
