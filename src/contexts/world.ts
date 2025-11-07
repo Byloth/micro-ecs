@@ -16,7 +16,7 @@ import type World from "../world.js";
 import type { SignalEventsMap } from "../types.js";
 
 type P = SignalEventsMap & InternalsEventsMap;
-type S = SignalEventsMap & InternalsEventsMap & WildcardEventsMap;
+type S = P & WildcardEventsMap;
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export default class WorldContext<T extends CallbackMap<T> = { }>
@@ -46,16 +46,16 @@ export default class WorldContext<T extends CallbackMap<T> = { }>
         return this._publisher.publish(event, ...args);
     }
 
-    public on<K extends keyof T>(event: K & string, callback: T[K]): () => void;
-    public on<K extends keyof S>(event: K & string, callback: S[K]): () => void;
-    public on(event: string, callback: Callback<unknown[], unknown>): () => void
+    public on<K extends keyof T>(event: K & string, callback: T[K]): Callback;
+    public on<K extends keyof S>(event: K & string, callback: S[K]): Callback;
+    public on(event: string, callback: Callback<unknown[], unknown>): Callback
     {
         return this._publisher.subscribe(event, callback);
     }
 
-    public once<K extends keyof T>(event: K & string, callback: T[K]): () => void;
-    public once<K extends keyof S>(event: K & string, callback: S[K]): () => void;
-    public once(event: string, callback: Callback<unknown[], unknown>): () => void
+    public once<K extends keyof T>(event: K & string, callback: T[K]): Callback;
+    public once<K extends keyof S>(event: K & string, callback: S[K]): Callback;
+    public once(event: string, callback: Callback<unknown[], unknown>): Callback
     {
         const _callback = (...args: unknown[]): unknown =>
         {
@@ -124,7 +124,7 @@ export default class WorldContext<T extends CallbackMap<T> = { }>
             this._onDispose = undefined;
         }
 
-        this._publisher.clear();
         this._dependencies.clear();
+        this._publisher.clear();
     }
 }

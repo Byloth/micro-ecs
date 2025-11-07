@@ -26,12 +26,11 @@ export default class World<T extends CallbackMap<T> = { }>
     private readonly _enabledSystems: System[];
     public get systems(): ReadonlyMap<Constructor<System>, System> { return this._systems; }
 
-    private readonly _publisher: Publisher;
-
     private readonly _contexts: Map<System, WorldContext<CallbackMap>>;
     private readonly _dependencies: Map<Resource, Set<System>>;
 
     private readonly _queryManager: QueryManager;
+    private readonly _publisher: Publisher;
 
     private _onContextDispose = (context: WorldContext): void =>
     {
@@ -56,12 +55,11 @@ export default class World<T extends CallbackMap<T> = { }>
         this._systems = new Map();
         this._enabledSystems = [];
 
-        this._publisher = new Publisher();
-
         this._contexts = new Map();
         this._dependencies = new Map();
 
         this._queryManager = new QueryManager(this._entities);
+        this._publisher = new Publisher();
     }
 
     private _enableEntity(entity: Entity): void

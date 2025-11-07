@@ -231,7 +231,7 @@ describe("QueryManager", () =>
         const _onEntryAdd = vi.fn();
 
         const view = _world.getComponentView(TestComponent1, TestComponent2);
-        view.subscribe("entry:add", _onEntryAdd);
+        view.onAdd(_onEntryAdd);
 
         const entity1 = new Entity();
         entity1.addComponent(new TestComponent1());
