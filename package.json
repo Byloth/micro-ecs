@@ -25,29 +25,37 @@
   "license": "Apache-2.0",
   "type": "module",
   "files": [
+    "index.js",
+    "index.mjs",
     "dist",
     "src"
   ],
-  "main": "dist/micro-ecs.umd.cjs",
-  "module": "dist/micro-ecs.cjs",
-  "unpkg": "dist/micro-ecs.global.js",
-  "jsdelivr": "dist/micro-ecs.global.js",
+  "main": "index.js",
+  "module": "dist/micro-ecs.esm.prod.js",
+  "types": "src/index.ts",
+  "unpkg": "dist/micro-ecs.global.prod.js",
+  "jsdelivr": "dist/micro-ecs.global.prod.js",
   "exports": {
     ".": {
       "import": {
         "types": "./src/index.ts",
-        "default": "./dist/micro-ecs.esm.js"
+        "node": "./index.mjs",
+        "default": "./dist/micro-ecs.esm.prod.js"
       },
       "require": {
         "types": "./src/index.ts",
-        "default": "./dist/micro-ecs.cjs"
+        "node": {
+          "production": "./dist/micro-ecs.prod.cjs",
+          "development": "./dist/micro-ecs.cjs",
+          "default": "./index.js"
+        },
+        "default": "./index.js"
       }
     }
   },
-  "types": "src/index.ts",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && vite build --mode development",
     "preview": "vite preview",
     "typecheck": "tsc",
     "lint": "eslint .",

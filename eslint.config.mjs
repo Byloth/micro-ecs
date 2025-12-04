@@ -14,4 +14,11 @@ export default [includeIgnoreFile(gitignorePath), ...eslintTs, {
     "@typescript-eslint/no-non-null-assertion": "off",
     "@typescript-eslint/unified-signatures": "off"
   }
+}, {
+  files: ["index.js", "index.mjs"],
+  rules: {
+    "@stylistic/brace-style": ["error", "1tbs"],
+    "@stylistic/quotes": ["error", "single"],
+    "@typescript-eslint/no-require-imports": "off"
+  }
 }];
