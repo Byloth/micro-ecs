@@ -30,27 +30,41 @@ export default class System<W extends World = World> extends μObject
 
     public enable(): void
     {
-        if (this._isEnabled) { throw new RuntimeException("The system is already enabled."); }
-        this._isEnabled = true;
+        if ((import.meta.env.DEV) && (this._isEnabled))
+        {
+            throw new RuntimeException("The system is already enabled.");
+        }
 
+        this._isEnabled = true;
         this._world?.["_enableSystem"](this);
     }
     public disable(): void
     {
-        if (!(this._isEnabled)) { throw new RuntimeException("The system is already disabled."); }
-        this._isEnabled = false;
+        if ((import.meta.env.DEV) && !(this._isEnabled))
+        {
+            throw new RuntimeException("The system is already disabled.");
+        }
 
+        this._isEnabled = false;
         this._world?.["_disableSystem"](this);
     }
 
     public onAttach(world: W): void
     {
-        if (this._world) { throw new ReferenceException("The system is already attached to a world."); }
+        if ((import.meta.env.DEV) && (this._world))
+        {
+            throw new ReferenceException("The system is already attached to a world.");
+        }
+
         this._world = world;
     }
     public onDetach(): void
     {
-        if (!(this._world)) { throw new ReferenceException("The system isn't attached to any world."); }
+        if ((import.meta.env.DEV) && !(this._world))
+        {
+            throw new ReferenceException("The system isn't attached to any world.");
+        }
+
         this._world = null;
     }
 
@@ -58,7 +72,7 @@ export default class System<W extends World = World> extends μObject
 
     public dispose(): void
     {
-        if (this._world)
+        if ((import.meta.env.DEV) && (this._world))
         {
             throw new RuntimeException("The system must be detached from the world before disposing it.");
         }

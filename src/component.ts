@@ -22,33 +22,47 @@ export default class Component<E extends Entity = Entity> extends μObject
 
     public enable(): void
     {
-        if (this._isEnabled) { throw new RuntimeException("The component is already enabled."); }
-        this._isEnabled = true;
+        if ((import.meta.env.DEV) && (this._isEnabled))
+        {
+            throw new RuntimeException("The component is already enabled.");
+        }
 
+        this._isEnabled = true;
         this._entity?.["_enableComponent"](this);
     }
     public disable(): void
     {
-        if (!(this._isEnabled)) { throw new RuntimeException("The component is already disabled."); }
-        this._isEnabled = false;
+        if ((import.meta.env.DEV) && !(this._isEnabled))
+        {
+            throw new RuntimeException("The component is already disabled.");
+        }
 
+        this._isEnabled = false;
         this._entity?.["_disableComponent"](this);
     }
 
     public onAttach(entity: E): void
     {
-        if (this._entity) { throw new ReferenceException("The component is already attached to an entity."); }
+        if ((import.meta.env.DEV) && (this._entity))
+        {
+            throw new ReferenceException("The component is already attached to an entity.");
+        }
+
         this._entity = entity;
     }
     public onDetach(): void
     {
-        if (!(this._entity)) { throw new ReferenceException("The component isn't attached to any entity."); }
+        if ((import.meta.env.DEV) && !(this._entity))
+        {
+            throw new ReferenceException("The component isn't attached to any entity.");
+        }
+
         this._entity = null;
     }
 
     public dispose(): void
     {
-        if (this._entity)
+        if ((import.meta.env.DEV) && (this._entity))
         {
             throw new RuntimeException("The component must be detached from the entity before disposing it.");
         }

@@ -87,7 +87,11 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
     }
     private _addKeyComponents(key: string, types: Constructor<Component>[]): void
     {
-        if (this._keyTypes.has(key)) { throw new KeyException(`The key "${key}" is already registered.`); }
+        if ((import.meta.env.DEV) && (this._keyTypes.has(key)))
+        {
+            throw new KeyException(`The key "${key}" is already registered.`);
+        }
+
         this._keyTypes.set(key, types);
     }
 
@@ -117,7 +121,10 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         ...types: C
     ): R | undefined
     {
-        if (!(types.length)) { throw new ValueException("At least one type must be provided."); }
+        if ((import.meta.env.DEV) && !(types.length))
+        {
+            throw new ValueException("At least one type must be provided.");
+        }
 
         const key = types.map((type) => type.name)
             .sort()
@@ -168,7 +175,10 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         ...types: C
     ): SmartIterator<R>
     {
-        if (!(types.length)) { throw new ValueException("At least one type must be provided."); }
+        if ((import.meta.env.DEV) && !(types.length))
+        {
+            throw new ValueException("At least one type must be provided.");
+        }
 
         const key = types.map((type) => type.name)
             .sort()
@@ -213,7 +223,10 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         ...types: C
     ): ReadonlyMapView<Entity, R>
     {
-        if (!(types.length)) { throw new ValueException("At least one type must be provided."); }
+        if ((import.meta.env.DEV) && !(types.length))
+        {
+            throw new ValueException("At least one type must be provided.");
+        }
 
         const key = types.map((type) => type.name)
             .sort()

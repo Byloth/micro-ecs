@@ -17,18 +17,26 @@ export default class Resource<W extends World = World> extends μObject
 
     public onAttach(world: W): void
     {
-        if (this._world) { throw new ReferenceException("The resource is already attached to a world."); }
+        if ((import.meta.env.DEV) && (this._world))
+        {
+            throw new ReferenceException("The resource is already attached to a world.");
+        }
+
         this._world = world;
     }
     public onDetach(): void
     {
-        if (!(this._world)) { throw new ReferenceException("The resource isn't attached to any world."); }
+        if ((import.meta.env.DEV) && !(this._world))
+        {
+            throw new ReferenceException("The resource isn't attached to any world.");
+        }
+
         this._world = null;
     }
 
     public dispose(): void
     {
-        if (this._world)
+        if ((import.meta.env.DEV) && (this._world))
         {
             throw new RuntimeException("The resource must be detached from the world before disposing it.");
         }

@@ -24,6 +24,7 @@
     "useDefineForClassFields": true,
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
+    "types": ["vite/client"],
     "baseUrl": "."
   },
   "include": [

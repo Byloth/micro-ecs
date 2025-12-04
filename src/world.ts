@@ -117,39 +117,45 @@ export default class World<T extends CallbackMap<T> = { }>
     private _addDependency(system: System, type: Constructor<Resource>): Resource
     {
         const dependency = this._resources.get(type);
-        if (!(dependency)) { throw new DependencyException("The dependency doesn't exist in the world."); }
+        if ((import.meta.env.DEV) && !(dependency))
+        {
+            throw new DependencyException("The dependency doesn't exist in the world.");
+        }
 
-        const dependants = this._dependencies.get(dependency);
+        const dependants = this._dependencies.get(dependency!);
         if (dependants)
         {
-            if (dependants.has(system))
+            if ((import.meta.env.DEV) && (dependants.has(system)))
             {
                 throw new DependencyException("The dependant already depends on this resource.");
             }
 
             dependants.add(system);
         }
-        else { this._dependencies.set(dependency, new Set([system])); }
+        else { this._dependencies.set(dependency!, new Set([system])); }
 
-        return dependency;
+        return dependency!;
     }
     private _removeDependency(system: System, type: Constructor<Resource>): Resource
     {
         const dependency = this._resources.get(type)!;
         const dependants = this._dependencies.get(dependency);
-        if (!(dependants?.delete(system)))
+        if ((import.meta.env.DEV) && !(dependants?.delete(system)))
         {
             throw new DependencyException("The dependant doesn't depend on this resource.");
         }
 
-        if (dependants.size === 0) { this._dependencies.delete(dependency); }
+        if (dependants!.size === 0) { this._dependencies.delete(dependency); }
 
         return dependency;
     }
 
     public addEntity<E extends Entity>(entity: E): E
     {
-        if (this._entities.has(entity.id)) { throw new ReferenceException("The entity already exists in the world."); }
+        if ((import.meta.env.DEV) && (this._entities.has(entity.id)))
+        {
+            throw new ReferenceException("The entity already exists in the world.");
+        }
 
         try
         {
@@ -157,7 +163,12 @@ export default class World<T extends CallbackMap<T> = { }>
         }
         catch (error)
         {
-            throw new AttachmentException("It wasn't possible to attach this entity to the world.", error);
+            if (import.meta.env.DEV)
+            {
+                throw new AttachmentException("It wasn't possible to attach this entity to the world.", error);
+            }
+
+            throw error;
         }
 
         this._entities.set(entity.id, entity);
@@ -173,22 +184,28 @@ export default class World<T extends CallbackMap<T> = { }>
         const entityId = (typeof entity === "number") ? entity : entity.id;
 
         const _entity = this._entities.get(entityId) as E | undefined;
-        if (!(_entity)) { throw new ReferenceException("The entity doesn't exist in the world."); }
+        if ((import.meta.env.DEV) && !(_entity))
+        {
+            throw new ReferenceException("The entity doesn't exist in the world.");
+        }
 
-        if (_entity.isEnabled) { this._disableEntity(_entity); }
-        this._entities.delete(_entity.id);
+        if (_entity!.isEnabled) { this._disableEntity(_entity!); }
+        this._entities.delete(_entity!.id);
 
         try
         {
-            _entity.onDetach();
+            _entity!.onDetach();
         }
         catch (error)
         {
-            // eslint-disable-next-line no-console
-            console.warn("An error occurred while detaching this entity from the world.\n\nSuppressed", error);
+            if (import.meta.env.DEV)
+            {
+                // eslint-disable-next-line no-console
+                console.warn("An error occurred while detaching this entity from the world.\n\nSuppressed", error);
+            }
         }
 
-        return _entity;
+        return _entity!;
     }
 
     public getFirstComponent<C extends Constructor<Component>, R extends InstanceType<C> = InstanceType<C>>(
@@ -221,7 +238,10 @@ export default class World<T extends CallbackMap<T> = { }>
     public addResource<R extends Resource>(resource: R): R
     {
         const type = resource.constructor as Constructor<Resource>;
-        if (this._resources.has(type)) { throw new ReferenceException("The resource already exists in the world."); }
+        if ((import.meta.env.DEV) && (this._resources.has(type)))
+        {
+            throw new ReferenceException("The resource already exists in the world.");
+        }
 
         try
         {
@@ -229,7 +249,12 @@ export default class World<T extends CallbackMap<T> = { }>
         }
         catch (error)
         {
-            throw new AttachmentException("It wasn't possible to attach this resource to the world.", error);
+            if (import.meta.env.DEV)
+            {
+                throw new AttachmentException("It wasn't possible to attach this resource to the world.", error);
+            }
+
+            throw error;
         }
 
         this._resources.set(type, resource);
@@ -244,34 +269,43 @@ export default class World<T extends CallbackMap<T> = { }>
         const type = (typeof resource === "function") ? resource : resource.constructor as Constructor<Resource>;
 
         const _resource = this._resources.get(type) as R | undefined;
-        if (!(_resource)) { throw new ReferenceException("The resource doesn't exist in the world."); }
 
-        if (this._dependencies.has(_resource))
+        if (import.meta.env.DEV)
         {
-            throw new DependencyException(
-                "The resource has dependants and cannot be removed. Remove them first."
-            );
+            if (!(_resource)) { throw new ReferenceException("The resource doesn't exist in the world."); }
+            if (this._dependencies.has(_resource))
+            {
+                throw new DependencyException(
+                    "The resource has dependants and cannot be removed. Remove them first."
+                );
+            }
         }
 
-        this._resources.delete(_resource.constructor as Constructor<Resource>);
+        this._resources.delete(_resource!.constructor as Constructor<Resource>);
 
         try
         {
-            _resource.onDetach();
+            _resource!.onDetach();
         }
         catch (error)
         {
-            // eslint-disable-next-line no-console
-            console.warn("An error occurred while detaching this resource from the world.\n\nSuppressed", error);
+            if (import.meta.env.DEV)
+            {
+                // eslint-disable-next-line no-console
+                console.warn("An error occurred while detaching this resource from the world.\n\nSuppressed", error);
+            }
         }
 
-        return _resource;
+        return _resource!;
     }
 
     public addSystem<S extends System>(system: S): S
     {
         const type = system.constructor as Constructor<System>;
-        if (this._systems.has(type)) { throw new ReferenceException("The system already exists in the world."); }
+        if ((import.meta.env.DEV) && (this._systems.has(type)))
+        {
+            throw new ReferenceException("The system already exists in the world.");
+        }
 
         try
         {
@@ -279,7 +313,12 @@ export default class World<T extends CallbackMap<T> = { }>
         }
         catch (error)
         {
-            throw new AttachmentException("It wasn't possible to attach this system to the world.", error);
+            if (import.meta.env.DEV)
+            {
+                throw new AttachmentException("It wasn't possible to attach this system to the world.", error);
+            }
+
+            throw error;
         }
 
         this._systems.set(type, system);
@@ -295,9 +334,12 @@ export default class World<T extends CallbackMap<T> = { }>
         const type = (typeof system === "function") ? system : system.constructor as Constructor<System>;
 
         const _system = this._systems.get(type) as S | undefined;
-        if (!(_system)) { throw new ReferenceException("The system doesn't exist in the world."); }
+        if ((import.meta.env.DEV) && !(_system))
+        {
+            throw new ReferenceException("The system doesn't exist in the world.");
+        }
 
-        const context = this._contexts.get(_system);
+        const context = this._contexts.get(_system!);
         if (context)
         {
             try
@@ -306,27 +348,40 @@ export default class World<T extends CallbackMap<T> = { }>
             }
             catch (error)
             {
-                // eslint-disable-next-line no-console
-                console.warn("An error occurred while disposing the context of the system.\n\nSuppressed", error);
+                if (import.meta.env.DEV)
+                {
+                    // eslint-disable-next-line no-console
+                    console.warn("An error occurred while disposing the context of the system.\n\nSuppressed", error);
+                }
             }
 
-            this._contexts.delete(_system);
+            this._contexts.delete(_system!);
         }
 
-        if (_system.isEnabled) { this._disableSystem(_system); }
-        this._systems.delete(_system.constructor as Constructor<System>);
-
+        if (_system!.isEnabled) { this._disableSystem(_system!); }
+        this._systems.delete(_system!.constructor as Constructor<System>);
         try
         {
-            _system.onDetach();
+            _system!.onDetach();
         }
         catch (error)
         {
-            // eslint-disable-next-line no-console
-            console.warn("An error occurred while detaching this system from the world.\n\nSuppressed", error);
+            if (import.meta.env.DEV)
+            {
+                // eslint-disable-next-line no-console
+                console.warn("An error occurred while detaching this system from the world.\n\nSuppressed", error);
+            }
         }
 
-        return _system;
+        return _system!;
+    }
+
+    public addService<S extends System>(service: S): S
+    {
+        // TODO: Implement service specific logic.
+        //
+
+        return service;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-empty-object-type
@@ -372,8 +427,11 @@ export default class World<T extends CallbackMap<T> = { }>
         }
         catch (error)
         {
-            // eslint-disable-next-line no-console
-            console.warn("An error occurred while disposing systems of the world.\n\nSuppressed", error);
+            if (import.meta.env.DEV)
+            {
+                // eslint-disable-next-line no-console
+                console.warn("An error occurred while disposing systems of the world.\n\nSuppressed", error);
+            }
         }
 
         this._systems.clear();
@@ -389,8 +447,11 @@ export default class World<T extends CallbackMap<T> = { }>
         }
         catch (error)
         {
-            // eslint-disable-next-line no-console
-            console.warn("An error occurred while disposing resources of the world.\n\nSuppressed", error);
+            if (import.meta.env.DEV)
+            {
+                // eslint-disable-next-line no-console
+                console.warn("An error occurred while disposing resources of the world.\n\nSuppressed", error);
+            }
         }
 
         this._resources.clear();
@@ -405,8 +466,11 @@ export default class World<T extends CallbackMap<T> = { }>
         }
         catch (error)
         {
-            // eslint-disable-next-line no-console
-            console.warn("An error occurred while disposing entities of the world.\n\nSuppressed", error);
+            if (import.meta.env.DEV)
+            {
+                // eslint-disable-next-line no-console
+                console.warn("An error occurred while disposing entities of the world.\n\nSuppressed", error);
+            }
         }
 
         this._entities.clear();
@@ -420,8 +484,11 @@ export default class World<T extends CallbackMap<T> = { }>
         }
         catch (error)
         {
-            // eslint-disable-next-line no-console
-            console.warn("An error occurred while disposing contexts of the world.\n\nSuppressed", error);
+            if (import.meta.env.DEV)
+            {
+                // eslint-disable-next-line no-console
+                console.warn("An error occurred while disposing contexts of the world.\n\nSuppressed", error);
+            }
         }
 
         this._contexts.clear();
