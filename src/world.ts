@@ -281,7 +281,7 @@ export default class World<T extends CallbackMap<T> = { }>
             }
         }
 
-        this._resources.delete(_resource!.constructor as Constructor<Resource>);
+        this._resources.delete(type);
 
         try
         {
@@ -359,7 +359,8 @@ export default class World<T extends CallbackMap<T> = { }>
         }
 
         if (_system!.isEnabled) { this._disableSystem(_system!); }
-        this._systems.delete(_system!.constructor as Constructor<System>);
+        this._systems.delete(type);
+
         try
         {
             _system!.onDetach();
@@ -378,10 +379,99 @@ export default class World<T extends CallbackMap<T> = { }>
 
     public addService<S extends System>(service: S): S
     {
-        // TODO: Implement service specific logic.
-        //
+        const type = service.constructor as Constructor<Resource> & Constructor<System>;
+        if (import.meta.env.DEV)
+        {
+            if (this._resources.has(type))
+            {
+                throw new ReferenceException("The service has already been added as a resource in the world.");
+            }
+            if (this._systems.has(type))
+            {
+                throw new ReferenceException("The service has already been added as a system in the world.");
+            }
+        }
+
+        try
+        {
+            service.onAttach(this);
+        }
+        catch (error)
+        {
+            if (import.meta.env.DEV)
+            {
+                throw new AttachmentException("It wasn't possible to attach this service to the world.", error);
+            }
+
+            throw error;
+        }
+
+        this._resources.set(type, (service as unknown) as Resource);
+        this._systems.set(type, service);
+
+        if (service.isEnabled) { this._enableSystem(service); }
 
         return service;
+    }
+
+    public removeService<S extends System>(type: Constructor<S>): S;
+    public removeService<S extends System>(service: S): S;
+    public removeService<S extends System>(service: Constructor<S> | S): S
+    {
+        const type = ((typeof service === "function") ? service : service.constructor) as
+            Constructor<Resource> & Constructor<System>;
+
+        const _service = this._systems.get(type) as S | undefined;
+        if (import.meta.env.DEV)
+        {
+            if (!(_service))
+            {
+                throw new ReferenceException("The service doesn't exist in the world as a system.");
+            }
+            if (!(this._resources.has(type)))
+            {
+                throw new ReferenceException("The service doesn't exist in the world as a resource.");
+            }
+        }
+
+        const context = this._contexts.get(_service!);
+        if (context)
+        {
+            try
+            {
+                context.dispose();
+            }
+            catch (error)
+            {
+                if (import.meta.env.DEV)
+                {
+                    // eslint-disable-next-line no-console
+                    console.warn("An error occurred while disposing the context of the service.\n\nSuppressed", error);
+                }
+            }
+
+            this._contexts.delete(_service!);
+        }
+
+        if (_service!.isEnabled) { this._disableSystem(_service!); }
+
+        this._systems.delete(type);
+        this._resources.delete(type);
+
+        try
+        {
+            _service!.onDetach();
+        }
+        catch (error)
+        {
+            if (import.meta.env.DEV)
+            {
+                // eslint-disable-next-line no-console
+                console.warn("An error occurred while detaching this service from the world.\n\nSuppressed", error);
+            }
+        }
+
+        return _service!;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-empty-object-type

@@ -410,4 +410,187 @@ describe("World", () =>
             expect(() => _world.removeResource(resource)).not.toThrow();
         });
     });
+
+    describe("Service", () =>
+    {
+        it("Should add a service to the world as both a resource and a system", () =>
+        {
+            const _update = vi.fn(() => { /* ... */ });
+            class TestService extends System
+            {
+                public override update(deltaTime: number): void
+                {
+                    _update();
+                }
+            }
+
+            const service = _world.addService(new TestService());
+
+            expect(_world.systems.size).toBe(1);
+            expect(_world.resources.size).toBe(1);
+            expect(_world.systems.get(TestService)).toBe(service);
+            expect(_world.resources.get(TestService)).toBe(service);
+
+            _world.update(16);
+            expect(_update).toHaveBeenCalledTimes(1);
+        });
+
+        it("Should throw an error if the service already exists as a resource", () =>
+        {
+            class TestService extends System { }
+
+            _world.addResource((new TestService() as unknown) as Resource);
+
+            expect(() => _world.addService(new TestService())).toThrow(ReferenceException);
+        });
+
+        it("Should throw an error if the service already exists as a system", () =>
+        {
+            class TestService extends System { }
+
+            _world.addSystem(new TestService());
+
+            expect(() => _world.addService(new TestService())).toThrow(ReferenceException);
+        });
+
+        it("Should remove a service from the world (both resource and system)", () =>
+        {
+            const _update = vi.fn(() => { /* ... */ });
+            class TestService extends System
+            {
+                public override update(deltaTime: number): void
+                {
+                    _update();
+                }
+            }
+
+            const service = _world.addService(new TestService());
+            _world.removeService(TestService);
+
+            expect(_world.systems.size).toBe(0);
+            expect(_world.resources.size).toBe(0);
+
+            _world.update(16);
+            expect(_update).toHaveBeenCalledTimes(0);
+        });
+
+        it("Should remove a service by instance from the world", () =>
+        {
+            class TestService extends System { }
+
+            const service = _world.addService(new TestService());
+            _world.removeService(service);
+
+            expect(_world.systems.size).toBe(0);
+            expect(_world.resources.size).toBe(0);
+        });
+
+        it("Should throw an error if the service doesn't exist as a system", () =>
+        {
+            class TestService extends System { }
+
+            expect(() => _world.removeService(TestService)).toThrow(ReferenceException);
+        });
+
+        it("Should throw an error if the service doesn't exist as a resource", () =>
+        {
+            class TestService extends System { }
+
+            _world.addSystem(new TestService());
+
+            expect(() => _world.removeService(TestService)).toThrow(ReferenceException);
+        });
+
+        it("Should call update on enabled services", () =>
+        {
+            const _update1 = vi.fn(() => { /* ... */ });
+            const _update2 = vi.fn(() => { /* ... */ });
+            class TestService1 extends System
+            {
+                public override update(deltaTime: number): void
+                {
+                    _update1();
+                }
+            }
+            class TestService2 extends System
+            {
+                public override update(deltaTime: number): void
+                {
+                    _update2();
+                }
+            }
+
+            const service1 = _world.addService(new TestService1());
+            const service2 = _world.addService(new TestService2());
+
+            _world.update(16);
+            expect(_update1).toHaveBeenCalledTimes(1);
+            expect(_update2).toHaveBeenCalledTimes(1);
+
+            service1.disable();
+
+            _world.update(16);
+            expect(_update1).toHaveBeenCalledTimes(1);
+            expect(_update2).toHaveBeenCalledTimes(2);
+        });
+
+        it("Should dispose service context when removing the service", () =>
+        {
+            const _clear = vi.fn(() => { /* ... */ });
+
+            let context: WorldContext;
+
+            class TestResource extends Resource { }
+            class TestService extends System
+            {
+                public override onAttach(world: World): void
+                {
+                    super.onAttach(world);
+
+                    context = world.getContext(this);
+                    context.useResource(TestResource);
+                }
+            }
+
+            const resource = _world.addResource(new TestResource());
+            const service = _world.addService(new TestService());
+
+            expect(context!).toBeInstanceOf(WorldContext);
+            expect(context!.dependencies.size).toBe(1);
+            expect(_world["_contexts"].has(service)).toBe(true);
+            expect(_world["_dependencies"].has(resource)).toBe(true);
+
+            context!.on("__internals__:clear", _clear);
+
+            _world.removeService(TestService);
+
+            expect(_clear).toHaveBeenCalledTimes(1);
+            expect(context!.dependencies.size).toBe(0);
+            expect(_world["_contexts"].has(service)).toBe(false);
+            expect(_world["_dependencies"].has(resource)).toBe(false);
+
+            expect(() => _world.removeResource(resource)).not.toThrow();
+        });
+
+        it("Should allow a service to be used as a dependency by other systems", () =>
+        {
+            class TestService extends System { }
+            class TestSystem extends System
+            {
+                public override onAttach(world: World): void
+                {
+                    super.onAttach(world);
+
+                    const context = world.getContext(this);
+                    context.useResource(TestService);
+                }
+            }
+
+            const service = _world.addService(new TestService());
+            const system = _world.addSystem(new TestSystem());
+
+            expect(_world["_dependencies"].has((service as unknown) as Resource)).toBe(true);
+            expect(_world["_dependencies"].get((service as unknown) as Resource)?.has(system)).toBe(true);
+        });
+    });
 });
