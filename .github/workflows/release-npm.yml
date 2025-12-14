@@ -3,17 +3,36 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   artifact-build:
     name: Artifact
     uses: ./.github/workflows/template-build.yml
 
-  publish-npm:
-    name: NPM
+  publish:
+    name: Publish on NPM
     needs: artifact-build
-    uses: ./.github/workflows/template-publish.yml
-    permissions:
-      packages: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Downloading the artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: byloth-micro-ecs
 
-    secrets:
-      AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Configuring Node.js 22 (LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org/
+
+      - name: Updating npm to the latest version
+        run: npm install -g npm@latest
+      - if: ${{ github.event.release.prerelease == true }}
+        name: Publishing pre-release package
+        run: npm publish --access public --tag next
+      - if: ${{ github.event.release.prerelease == false }}
+        name: Publishing latest package
+        run: npm publish --access public
