@@ -121,7 +121,7 @@ describe("WorldContext", () =>
         _populateWorld(new System());
 
         const _expectTimeoutPromise = expect(context.wait("player:move", 100)).rejects
-            .toThrow(TimeoutException);
+            .toThrowError(TimeoutException);
 
         expect(context["_publisher"]["_subscribers"].size).toBe(1);
 
@@ -169,7 +169,7 @@ describe("WorldContext", () =>
         _populateWorld(new System());
 
         context.on("player:move", _moveHandler);
-        expect(() => context.off("player:spawn", _spawnHandler)).toThrow(ReferenceException);
+        expect(() => context.off("player:spawn", _spawnHandler)).toThrowError(ReferenceException);
     });
     it("Should throw if unsubscribing a handler that wasn't subscribed", () =>
     {
@@ -181,7 +181,7 @@ describe("WorldContext", () =>
 
         context.on("player:move", _moveHandler);
         context.on("player:spawn", _spawnHandler1);
-        expect(() => context.off("player:move", _spawnHandler2)).toThrow(ReferenceException);
+        expect(() => context.off("player:move", _spawnHandler2)).toThrowError(ReferenceException);
     });
 
     it("Should clear all subscribers on system detach", () =>

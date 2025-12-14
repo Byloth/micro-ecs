@@ -29,7 +29,7 @@ describe("World", () =>
     {
         const entity = _world.addEntity(new Entity());
 
-        expect(() => _world.addEntity(entity)).toThrow(ReferenceException);
+        expect(() => _world.addEntity(entity)).toThrowError(ReferenceException);
     });
 
     it("Should remove an entity from the world", () =>
@@ -44,7 +44,7 @@ describe("World", () =>
     {
         const entity = new Entity();
 
-        expect(() => _world.removeEntity(entity.id)).toThrow(ReferenceException);
+        expect(() => _world.removeEntity(entity.id)).toThrowError(ReferenceException);
     });
 
     it("Should add a system to the world", () =>
@@ -95,7 +95,7 @@ describe("World", () =>
     {
         const system = new System();
 
-        expect(() => _world.removeSystem(system)).toThrow(ReferenceException);
+        expect(() => _world.removeSystem(system)).toThrowError(ReferenceException);
     });
 
     it("Should call update on all enabled systems", () =>
@@ -277,7 +277,7 @@ describe("World", () =>
             context.useResource(TestResource);
 
             expect(() => context.useResource(TestResource))
-                .toThrow(DependencyException);
+                .toThrowError(DependencyException);
         });
         it("Should throw when trying to release a resource that isn't used in the context", () =>
         {
@@ -290,7 +290,7 @@ describe("World", () =>
             const context = _world.getContext(system);
 
             expect(() => context.releaseResource(TestResource))
-                .toThrow(DependencyException);
+                .toThrowError(DependencyException);
         });
 
         it("Should throw an error when defining a dependency for a resource not attached to the world", () =>
@@ -308,7 +308,7 @@ describe("World", () =>
             }
 
             expect(() => _world.addSystem(new TestSystem()))
-                .toThrow(AttachmentException);
+                .toThrowError(AttachmentException);
         });
 
         it("Should block removing a resource that still has dependants", () =>
@@ -329,7 +329,7 @@ describe("World", () =>
             const system = _world.addSystem(new TestSystem());
 
             expect(() => _world.removeResource(resource))
-                .toThrow(DependencyException);
+                .toThrowError(DependencyException);
 
             _world.removeSystem(system);
             _world.removeResource(TestResource);
@@ -369,7 +369,7 @@ describe("World", () =>
             expect(_world["_contexts"].has(system)).toBe(false);
             expect(_world["_dependencies"].has(resource)).toBe(false);
 
-            expect(() => _world.removeResource(TestResource)).not.toThrow();
+            expect(() => _world.removeResource(TestResource)).not.toThrowError();
         });
 
         it("Should clear resource dependencies when the system is removed", () =>
@@ -407,7 +407,7 @@ describe("World", () =>
             expect(_world["_contexts"].has(system)).toBe(false);
             expect(_world["_dependencies"].has(resource)).toBe(false);
 
-            expect(() => _world.removeResource(resource)).not.toThrow();
+            expect(() => _world.removeResource(resource)).not.toThrowError();
         });
     });
 
@@ -439,9 +439,9 @@ describe("World", () =>
         {
             class TestService extends System { }
 
-            _world.addResource((new TestService() as unknown) as Resource);
+            _world.addResource(new TestService());
 
-            expect(() => _world.addService(new TestService())).toThrow(ReferenceException);
+            expect(() => _world.addService(new TestService())).toThrowError(ReferenceException);
         });
 
         it("Should throw an error if the service already exists as a system", () =>
@@ -450,7 +450,7 @@ describe("World", () =>
 
             _world.addSystem(new TestService());
 
-            expect(() => _world.addService(new TestService())).toThrow(ReferenceException);
+            expect(() => _world.addService(new TestService())).toThrowError(ReferenceException);
         });
 
         it("Should remove a service from the world (both resource and system)", () =>
@@ -464,41 +464,36 @@ describe("World", () =>
                 }
             }
 
-            const service = _world.addService(new TestService());
-            _world.removeService(TestService);
+            _world.addService(new TestService());
+            expect(_world.systems.size).toBe(1);
+            expect(_world.resources.size).toBe(1);
 
+            _world.update(16);
+            expect(_update).toHaveBeenCalledTimes(1);
+
+            _world.removeService(TestService);
             expect(_world.systems.size).toBe(0);
             expect(_world.resources.size).toBe(0);
 
             _world.update(16);
-            expect(_update).toHaveBeenCalledTimes(0);
-        });
-
-        it("Should remove a service by instance from the world", () =>
-        {
-            class TestService extends System { }
-
-            const service = _world.addService(new TestService());
-            _world.removeService(service);
-
-            expect(_world.systems.size).toBe(0);
-            expect(_world.resources.size).toBe(0);
+            expect(_update).toHaveBeenCalledTimes(1);
         });
 
         it("Should throw an error if the service doesn't exist as a system", () =>
         {
             class TestService extends System { }
 
-            expect(() => _world.removeService(TestService)).toThrow(ReferenceException);
-        });
+            _world.addResource(new TestService());
 
+            expect(() => _world.removeService(TestService)).toThrowError(ReferenceException);
+        });
         it("Should throw an error if the service doesn't exist as a resource", () =>
         {
             class TestService extends System { }
 
             _world.addSystem(new TestService());
 
-            expect(() => _world.removeService(TestService)).toThrow(ReferenceException);
+            expect(() => _world.removeService(TestService)).toThrowError(ReferenceException);
         });
 
         it("Should call update on enabled services", () =>
@@ -521,7 +516,7 @@ describe("World", () =>
             }
 
             const service1 = _world.addService(new TestService1());
-            const service2 = _world.addService(new TestService2());
+            _world.addService(new TestService2());
 
             _world.update(16);
             expect(_update1).toHaveBeenCalledTimes(1);
@@ -562,14 +557,14 @@ describe("World", () =>
 
             context!.on("__internals__:clear", _clear);
 
-            _world.removeService(TestService);
+            _world.removeService(service);
 
             expect(_clear).toHaveBeenCalledTimes(1);
             expect(context!.dependencies.size).toBe(0);
             expect(_world["_contexts"].has(service)).toBe(false);
             expect(_world["_dependencies"].has(resource)).toBe(false);
 
-            expect(() => _world.removeResource(resource)).not.toThrow();
+            expect(() => _world.removeResource(resource)).not.toThrowError();
         });
 
         it("Should allow a service to be used as a dependency by other systems", () =>
@@ -589,8 +584,8 @@ describe("World", () =>
             const service = _world.addService(new TestService());
             const system = _world.addSystem(new TestSystem());
 
-            expect(_world["_dependencies"].has((service as unknown) as Resource)).toBe(true);
-            expect(_world["_dependencies"].get((service as unknown) as Resource)?.has(system)).toBe(true);
+            expect(_world["_dependencies"].has(service)).toBe(true);
+            expect(_world["_dependencies"].get(service)!.has(system)).toBe(true);
         });
     });
 });

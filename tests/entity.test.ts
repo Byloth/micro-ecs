@@ -10,6 +10,7 @@ describe("Entity", () =>
         const entity = new Entity();
 
         expect(entity.id).toBeGreaterThan(0);
+        expect(entity.isEnabled).toBe(true);
         expect(entity.world).toBeNull();
         expect(entity.components.size).toBe(0);
     });
@@ -32,7 +33,7 @@ describe("Entity", () =>
         const entity = new Entity();
         const component = entity.addComponent(new TestComponent());
 
-        expect(() => entity.addComponent(component)).toThrow(ReferenceException);
+        expect(() => entity.addComponent(component)).toThrowError(ReferenceException);
     });
 
     it("Should be able to remove a component", () =>
@@ -52,7 +53,7 @@ describe("Entity", () =>
         class TestComponent extends Component { }
 
         const entity = new Entity();
-        expect(() => entity.removeComponent(TestComponent)).toThrow(ReferenceException);
+        expect(() => entity.removeComponent(TestComponent)).toThrowError(ReferenceException);
     });
 
     it("Should be attachable to a world", () =>
@@ -92,7 +93,7 @@ describe("Entity", () =>
 
         const entity = world1.addEntity(new TestEntity());
 
-        expect(() => world2.addEntity(entity)).toThrow(AttachmentException);
+        expect(() => world2.addEntity(entity)).toThrowError(AttachmentException);
     });
 
     it("Should be detachable from a world", () =>
@@ -134,7 +135,7 @@ describe("Entity", () =>
 
         world.removeEntity(entity.id);
 
-        expect(() => world.removeEntity(entity)).toThrow(ReferenceException);
+        expect(() => world.removeEntity(entity)).toThrowError(ReferenceException);
     });
 
     it("Should be disposable", () =>
@@ -157,7 +158,7 @@ describe("Entity", () =>
 
         entity.addComponent(new TestComponent());
 
-        expect(() => entity.dispose()).toThrow(RuntimeException);
+        expect(() => entity.dispose()).toThrowError(RuntimeException);
 
         world.removeEntity(entity.id);
         entity.dispose();
@@ -260,7 +261,7 @@ describe("Entity", () =>
             context.useComponent(DependencyComponent);
 
             expect(() => context.useComponent(DependencyComponent))
-                .toThrow(DependencyException);
+                .toThrowError(DependencyException);
         });
         it("Should throw when trying to release a dependency that isn't used in the context", () =>
         {
@@ -275,7 +276,7 @@ describe("Entity", () =>
             const context = entity.getContext(dependant);
 
             expect(() => context.releaseComponent(DependencyComponent))
-                .toThrow(DependencyException);
+                .toThrowError(DependencyException);
         });
 
         it("Should throw an error when defining a dependency for a component not attached to the entity", () =>
@@ -295,7 +296,7 @@ describe("Entity", () =>
             const entity = new Entity();
 
             expect(() => entity.addComponent(new DependantComponent()))
-                .toThrow(AttachmentException);
+                .toThrowError(AttachmentException);
         });
 
         it("Should block removing a dependency that still has dependants", () =>
@@ -318,7 +319,7 @@ describe("Entity", () =>
             const dependant = entity.addComponent(new DependantComponent());
 
             expect(() => entity.removeComponent(dependency))
-                .toThrow(DependencyException);
+                .toThrowError(DependencyException);
 
             entity.removeComponent(dependant);
             entity.removeComponent(DependencyComponent);
@@ -355,7 +356,7 @@ describe("Entity", () =>
             expect(entity["_contexts"].has(dependant)).toBe(false);
             expect(entity["_dependencies"].has(dependency)).toBe(false);
 
-            expect(() => entity.removeComponent(dependency)).not.toThrow();
+            expect(() => entity.removeComponent(dependency)).not.toThrowError();
         });
         it("Should clear & remove the context when the component is removed", () =>
         {
@@ -388,7 +389,7 @@ describe("Entity", () =>
             expect(entity["_contexts"].has(dependant)).toBe(false);
             expect(entity["_dependencies"].has(dependency)).toBe(false);
 
-            expect(() => entity.removeComponent(DependencyComponent)).not.toThrow();
+            expect(() => entity.removeComponent(DependencyComponent)).not.toThrowError();
         });
         it("Should clear & remove the context when the entity is disposed", () =>
         {

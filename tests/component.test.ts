@@ -47,7 +47,7 @@ describe("Component", () =>
         const entity2 = new Entity();
         const component = entity1.addComponent(new TestComponent());
 
-        expect(() => entity2.addComponent(component)).toThrow(AttachmentException);
+        expect(() => entity2.addComponent(component)).toThrowError(AttachmentException);
     });
 
     it("Should be detachable from an entity", () =>
@@ -89,7 +89,7 @@ describe("Component", () =>
 
         entity.removeComponent(TestComponent);
 
-        expect(() => entity.removeComponent(component)).toThrow(ReferenceException);
+        expect(() => entity.removeComponent(component)).toThrowError(ReferenceException);
         expect(_onDetach).toHaveBeenCalledTimes(1);
     });
 
@@ -109,7 +109,7 @@ describe("Component", () =>
         const entity = new Entity();
         const component = entity.addComponent(new TestComponent());
 
-        expect(() => component.dispose()).toThrow(RuntimeException);
+        expect(() => component.dispose()).toThrowError(RuntimeException);
 
         entity.removeComponent(TestComponent);
         component.dispose();

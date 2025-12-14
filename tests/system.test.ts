@@ -10,6 +10,7 @@ describe("System", () =>
         const system = new System();
 
         expect(system.priority).toBe(0);
+        expect(system.isEnabled).toBe(true);
         expect(system.world).toBeNull();
     });
 
@@ -33,13 +34,13 @@ describe("System", () =>
 
         const system = new TestSystem();
         expect(system.isEnabled).toBe(true);
-        expect(() => system.enable()).toThrow(RuntimeException);
+        expect(() => system.enable()).toThrowError(RuntimeException);
         expect(_enable).not.toHaveBeenCalled();
         expect(_disable).not.toHaveBeenCalled();
 
         system.disable();
         expect(system.isEnabled).toBe(false);
-        expect(() => system.disable()).toThrow(RuntimeException);
+        expect(() => system.disable()).toThrowError(RuntimeException);
         expect(_enable).toHaveBeenCalledTimes(0);
         expect(_disable).toHaveBeenCalledTimes(1);
 
@@ -85,7 +86,7 @@ describe("System", () =>
         const world2 = new World();
         const system = world1.addSystem(new TestSystem());
 
-        expect(() => world2.addSystem(system)).toThrow(AttachmentException);
+        expect(() => world2.addSystem(system)).toThrowError(AttachmentException);
         expect(_onAttach).toHaveBeenCalledTimes(1);
     });
 
@@ -124,7 +125,7 @@ describe("System", () =>
         const world = new World();
         const system = new TestSystem();
 
-        expect(() => world.removeSystem(system)).toThrow(ReferenceException);
+        expect(() => world.removeSystem(system)).toThrowError(ReferenceException);
         expect(_onDetach).not.toHaveBeenCalled();
     });
 
@@ -171,7 +172,7 @@ describe("System", () =>
         const world = new World();
         const system = world.addSystem(new TestSystem());
 
-        expect(() => system.dispose()).toThrow(RuntimeException);
+        expect(() => system.dispose()).toThrowError(RuntimeException);
 
         world.removeSystem(system);
         system.dispose();

@@ -13,7 +13,7 @@ import type {
 import type System from "../system.js";
 import type Resource from "../resource.js";
 import type World from "../world.js";
-import type { SignalEventsMap } from "../types.js";
+import type { Resourceable, SignalEventsMap } from "../types.js";
 
 type P = SignalEventsMap & InternalsEventsMap;
 type S = P & WildcardEventsMap;
@@ -98,17 +98,21 @@ export default class WorldContext<T extends CallbackMap<T> = { }>
         this._publisher.unsubscribe(event, callback);
     }
 
-    public useResource<R extends Resource>(type: Constructor<R>): R
+    public useResource<R extends System>(type: Constructor<R>): Resourceable<R>;
+    public useResource<R extends Resource>(type: Constructor<R>): R;
+    public useResource(type: Constructor<Resource>): Resource
     {
         const dependency = this._world["_addDependency"](this._system, type);
         this._dependencies.add(dependency);
 
-        return dependency as R;
+        return dependency;
     }
 
+    public releaseResource<R extends System>(type: Constructor<R>): void;
+    public releaseResource<R extends System>(service: R): void;
     public releaseResource<R extends Resource>(type: Constructor<R>): void;
     public releaseResource<R extends Resource>(resource: R): void;
-    public releaseResource<R extends Resource>(resource: Constructor<R> | R): void
+    public releaseResource(resource: Constructor<Resource> | Resource): void
     {
         const type = (typeof resource === "function") ? resource : resource.constructor as Constructor<Resource>;
 

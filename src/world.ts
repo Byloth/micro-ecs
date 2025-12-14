@@ -406,7 +406,7 @@ export default class World<T extends CallbackMap<T> = { }>
             throw error;
         }
 
-        this._resources.set(type, (service as unknown) as Resource);
+        this._resources.set(type, service);
         this._systems.set(type, service);
 
         if (service.isEnabled) { this._enableSystem(service); }

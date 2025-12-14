@@ -19,7 +19,7 @@ export default class Resource<W extends World = World> extends μObject
     {
         if ((import.meta.env.DEV) && (this._world))
         {
-            throw new ReferenceException("The resource is already attached to a world.");
+            throw new ReferenceException("The object is already attached to a world.");
         }
 
         this._world = world;
@@ -28,7 +28,7 @@ export default class Resource<W extends World = World> extends μObject
     {
         if ((import.meta.env.DEV) && !(this._world))
         {
-            throw new ReferenceException("The resource isn't attached to any world.");
+            throw new ReferenceException("The object isn't attached to any world.");
         }
 
         this._world = null;
@@ -38,7 +38,7 @@ export default class Resource<W extends World = World> extends μObject
     {
         if ((import.meta.env.DEV) && (this._world))
         {
-            throw new RuntimeException("The resource must be detached from the world before disposing it.");
+            throw new RuntimeException("The object must be detached from the world before disposing it.");
         }
     }
 }

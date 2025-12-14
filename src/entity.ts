@@ -1,22 +1,19 @@
 import { ReferenceException, RuntimeException } from "@byloth/core";
 import type { Constructor } from "@byloth/core";
 
-import μObject from "./core.js";
 import type Component from "./component.js";
 import EntityContext from "./contexts/entity.js";
 import { AttachmentException, DependencyException } from "./exceptions.js";
+import Resource from "./resource.js";
 import type World from "./world.js";
 
-export default class Entity<W extends World = World> extends μObject
+export default class Entity<W extends World = World> extends Resource<W>
 {
     private _isEnabled: boolean;
     public get isEnabled(): boolean { return this._isEnabled; }
 
     private readonly _components: Map<Constructor<Component>, Component>;
     public get components(): ReadonlyMap<Constructor<Component>, Component> { return this._components; }
-
-    private _world: W | null;
-    public get world(): W | null { return this._world; }
 
     private readonly _contexts: Map<Component, EntityContext>;
     private readonly _dependencies: Map<Component, Set<Component>>;
@@ -43,8 +40,6 @@ export default class Entity<W extends World = World> extends μObject
         this._isEnabled = enabled;
 
         this._components = new Map();
-
-        this._world = null;
 
         this._contexts = new Map();
         this._dependencies = new Map();
@@ -90,13 +85,13 @@ export default class Entity<W extends World = World> extends μObject
     {
         if (!(this._isEnabled)) { return; }
 
-        this._world?.["_enableEntityComponent"](this, component);
+        this.world?.["_enableEntityComponent"](this, component);
     }
     private _disableComponent(component: Component): void
     {
         if (!(this._isEnabled)) { return; }
 
-        this._world?.["_disableEntityComponent"](this, component);
+        this.world?.["_disableEntityComponent"](this, component);
     }
 
     public addComponent<C extends Component>(component: C): C
@@ -223,7 +218,7 @@ export default class Entity<W extends World = World> extends μObject
         }
 
         this._isEnabled = true;
-        this._world?.["_enableEntity"](this);
+        this.world?.["_enableEntity"](this);
     }
     public disable(): void
     {
@@ -233,34 +228,12 @@ export default class Entity<W extends World = World> extends μObject
         }
 
         this._isEnabled = false;
-        this._world?.["_disableEntity"](this);
+        this.world?.["_disableEntity"](this);
     }
 
-    public onAttach(world: W): void
+    public override dispose(): void
     {
-        if ((import.meta.env.DEV) && (this._world))
-        {
-            throw new ReferenceException("The entity is already attached to a world.");
-        }
-
-        this._world = world;
-    }
-    public onDetach(): void
-    {
-        if ((import.meta.env.DEV) && !(this._world))
-        {
-            throw new ReferenceException("The entity isn't attached to any world.");
-        }
-
-        this._world = null;
-    }
-
-    public dispose(): void
-    {
-        if ((import.meta.env.DEV) && (this._world))
-        {
-            throw new RuntimeException("The entity must be detached from the world before being disposed.");
-        }
+        super.dispose();
 
         try
         {

@@ -15,4 +15,4 @@ export { AttachmentException, DependencyException } from "./exceptions.js";
 import QueryManager from "./query-manager.js";
 export { QueryManager };
 
-export type { Instances, SignalEventsMap } from "./types.js";
+export type { Instances, Resourceable, SignalEventsMap } from "./types.js";

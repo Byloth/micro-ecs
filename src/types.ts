@@ -8,6 +8,8 @@ import type Resource from "./resource.js";
 export type Instances<T extends Constructor[]> = T extends [infer F, ...infer R] ?
     [InstanceType<F extends Constructor ? F : never>, ...Instances<R extends Constructor[] ? R : []>] : [];
 
+export type Resourceable<S extends System> = Omit<S, "update">;
+
 type EntitySignalEventsMap<T extends unknown[]> = Record<`entity:${number}:${string}`, Callback<[Entity, ...T]>>;
 type ComponentSignalEventsMap<T extends unknown[]> =
     Record<`component:${number}:${string}`, Callback<[Component, ...T]>>;

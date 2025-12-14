@@ -9,8 +9,195 @@
 
 A simple & lightweight ECS (Entity Component System) library for JavaScript and TypeScript.
 
-## TODO ☑️
+---
 
-- [ ] Implementare una logica di clean-up delle viste non più utilizzate per il `QueryManager`.
-- [ ] Implementare object-pooling per migliorare e ottimizzare l'uso della memoria.
-- [ ] Considerare gli archetipi per migliorare e ottimizzare le query sui componenti.
+## Overview
+
+μECS (micro-ecs) is a **headless library**, completely agnostic to any graphics or rendering library.
+
+Traditional ECS architectures excel in low-level contexts with direct memory control (C++, Rust, etc.). JavaScript doesn't offer this level of control, so μECS takes a **pragmatic approach**: it brings only the ECS benefits that translate well to a high-level environment, leaving behind optimizations that would require direct memory management.
+
+### Design Philosophy
+
+The library is built on three pillars:
+
+| Pillar | Description |
+|--------|-------------|
+| **DX-first** | Developer Experience is prioritized over raw performance. The library doesn't use TypedArrays which would be faster but significantly hurt ergonomics. A pleasant API is more valuable than squeezing out every microsecond. |
+| **Familiarity** | The API should feel natural to any JavaScript developer. This means using recognizable patterns: ES6 classes, getters/setters, pub/sub events, and typical OOP idioms common in the JS ecosystem. |
+| **Speed over Memory** | When trade-offs are necessary, execution speed is preferred over memory consumption. Using extra memory is acceptable if it yields performance benefits at runtime. |
+
+---
+
+## Features
+
+- **World** — Central container managing Entities, Systems, Resources, and Services
+- **Entity** — Container for Components, can be enabled/disabled
+- **Component** — Data attached to Entities, with independent enable/disable
+- **System** — Logic operating on entities/components, with priority-based execution
+- **Resource** — Singleton data shared across the world
+- **Service** — A System that can be used as a Resource dependency
+- **QueryManager** — Efficient component queries with cached views
+- **Contexts** — Dependency injection for Systems (WorldContext) and Components (EntityContext)
+- **Events** — Built-in pub/sub system via `Publisher`
+
+---
+
+## Installation
+
+```bash
+# npm
+npm install @byloth/micro-ecs
+
+# pnpm
+pnpm add @byloth/micro-ecs
+
+# yarn
+yarn add @byloth/micro-ecs
+
+# bun
+bun add @byloth/micro-ecs
+```
+
+> **Note:** This library requires `@byloth/core` as a peer dependency.
+
+---
+
+## Quick Start
+
+```typescript
+import { World, Entity, Component, System } from "@byloth/micro-ecs";
+
+// Define a Component
+class Position extends Component {
+  public x = 0;
+  public y = 0;
+}
+
+// Define a System
+class MovementSystem extends System {
+  private view?: ReadonlyMapView<Entity, [Position]>;
+
+  public override onAttach(world: World): void {
+    this.view = this.world!.getComponentView(Position);
+  }
+  public override update(deltaTime: number): void {
+
+    for (const [entity, [position]] of this.view!) {
+      position.x += 1 * deltaTime;
+      position.y += 1 * deltaTime;
+    }
+  }
+}
+
+// Create the World
+const world = new World();
+
+// Add Systems and Entities
+world.addSystem(new MovementSystem());
+
+const entity = new Entity();
+entity.addComponent(new Position());
+world.addEntity(entity);
+
+// Game loop
+function gameLoop(deltaTime: number) {
+  world.update(deltaTime);
+}
+```
+
+---
+
+## Architecture
+
+### Core Classes
+
+All ECS objects inherit from `μObject`, which provides auto-incrementing unique IDs.
+
+```
+μObject
+├── Resource    — Singleton data, attachable to World
+├── System      — Logic with update(), priority, enable/disable
+├── Entity      — Container for Components
+└── Component   — Data attached to Entities
+```
+
+### QueryManager
+
+Efficiently queries entities by component types:
+
+```typescript
+// Get first component of type
+world.getFirstComponent(Position);
+
+// Get first entity with all component types
+world.getFirstComponents(Position, Velocity);
+
+// Iterate all matching entities
+world.findAllComponents(Position, Velocity);
+
+// Get cached view that auto-updates
+world.getComponentView(Position, Velocity);
+```
+
+### Contexts
+
+**WorldContext** — Provided to Systems for:
+- Event subscription (`on`, `once`, `wait`, `off`)
+- Event emission (`emit`)
+- Resource dependency management (`useResource`, `releaseResource`)
+
+**EntityContext** — Provided to Components for:
+- Component dependency management (`useComponent`, `releaseComponent`)
+
+---
+
+## Roadmap
+
+### 🔴 Critical
+
+Issues that block or compromise production usage.
+
+- [ ] **Minification-safe type identification**
+
+  The `QueryManager` currently uses `Type.name` to generate query keys.
+  In minified builds, class names are reduced to single letters (`a`, `b`, `c`...), causing potential collisions between different queries.
+
+  Possible solutions:
+  - Numeric registry with auto-incrementing ID for each component type
+  - `Symbol()` associated with each class
+  - Decorator or static method that assigns a unique identifier
+
+---
+
+### 🟠 Improvements
+
+Optimizations and refinements that improve quality and performance.
+
+- [ ] **Automatic View garbage collection**
+
+  Implement an automatic clean-up system for `QueryManager` that detects and removes Views no longer referenced or used, avoiding memory accumulation over time.
+
+---
+
+### 🟢 Future Considerations
+
+Ideas and possible evolutions to evaluate based on needs.
+
+- [ ] **Object pooling**
+
+  Implement a pooling system for `Entity` and `Component` to reduce Garbage Collector pressure in scenarios with high creation/destruction frequency (e.g., particle systems, projectiles).
+
+  > ⚠️ Evaluate carefully: could complicate the API and go against the project's "DX-first" philosophy.
+
+- [ ] **Archetypes**
+
+  Consider an archetype system to group entities with the same component "signature", optimizing queries.
+
+  > ⚠️ In a JavaScript context, the traditional benefits of archetypes (cache locality, contiguous memory) are not exploitable. The cached View system already present in `QueryManager` covers part of these advantages. Actual utility to be evaluated.
+
+---
+
+## License
+
+[Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0)
