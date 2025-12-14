@@ -15,17 +15,20 @@ A simple & lightweight ECS (Entity Component System) library for JavaScript and 
 
 μECS (micro-ecs) is a **headless library**, completely agnostic to any graphics or rendering library.
 
-Traditional ECS architectures excel in low-level contexts with direct memory control (C++, Rust, etc.). JavaScript doesn't offer this level of control, so μECS takes a **pragmatic approach**: it brings only the ECS benefits that translate well to a high-level environment, leaving behind optimizations that would require direct memory management.
+Traditional ECS architectures excel in low-level contexts with direct memory control (C++, Rust, etc.).  
+JavaScript doesn't offer this level of control, so μECS takes a **pragmatic approach**: it brings only the ECS benefits that translate well to a high-level environment, leaving behind optimizations that would require direct memory management.
 
 ### Design Philosophy
 
 The library is built on three pillars:
 
-| Pillar | Description |
-|--------|-------------|
-| **DX-first** | Developer Experience is prioritized over raw performance. The library doesn't use TypedArrays which would be faster but significantly hurt ergonomics. A pleasant API is more valuable than squeezing out every microsecond. |
-| **Familiarity** | The API should feel natural to any JavaScript developer. This means using recognizable patterns: ES6 classes, getters/setters, pub/sub events, and typical OOP idioms common in the JS ecosystem. |
-| **Speed over Memory** | When trade-offs are necessary, execution speed is preferred over memory consumption. Using extra memory is acceptable if it yields performance benefits at runtime. |
+- **DX-first**: Developer Experience is prioritized over raw performance.  
+The library doesn't use TypedArrays which would be faster but significantly hurt ergonomics.  
+A pleasant API is more valuable than squeezing out every microsecond.
+- **Familiarity**: The API should feel natural to any JavaScript developer.  
+This means using recognizable patterns: ES6 classes, getters/setters, pub/sub events, and typical OOP idioms common in the JS ecosystem.
+- **Speed over Memory**: When trade-offs are necessary, execution speed is preferred over memory consumption.  
+Using extra memory is acceptable if it yields performance benefits at runtime.
 
 ---
 
