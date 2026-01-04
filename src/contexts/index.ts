@@ -1,4 +1,2 @@
-import EntityContext from "./entity.js";
-import WorldContext from "./world.js";
-
-export { EntityContext, WorldContext };
+export { default as EntityContext } from "./entity.js";
+export { default as WorldContext } from "./world.js";
