@@ -5,6 +5,32 @@ import type Entity from "./entity.js";
 import type Component from "./component.js";
 import type { Instances } from "./types.js";
 
+const _typeIds = new WeakMap<Constructor<Component>, number>();
+let _nextTypeId = 0;
+
+function _getTypeId(type: Constructor<Component>): number
+{
+    let id = _typeIds.get(type);
+    if (id === undefined)
+    {
+        id = (_nextTypeId += 1);
+
+        _typeIds.set(type, id);
+    }
+
+    return id;
+}
+function _getQueryKey(types: Constructor<Component>[]): string
+{
+    const length = types.length;
+    if (length === 1) { return `${_getTypeId(types[0])}`; }
+
+    const ids = types.map(_getTypeId)
+        .sort((a, b) => (a - b));
+
+    return ids.join(",");
+}
+
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export default class QueryManager<T extends CallbackMap<T> = { }>
 {
@@ -97,7 +123,8 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
 
     public pickOne<C extends Constructor<Component>, R = InstanceType<C>>(type: C): R | undefined
     {
-        const view = this._views.get(type.name) as MapView<number, R> | undefined;
+        const key = `${_getTypeId(type)}`;
+        const view = this._views.get(key) as MapView<number, R> | undefined;
         if (view)
         {
             const { value } = view.values()
@@ -126,10 +153,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
             throw new ValueException("At least one type must be provided.");
         }
 
-        const key = types.map((type) => type.name)
-            .sort()
-            .join(",");
-
+        const key = _getQueryKey(types);
         const view = this._views.get(key) as MapView<number, R> | undefined;
         if (view)
         {
@@ -180,10 +204,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
             throw new ValueException("At least one type must be provided.");
         }
 
-        const key = types.map((type) => type.name)
-            .sort()
-            .join(",");
-
+        const key = _getQueryKey(types);
         const view = this._views.get(key) as MapView<number, R> | undefined;
         if (view) { return new SmartIterator(view.values()); }
 
@@ -228,10 +249,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
             throw new ValueException("At least one type must be provided.");
         }
 
-        const key = types.map((type) => type.name)
-            .sort()
-            .join(",");
-
+        const key = _getQueryKey(types);
         let view = this._views.get(key) as MapView<Entity, R> | undefined;
         if (view) { return view; }
 

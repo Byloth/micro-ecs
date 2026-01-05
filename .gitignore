@@ -12,6 +12,7 @@ Desktop.ini
 
 # Downloadable & installable modules & components
 #
+/lib/
 /node_modules/
 
 # Generated & compiled files
