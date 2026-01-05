@@ -31,12 +31,56 @@ function _getQueryKey(types: Constructor<Component>[]): string
     return ids.join(",");
 }
 
+function _setMaskBit(mask: number[], typeId: number): void
+{
+    const index = (typeId >>> 5); // Math.floor(typeId / 32)
+    const bit = (1 << (typeId & 31)); // 1 << (typeId % 32)
+
+    while (mask.length <= index) { mask.push(0); }
+
+    mask[index] |= bit;
+}
+function _unsetMaskBit(mask: number[], typeId: number): void
+{
+    const index = (typeId >>> 5);
+    if (index >= mask.length) { return; }
+
+    const bit = (1 << (typeId & 31));
+
+    mask[index] &= ~(bit);
+}
+
+function _createMask(types: Constructor<Component>[]): number[]
+{
+    const mask: number[] = [];
+    for (const type of types)
+    {
+        _setMaskBit(mask, _getTypeId(type));
+    }
+
+    return mask;
+}
+function _matchMask(entityMask: number[], queryMask: number[]): boolean
+{
+    const length = queryMask.length;
+    if (entityMask.length < length) { return false; }
+
+    for (let i = 0; i < length; i += 1)
+    {
+        if ((entityMask[i] & queryMask[i]) !== queryMask[i]) { return false; }
+    }
+
+    return true;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export default class QueryManager<T extends CallbackMap<T> = { }>
 {
     private readonly _typeKeys: Map<Constructor<Component>, Set<string>>;
     private readonly _keyTypes: Map<string, Constructor<Component>[]>;
 
+    private readonly _queryMasks: Map<string, number[]>;
+    private readonly _entityMasks: WeakMap<Entity, number[]>;
     private readonly _views: Map<string, MapView<Entity, Component[]>>;
 
     private readonly _entities: ReadonlyMap<number, Entity>;
@@ -46,52 +90,58 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         this._typeKeys = new Map();
         this._keyTypes = new Map();
 
+        this._queryMasks = new Map();
+        this._entityMasks = new WeakMap();
         this._views = new Map();
 
         this._entities = entities;
     }
 
+    private _getEntityMask(entity: Entity): number[]
+    {
+        let mask = this._entityMasks.get(entity);
+        if (!(mask))
+        {
+            mask = [];
+            this._entityMasks.set(entity, mask);
+        }
+
+        return mask;
+    }
+
     private _onEntityComponentEnable(entity: Entity, component: Component)
     {
         const type = component.constructor as Constructor<Component>;
+        const typeId = _getTypeId(type);
+
+        const entityMask = this._getEntityMask(entity);
+        _setMaskBit(entityMask, typeId);
+
         const keys = this._typeKeys.get(type);
         if (!(keys)) { return; }
 
         for (const key of keys)
         {
-            const entities = this._views.get(key)!;
-            if (entities.has(entity)) { continue; }
+            const view = this._views.get(key)!;
+            if (view.has(entity)) { continue; }
 
-            const types = this._keyTypes.get(key);
-            if (!(types)) { continue; }
+            const queryMask = this._queryMasks.get(key)!;
+            if (!(_matchMask(entityMask, queryMask))) { continue; }
 
-            const components: Component[] = [];
+            const types = this._keyTypes.get(key)!;
+            const components = types.map((_type) => entity.components.get(_type)!);
 
-            let found = true;
-            let index = 0;
-            do
-            {
-                const _type = types[index];
-                const _component = entity.components.get(_type);
-                if (!(_component) || !(_component.isEnabled))
-                {
-                    found = false;
-
-                    break;
-                }
-
-                components.push(_component);
-
-                index += 1;
-            }
-            while (index < types.length);
-
-            if (found) { entities.set(entity, components); }
+            view.set(entity, components);
         }
     }
     private _onEntityComponentDisable(entity: Entity, component: Component)
     {
         const type = component.constructor as Constructor<Component>;
+        const typeId = _getTypeId(type);
+
+        const entityMask = this._entityMasks.get(entity);
+        if (entityMask) { _unsetMaskBit(entityMask, typeId); }
+
         const keys = this._typeKeys.get(type);
         if (!(keys)) { return; }
 
@@ -253,36 +303,23 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         let view = this._views.get(key) as MapView<Entity, R> | undefined;
         if (view) { return view; }
 
+        const queryMask = _createMask(types);
         view = new MapView<Entity, R>();
+
         for (const entity of this._entities.values())
         {
             if (!(entity.isEnabled)) { continue; }
 
-            const components: Component[] = [];
+            const entityMask = this._entityMasks.get(entity);
+            if (!(entityMask) || !(_matchMask(entityMask, queryMask))) { continue; }
 
-            let found = true;
-            let index = 0;
-            do
-            {
-                const type = types[index];
-                const component = entity.components.get(type);
-                if (!(component) || !(component.isEnabled))
-                {
-                    found = false;
+            const components = types.map((_type) => entity.components.get(_type)!);
 
-                    break;
-                }
-
-                components.push(component);
-
-                index += 1;
-            }
-            while (index < types.length);
-
-            if (found) { view.set(entity, components as R); }
+            view.set(entity, components as R);
         }
 
         this._views.set(key, view);
+        this._queryMasks.set(key, queryMask);
 
         this._addComponentKeys(types, key);
         this._addKeyComponents(key, types);
@@ -294,6 +331,8 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
     {
         for (const view of this._views.values()) { view.clear(); }
         this._views.clear();
+
+        this._queryMasks.clear();
 
         this._keyTypes.clear();
         this._typeKeys.clear();

@@ -1,7 +1,7 @@
 import type { Constructor } from "@byloth/core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { Component, Entity, World } from "../src/index.js";
+import { Component, Entity, World } from "../../src/index.js";
 
 class TestComponent1 extends Component { }
 class TestComponent2 extends Component { }
