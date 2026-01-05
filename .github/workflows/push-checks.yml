@@ -8,14 +8,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Cloning source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: "`pnpm` installation"
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@v4
         with:
           version: latest
 
       - name: Configuring Node.js 22 (LTS)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           cache: pnpm
           node-version: 22
@@ -40,14 +40,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Cloning source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: "`pnpm` installation"
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@v4
         with:
           version: latest
 
       - name: Configuring Node.js 22 (LTS)
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           cache: pnpm
           node-version: 22
