@@ -9,6 +9,11 @@ import type World from "./world.js";
 
 export default class Entity<W extends World = World> extends Resource<W>
 {
+    // eslint-disable-next-line camelcase
+    private static __μECS_nextId__ = 0;
+
+    public readonly id: number;
+
     private _isEnabled: boolean;
     public get isEnabled(): boolean { return this._isEnabled; }
 
@@ -36,6 +41,8 @@ export default class Entity<W extends World = World> extends Resource<W>
     public constructor(enabled = true)
     {
         super();
+
+        this.id = (Entity["__μECS_nextId__"] += 1);
 
         this._isEnabled = enabled;
 

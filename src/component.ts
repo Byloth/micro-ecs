@@ -1,9 +1,8 @@
 import { ReferenceException, RuntimeException } from "@byloth/core";
 
-import μObject from "./core.js";
 import type Entity from "./entity.js";
 
-export default class Component<E extends Entity = Entity> extends μObject
+export default class Component<E extends Entity = Entity>
 {
     private _isEnabled: boolean;
     public get isEnabled(): boolean { return this._isEnabled; }
@@ -13,8 +12,6 @@ export default class Component<E extends Entity = Entity> extends μObject
 
     public constructor(enabled = true)
     {
-        super();
-
         this._isEnabled = enabled;
 
         this._entity = null;

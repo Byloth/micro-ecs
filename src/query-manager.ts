@@ -25,8 +25,13 @@ function _getQueryKey(types: Constructor<Component>[]): string
     const length = types.length;
     if (length === 1) { return `${_getTypeId(types[0])}`; }
 
-    const ids = types.map(_getTypeId)
-        .sort((a, b) => (a - b));
+    const ids = new Array<number>(length);
+    for (let i = 0; i < length; i += 1)
+    {
+        ids[i] = _getTypeId(types[i]);
+    }
+
+    ids.sort((a, b) => (a - b));
 
     return ids.join(",");
 }
@@ -129,7 +134,12 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
             if (!(_matchMask(entityMask, queryMask))) { continue; }
 
             const types = this._keyTypes.get(key)!;
-            const components = types.map((_type) => entity.components.get(_type)!);
+            const length = types.length;
+            const components = new Array<Component>(length);
+            for (let i = 0; i < length; i += 1)
+            {
+                components[i] = entity.components.get(types[i])!;
+            }
 
             view.set(entity, components);
         }
@@ -213,34 +223,23 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
             return value;
         }
 
-        const components: Component[] = [];
+        const queryMask = _createMask(types);
+        const length = types.length;
 
         for (const entity of this._entities.values())
         {
             if (!(entity.isEnabled)) { continue; }
 
-            let found = true;
-            let index = 0;
-            do
+            const entityMask = this._entityMasks.get(entity);
+            if (!(entityMask) || !(_matchMask(entityMask, queryMask))) { continue; }
+
+            const components = new Array<Component>(length);
+            for (let i = 0; i < length; i += 1)
             {
-                const type = types[index];
-                const component = entity.components.get(type);
-                if (!(component) || !(component.isEnabled))
-                {
-                    found = false;
-
-                    break;
-                }
-
-                components.push(component);
-
-                index += 1;
+                components[i] = entity.components.get(types[i])!;
             }
-            while (index < types.length);
 
-            if (found) { return components as R; }
-
-            components.length = 0;
+            return components as R;
         }
 
         return undefined;
@@ -258,36 +257,29 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         const view = this._views.get(key) as MapView<number, R> | undefined;
         if (view) { return new SmartIterator(view.values()); }
 
-        return new SmartIterator(this._entities.values())
-            .filter((entity) => (entity.isEnabled))
-            .map((entity) =>
+        const entities = this._entities;
+        const entityMasks = this._entityMasks;
+        const queryMask = _createMask(types);
+        const length = types.length;
+
+        return new SmartIterator(function* (): Generator<R>
+        {
+            for (const entity of entities.values())
             {
-                const components: Component[] = [];
+                if (!(entity.isEnabled)) { continue; }
 
-                let found = true;
-                let index = 0;
-                do
+                const entityMask = entityMasks.get(entity);
+                if (!(entityMask) || !(_matchMask(entityMask, queryMask))) { continue; }
+
+                const components = new Array<Component>(length);
+                for (let i = 0; i < length; i += 1)
                 {
-                    const type = types[index];
-                    const component = entity.components.get(type);
-                    if (!(component) || !(component.isEnabled))
-                    {
-                        found = false;
-
-                        break;
-                    }
-
-                    components.push(component);
-
-                    index += 1;
+                    components[i] = entity.components.get(types[i])!;
                 }
-                while (index < types.length);
 
-                if (found) { return components as R; }
-
-                return undefined;
-            })
-            .filter<R>((component) => component !== undefined);
+                yield components as R;
+            }
+        });
     }
 
     public getView<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(
@@ -304,6 +296,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         if (view) { return view; }
 
         const queryMask = _createMask(types);
+        const length = types.length;
         view = new MapView<Entity, R>();
 
         for (const entity of this._entities.values())
@@ -313,7 +306,11 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
             const entityMask = this._entityMasks.get(entity);
             if (!(entityMask) || !(_matchMask(entityMask, queryMask))) { continue; }
 
-            const components = types.map((_type) => entity.components.get(_type)!);
+            const components = new Array<Component>(length);
+            for (let i = 0; i < length; i += 1)
+            {
+                components[i] = entity.components.get(types[i])!;
+            }
 
             view.set(entity, components as R);
         }

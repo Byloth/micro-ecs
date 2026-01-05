@@ -52,6 +52,7 @@ describe("QueryManager", () =>
         const view = Array.from(_world.getComponentView(TestComponent1).values());
 
         expect(view.length).toBe(4);
+
         expect(view[0][0].entity!.id).toBe(1);
         expect(view[1][0].entity!.id).toBe(2);
         expect(view[2][0].entity!.id).toBe(3);

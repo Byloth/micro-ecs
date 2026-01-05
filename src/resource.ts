@@ -1,17 +1,14 @@
 import { ReferenceException, RuntimeException } from "@byloth/core";
 
-import μObject from "./core.js";
 import type World from "./world.js";
 
-export default class Resource<W extends World = World> extends μObject
+export default class Resource<W extends World = World>
 {
     private _world: W | null;
     public get world(): W | null { return this._world; }
 
     public constructor()
     {
-        super();
-
         this._world = null;
     }
 
