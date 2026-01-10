@@ -86,7 +86,7 @@ class MovementSystem extends System {
   }
   public override update(deltaTime: number): void {
 
-    for (const [entity, [position]] of this.view!) {
+    for (const [position] of this.view!.components) {
       position.x += 1 * deltaTime;
       position.y += 1 * deltaTime;
     }
@@ -157,22 +157,6 @@ world.getComponentView(Position, Velocity);
 
 ## Roadmap
 
-### 🔴 Critical
-
-Issues that block or compromise production usage.
-
-- [ ] **Minification-safe type identification**
-
-  The `QueryManager` currently uses `Type.name` to generate query keys.
-  In minified builds, class names are reduced to single letters (`a`, `b`, `c`...), causing potential collisions between different queries.
-
-  Possible solutions:
-  - Numeric registry with auto-incrementing ID for each component type
-  - `Symbol()` associated with each class
-  - Decorator or static method that assigns a unique identifier
-
----
-
 ### 🟠 Improvements
 
 Optimizations and refinements that improve quality and performance.
@@ -192,12 +176,6 @@ Ideas and possible evolutions to evaluate based on needs.
   Implement a pooling system for `Entity` and `Component` to reduce Garbage Collector pressure in scenarios with high creation/destruction frequency (e.g., particle systems, projectiles).
 
   > ⚠️ Evaluate carefully: could complicate the API and go against the project's "DX-first" philosophy.
-
-- [ ] **Archetypes**
-
-  Consider an archetype system to group entities with the same component "signature", optimizing queries.
-
-  > ⚠️ In a JavaScript context, the traditional benefits of archetypes (cache locality, contiguous memory) are not exploitable. The cached View system already present in `QueryManager` covers part of these advantages. Actual utility to be evaluated.
 
 ---
 

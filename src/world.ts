@@ -1,8 +1,6 @@
 import { Publisher, ReferenceException } from "@byloth/core";
 import type { CallbackMap, Constructor, InternalsEventsMap, SmartIterator } from "@byloth/core";
 
-import type { ReadonlyQueryView } from "./query-view.js";
-
 import type Entity from "./entity.js";
 import type Component from "./component.js";
 import type System from "./system.js";
@@ -10,7 +8,9 @@ import type Resource from "./resource.js";
 
 import WorldContext from "./contexts/world.js";
 import { AttachmentException, DependencyException } from "./exceptions.js";
-import QueryManager from "./query-manager.js";
+
+import { QueryManager } from "./query/index.js";
+import type { ReadonlyQueryView } from "./query/view.js";
 import type { Instances, SignalEventsMap } from "./types.js";
 
 type P = SignalEventsMap & InternalsEventsMap;
