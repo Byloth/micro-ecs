@@ -1,5 +1,7 @@
 import { Publisher, ReferenceException } from "@byloth/core";
-import type { CallbackMap, Constructor, InternalsEventsMap, ReadonlyMapView, SmartIterator } from "@byloth/core";
+import type { CallbackMap, Constructor, InternalsEventsMap, SmartIterator } from "@byloth/core";
+
+import type { ReadonlyQueryView } from "./query-view.js";
 
 import type Entity from "./entity.js";
 import type Component from "./component.js";
@@ -230,7 +232,7 @@ export default class World<T extends CallbackMap<T> = { }>
 
     public getComponentView<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(
         ...types: C
-    ): ReadonlyMapView<Entity, R>
+    ): ReadonlyQueryView<R>
     {
         return this._queryManager.getView<C, R>(...types);
     }

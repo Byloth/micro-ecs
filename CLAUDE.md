@@ -24,11 +24,11 @@ The library is built on three pillars:
 ## Commands
 
 ```bash
-pnpm dev          # Start Vite dev server
-pnpm build        # Build for production (prod + dev builds)
-pnpm typecheck    # Run TypeScript type checking (tsc)
-pnpm lint         # Run ESLint
-pnpm test         # Run Vitest tests
+pnpm dev           # Start Vite dev server
+pnpm build         # Build for production (prod + dev builds)
+pnpm typecheck     # Run TypeScript type checking (tsc)
+pnpm lint          # Run ESLint
+pnpm test          # Run Vitest tests
 pnpm test:coverage # Run tests with coverage
 ```
 

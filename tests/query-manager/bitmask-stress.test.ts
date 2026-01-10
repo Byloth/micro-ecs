@@ -168,7 +168,7 @@ describe("Bitmask Stress Test", () =>
 
         const view = _world.getComponentView(...queryTypes);
 
-        const matchingEntities = [...view.keys()];
+        const matchingEntities = [...view.entities];
         if (matchingEntities.length === 0) { return; }
 
         const initialSize = view.size;
@@ -189,7 +189,7 @@ describe("Bitmask Stress Test", () =>
 
         const view = _world.getComponentView(queryType);
 
-        const matchingEntities = [...view.keys()];
+        const matchingEntities = [...view.entities];
         if (matchingEntities.length === 0) { return; }
 
         const initialSize = view.size;

@@ -1,5 +1,8 @@
-import { KeyException, MapView, SmartIterator, ValueException } from "@byloth/core";
-import type { CallbackMap, Constructor, ReadonlyMapView } from "@byloth/core";
+import { KeyException, SmartIterator, ValueException } from "@byloth/core";
+import type { CallbackMap, Constructor } from "@byloth/core";
+
+import QueryView from "./query-view.js";
+import type { ReadonlyQueryView } from "./query-view.js";
 
 import type Entity from "./entity.js";
 import type Component from "./component.js";
@@ -86,9 +89,9 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
 
     private readonly _queryMasks: Map<string, number[]>;
     private readonly _entityMasks: WeakMap<Entity, number[]>;
-    private readonly _views: Map<string, MapView<Entity, Component[]>>;
 
     private readonly _entities: ReadonlyMap<number, Entity>;
+    private readonly _views: Map<string, QueryView<Component[]>>;
 
     public constructor(entities: ReadonlyMap<number, Entity>)
     {
@@ -97,9 +100,9 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
 
         this._queryMasks = new Map();
         this._entityMasks = new WeakMap();
-        this._views = new Map();
 
         this._entities = entities;
+        this._views = new Map();
     }
 
     private _getEntityMask(entity: Entity): number[]
@@ -181,17 +184,13 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         this._keyTypes.set(key, types);
     }
 
-    public pickOne<C extends Constructor<Component>, R = InstanceType<C>>(type: C): R | undefined
+    public pickOne<C extends Constructor<Component>, R extends InstanceType<C> = InstanceType<C>>(
+        type: C
+    ): R | undefined
     {
         const key = `${_getTypeId(type)}`;
-        const view = this._views.get(key) as MapView<number, R> | undefined;
-        if (view)
-        {
-            const { value } = view.values()
-                .next();
-
-            return value;
-        }
+        const view = this._views.get(key) as QueryView<[R]> | undefined;
+        if (view) { return view.components[0][0]; }
 
         for (const entity of this._entities.values())
         {
@@ -214,14 +213,8 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         }
 
         const key = _getQueryKey(types);
-        const view = this._views.get(key) as MapView<number, R> | undefined;
-        if (view)
-        {
-            const { value } = view.values()
-                .next();
-
-            return value;
-        }
+        const view = this._views.get(key) as QueryView<R> | undefined;
+        if (view) { return view.components[0]; }
 
         const queryMask = _createMask(types);
         const length = types.length;
@@ -254,8 +247,8 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         }
 
         const key = _getQueryKey(types);
-        const view = this._views.get(key) as MapView<number, R> | undefined;
-        if (view) { return new SmartIterator(view.values()); }
+        const view = this._views.get(key) as QueryView<R> | undefined;
+        if (view) { return new SmartIterator(view.components); }
 
         const entities = this._entities;
         const entityMasks = this._entityMasks;
@@ -284,7 +277,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
 
     public getView<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(
         ...types: C
-    ): ReadonlyMapView<Entity, R>
+    ): ReadonlyQueryView<R>
     {
         if ((import.meta.env.DEV) && !(types.length))
         {
@@ -292,12 +285,12 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         }
 
         const key = _getQueryKey(types);
-        let view = this._views.get(key) as MapView<Entity, R> | undefined;
+        let view = this._views.get(key) as QueryView<R> | undefined;
         if (view) { return view; }
 
         const queryMask = _createMask(types);
         const length = types.length;
-        view = new MapView<Entity, R>();
+        view = new QueryView<R>();
 
         for (const entity of this._entities.values())
         {

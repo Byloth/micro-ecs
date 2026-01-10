@@ -49,7 +49,7 @@ describe("QueryManager", () =>
         const first = _world.getFirstComponents(TestComponent3, TestComponent1)!;
         const second = _world.getFirstComponent(TestComponent4);
         const iterator = _world.findAllComponents(TestComponent2).toArray();
-        const view = Array.from(_world.getComponentView(TestComponent1).values());
+        const view = Array.from(_world.getComponentView(TestComponent1).components);
 
         expect(view.length).toBe(4);
 
@@ -74,7 +74,7 @@ describe("QueryManager", () =>
         {
             const view = _world.getComponentView(TestComponent1, TestComponent3);
 
-            const before = Array.from(view.values());
+            const before = Array.from(view.components);
             expect(before.length).toBe(2);
             expect(before[0][0].entity!.id).toBe(3);
             expect(before[1][0].entity!.id).toBe(5);
@@ -82,7 +82,7 @@ describe("QueryManager", () =>
             const entity = _world.entities.get(2)!;
             entity.addComponent(new TestComponent3());
 
-            const after = Array.from(view.values());
+            const after = Array.from(view.components);
             expect(after.length).toBe(3);
             expect(after[0][0].entity!.id).toBe(3);
             expect(after[1][0].entity!.id).toBe(5);
@@ -92,7 +92,7 @@ describe("QueryManager", () =>
         {
             const view = _world.getComponentView(TestComponent1, TestComponent3);
 
-            const before = Array.from(view.values());
+            const before = Array.from(view.components);
             expect(before.length).toBe(2);
             expect(before[0][0].entity!.id).toBe(3);
             expect(before[1][0].entity!.id).toBe(5);
@@ -108,7 +108,7 @@ describe("QueryManager", () =>
             entity2.getComponent(TestComponent3)
                 .enable();
 
-            const after = Array.from(view.values());
+            const after = Array.from(view.components);
             expect(after.length).toBe(4);
             expect(after[0][0].entity!.id).toBe(3);
             expect(after[1][0].entity!.id).toBe(5);
@@ -119,7 +119,7 @@ describe("QueryManager", () =>
         {
             const view = _world.getComponentView(TestComponent1, TestComponent3);
 
-            const before = Array.from(view.values());
+            const before = Array.from(view.components);
             expect(before.length).toBe(2);
             expect(before[0][0].entity!.id).toBe(3);
             expect(before[1][0].entity!.id).toBe(5);
@@ -128,14 +128,14 @@ describe("QueryManager", () =>
             entity1[1].disable();
             entity2[0].disable();
 
-            const after = Array.from(view.values());
+            const after = Array.from(view.components);
             expect(after.length).toBe(0);
         });
         it("Should reactively update view when components are removed", () =>
         {
             const view = _world.getComponentView(TestComponent1, TestComponent3);
 
-            const before = Array.from(view.values());
+            const before = Array.from(view.components);
             expect(before.length).toBe(2);
             expect(before[0][0].entity!.id).toBe(3);
             expect(before[1][0].entity!.id).toBe(5);
@@ -143,7 +143,7 @@ describe("QueryManager", () =>
             const { entity } = before[0][0];
             entity!.removeComponent(TestComponent1);
 
-            const after = Array.from(view.values());
+            const after = Array.from(view.components);
             expect(after.length).toBe(1);
             expect(after[0][0].entity!.id).toBe(5);
         });
@@ -155,7 +155,7 @@ describe("QueryManager", () =>
         {
             const view = _world.getComponentView(TestComponent2, TestComponent3);
 
-            const before = Array.from(view.values());
+            const before = Array.from(view.components);
             expect(before.length).toBe(2);
             expect(before[0][0].entity!.id).toBe(5);
             expect(before[1][0].entity!.id).toBe(7);
@@ -168,7 +168,7 @@ describe("QueryManager", () =>
 
             _world.addEntity(entity);
 
-            const after = Array.from(view.values());
+            const after = Array.from(view.components);
             expect(after.length).toBe(3);
             expect(after[0][0].entity!.id).toBe(5);
             expect(after[1][0].entity!.id).toBe(7);
@@ -178,7 +178,7 @@ describe("QueryManager", () =>
         {
             const view = _world.getComponentView(TestComponent2, TestComponent3);
 
-            const before = Array.from(view.values());
+            const before = Array.from(view.components);
             expect(before.length).toBe(2);
             expect(before[0][0].entity!.id).toBe(5);
             expect(before[1][0].entity!.id).toBe(7);
@@ -186,7 +186,7 @@ describe("QueryManager", () =>
             _world.entities.get(6)!
                 .enable();
 
-            const after = Array.from(view.values());
+            const after = Array.from(view.components);
             expect(after.length).toBe(3);
             expect(after[0][0].entity!.id).toBe(5);
             expect(after[1][0].entity!.id).toBe(7);
@@ -196,14 +196,14 @@ describe("QueryManager", () =>
         {
             const view = _world.getComponentView(TestComponent2, TestComponent3);
 
-            const before = Array.from(view.values());
+            const before = Array.from(view.components);
             expect(before.length).toBe(2);
             expect(before[0][0].entity!.id).toBe(5);
             expect(before[1][0].entity!.id).toBe(7);
 
             before[1][0].entity!.disable();
 
-            const after = Array.from(view.values());
+            const after = Array.from(view.components);
             expect(after.length).toBe(1);
             expect(after[0][0].entity!.id).toBe(5);
         });
@@ -211,7 +211,7 @@ describe("QueryManager", () =>
         {
             const view = _world.getComponentView(TestComponent2, TestComponent3);
 
-            const before = Array.from(view.values());
+            const before = Array.from(view.components);
             expect(before.length).toBe(2);
             expect(before[0][0].entity!.id).toBe(5);
             expect(before[1][0].entity!.id).toBe(7);
@@ -222,7 +222,7 @@ describe("QueryManager", () =>
             _world.removeEntity(entity1.id);
             _world.removeEntity(entity2);
 
-            const after = Array.from(view.values());
+            const after = Array.from(view.components);
             expect(after.length).toBe(0);
         });
     });
@@ -252,7 +252,7 @@ describe("QueryManager", () =>
     {
         const entities = _world.getComponentView(TestComponent3);
 
-        const before = Array.from(entities.values());
+        const before = Array.from(entities.components);
         expect(before.length).toBe(4);
         expect(before[0][0].entity!.id).toBe(3);
         expect(before[1][0].entity!.id).toBe(4);
@@ -261,7 +261,7 @@ describe("QueryManager", () =>
 
         _world.dispose();
 
-        const after = Array.from(entities.values());
+        const after = Array.from(entities.components);
         expect(after.length).toBe(0);
     });
 });
