@@ -41,8 +41,6 @@ pnpm vitest run tests/world.test.ts
 
 ### Core Classes (src/)
 
-All ECS objects inherit from `μObject` (`core.ts`), which provides auto-incrementing unique IDs.
-
 **World** (`world.ts`) - The central container that manages:
 - Entities (with their Components)
 - Systems (with priority-based execution order)
@@ -59,11 +57,17 @@ All ECS objects inherit from `μObject` (`core.ts`), which provides auto-increme
 
 **Resource** (`resource.ts`) - Singleton data shared across the world. Systems declare dependencies on Resources via WorldContext.
 
-**QueryManager** (`query-manager.ts`) - Efficiently queries entities by component types:
+**QueryManager** (`query/manager.ts`) - Efficiently queries entities by component types:
 - `pickOne<C>(type)` - Get first component of type
 - `findFirst<C>(...types)` - Get first entity with all component types
 - `findAll<C>(...types)` - Iterate all matching entities
 - `getView<C>(...types)` - Get cached view that auto-updates
+
+**QueryView** (`query/view.ts`) - Cached view returned by `getView()`. Auto-updates when entities/components change. Provides:
+- `entities` / `components` - Direct array access (preferred for iteration)
+- `get(entity)` / `has(entity)` - Entity lookup
+- `[Symbol.iterator]()` - Iterate `[entity, components]` tuples (use only when entity access is needed)
+- `onAdd()` / `onRemove()` / `onClear()` - Event subscriptions
 
 ### Contexts (src/contexts/)
 

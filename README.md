@@ -41,6 +41,7 @@ Using extra memory is acceptable if it yields performance benefits at runtime.
 - **Resource** — Singleton data shared across the world
 - **Service** — A System that can be used as a Resource dependency
 - **QueryManager** — Efficient component queries with cached views
+- **QueryView** — Cached, auto-updating view of entities matching a query
 - **Contexts** — Dependency injection for Systems (WorldContext) and Components (EntityContext)
 - **Events** — Built-in pub/sub system via `Publisher`
 
@@ -50,16 +51,16 @@ Using extra memory is acceptable if it yields performance benefits at runtime.
 
 ```bash
 # npm
-npm install @byloth/micro-ecs
+npm install @byloth/micro-ecs @byloth/core
 
 # pnpm
-pnpm add @byloth/micro-ecs
+pnpm add @byloth/micro-ecs @byloth/core
 
 # yarn
-yarn add @byloth/micro-ecs
+yarn add @byloth/micro-ecs @byloth/core
 
 # bun
-bun add @byloth/micro-ecs
+bun add @byloth/micro-ecs @byloth/core
 ```
 
 > **Note:** This library requires `@byloth/core` as a peer dependency.
@@ -70,25 +71,30 @@ bun add @byloth/micro-ecs
 
 ```typescript
 import { World, Entity, Component, System } from "@byloth/micro-ecs";
+import type { ReadonlyQueryView } from "@byloth/micro-ecs";
 
-// Define a Component
+// Define Components
 class Position extends Component {
   public x = 0;
   public y = 0;
 }
+class Velocity extends Component {
+  public vx = 0;
+  public vy = 0;
+}
 
 // Define a System
 class MovementSystem extends System {
-  private view?: ReadonlyMapView<Entity, [Position]>;
+  private view?: ReadonlyQueryView<[Position, Velocity]>;
 
   public override onAttach(world: World): void {
-    this.view = this.world!.getComponentView(Position);
+    this.view = world.getComponentView(Position, Velocity);
   }
   public override update(deltaTime: number): void {
 
-    for (const [position] of this.view!.components) {
-      position.x += 1 * deltaTime;
-      position.y += 1 * deltaTime;
+    for (const [position, velocity] of this.view!.components) {
+      position.x += velocity.vx * deltaTime;
+      position.y += velocity.vy * deltaTime;
     }
   }
 }
@@ -101,6 +107,7 @@ world.addSystem(new MovementSystem());
 
 const entity = new Entity();
 entity.addComponent(new Position());
+entity.addComponent(new Velocity());
 world.addEntity(entity);
 
 // Game loop
@@ -115,14 +122,11 @@ function gameLoop(deltaTime: number) {
 
 ### Core Classes
 
-All ECS objects inherit from `μObject`, which provides auto-incrementing unique IDs.
-
 ```
-μObject
-├── Resource    — Singleton data, attachable to World
-├── System      — Logic with update(), priority, enable/disable
-├── Entity      — Container for Components
-└── Component   — Data attached to Entities
+Component   — Data attached to Entities (standalone class)
+Resource    — Singleton data, attachable to World
+├── Entity  — Container for Components
+└── System  — Logic with update(), priority, enable/disable
 ```
 
 ### QueryManager

@@ -114,7 +114,7 @@ describe("QueryView", () =>
             const result = _view.delete(entity);
             expect(result).toBe(false);
         });
-        it("Should maintain correct indices after deleting an entity", () =>
+        it("Should maintain correct indexes after deleting an entity", () =>
         {
             const entity1 = new Entity();
             const entity2 = new Entity();
@@ -316,6 +316,56 @@ describe("QueryView", () =>
             expect(_view.has(entity1)).toBe(true);
             expect(_view.has(entity2)).toBe(false);
             expect(_view.get(entity1)).toEqual([component1]);
+        });
+    });
+
+    describe("Iteration", () =>
+    {
+        it("Should be iterable with for...of", () =>
+        {
+            const entity1 = new Entity();
+            const entity2 = new Entity();
+            const component1 = new TestComponent1();
+            const component2 = new TestComponent1();
+
+            _view.set(entity1, [component1]);
+            _view.set(entity2, [component2]);
+
+            const results: [Entity, [TestComponent1]][] = [];
+            for (const entry of _view)
+            {
+                results.push(entry);
+            }
+
+            expect(results).toHaveLength(2);
+            expect(results).toContainEqual([entity1, [component1]]);
+            expect(results).toContainEqual([entity2, [component2]]);
+        });
+        it("Should yield tuples of [entity, components]", () =>
+        {
+            const entity = new Entity();
+            const component = new TestComponent1();
+
+            _view.set(entity, [component]);
+
+            const iterator = _view[Symbol.iterator]();
+            const result = iterator.next();
+
+            expect(result.done).toBe(false);
+            expect(result.value).toEqual([entity, [component]]);
+        });
+        it("Should allow destructuring in for...of", () =>
+        {
+            const entity = new Entity();
+            const component = new TestComponent1();
+
+            _view.set(entity, [component]);
+
+            for (const [e, [c]] of _view)
+            {
+                expect(e).toBe(entity);
+                expect(c).toBe(component);
+            }
         });
     });
 });

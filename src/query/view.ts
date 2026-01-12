@@ -22,6 +22,8 @@ export interface ReadonlyQueryView<C extends Component[]>
     get(entity: Entity): C | undefined;
     has(entity: Entity): boolean;
 
+    [Symbol.iterator](): Iterator<[Entity, C]>;
+
     onAdd(callback: (entity: Entity, components: C) => void): Callback;
     onRemove(callback: (entity: Entity, components: C) => void): Callback;
     onClear(callback: () => void): Callback;
@@ -29,7 +31,7 @@ export interface ReadonlyQueryView<C extends Component[]>
 
 export default class QueryView<C extends Component[]> implements ReadonlyQueryView<C>
 {
-    protected readonly _indices: Map<Entity, number>;
+    protected readonly _indexes: Map<Entity, number>;
     protected readonly _entities: Entity[];
     protected readonly _components: C[];
 
@@ -51,7 +53,7 @@ export default class QueryView<C extends Component[]> implements ReadonlyQueryVi
 
     public constructor(iterable?: Iterable<[Entity, C]> | null)
     {
-        this._indices = new Map();
+        this._indexes = new Map();
         this._entities = [];
         this._components = [];
 
@@ -65,18 +67,18 @@ export default class QueryView<C extends Component[]> implements ReadonlyQueryVi
 
     public get(entity: Entity): C | undefined
     {
-        const index = this._indices.get(entity);
+        const index = this._indexes.get(entity);
         if (index === undefined) { return undefined; }
 
         return this._components[index];
     }
     public has(entity: Entity): boolean
     {
-        return this._indices.has(entity);
+        return this._indexes.has(entity);
     }
     public set(entity: Entity, components: C): this
     {
-        const existingIndex = this._indices.get(entity);
+        const existingIndex = this._indexes.get(entity);
         if (existingIndex !== undefined)
         {
             this._components[existingIndex] = components;
@@ -84,11 +86,11 @@ export default class QueryView<C extends Component[]> implements ReadonlyQueryVi
             return this;
         }
 
-        const index = this._components.length;
+        const { size } = this;
 
         this._components.push(components);
         this._entities.push(entity);
-        this._indices.set(entity, index);
+        this._indexes.set(entity, size);
 
         this._publisher.publish("add", entity, components);
 
@@ -97,7 +99,7 @@ export default class QueryView<C extends Component[]> implements ReadonlyQueryVi
 
     public delete(entity: Entity): boolean
     {
-        const index = this._indices.get(entity);
+        const index = this._indexes.get(entity);
         if (index === undefined) { return false; }
 
         const components = this._components[index];
@@ -108,12 +110,12 @@ export default class QueryView<C extends Component[]> implements ReadonlyQueryVi
             this._components[index] = this._components[lastIndex];
             this._entities[index] = this._entities[lastIndex];
 
-            this._indices.set(this._entities[index], index);
+            this._indexes.set(this._entities[index], index);
         }
 
         this._components.pop();
         this._entities.pop();
-        this._indices.delete(entity);
+        this._indexes.delete(entity);
 
         this._publisher.publish("remove", entity, components);
 
@@ -122,13 +124,21 @@ export default class QueryView<C extends Component[]> implements ReadonlyQueryVi
 
     public clear(): void
     {
-        const size = this._components.length;
+        const { size } = this;
 
         this._components.length = 0;
         this._entities.length = 0;
-        this._indices.clear();
+        this._indexes.clear();
 
         if (size > 0) { this._publisher.publish("clear"); }
+    }
+
+    public *[Symbol.iterator](): Iterator<[Entity, C]>
+    {
+        for (let i = 0; i < this.size; i += 1)
+        {
+            yield [this._entities[i], this._components[i]];
+        }
     }
 
     public onAdd(callback: (entity: Entity, components: C) => void): Callback
