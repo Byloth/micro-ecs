@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { Random } from "@byloth/core";
-import type { Constructor } from "@byloth/core";
 
 import { Component, Entity, World } from "../../src/index.js";
+import type { ComponentType } from "../../src/index.js";
 
 const NUM_ENTITIES = 1000;
 const NUM_COMPONENT_TYPES = 64;
@@ -12,7 +12,7 @@ const MAX_COMPONENTS_PER_ENTITY = 20;
 const NUM_QUERY_TESTS = 100;
 const MAX_QUERY_SIZE = 5;
 
-const ComponentTypes: Constructor<Component>[] = [];
+const ComponentTypes: ComponentType[] = [];
 for (let i = 0; i < NUM_COMPONENT_TYPES; i += 1)
 {
     const ComponentClass = class extends Component
@@ -35,7 +35,7 @@ describe("Bitmask Stress Test", () =>
 {
     let _world: World;
     let _entities: Entity[];
-    let _entityComponentMap: Map<Entity, Set<Constructor<Component>>>;
+    let _entityComponentMap: Map<Entity, Set<ComponentType>>;
 
     beforeEach(() =>
     {
@@ -48,7 +48,7 @@ describe("Bitmask Stress Test", () =>
             const entity = new Entity();
             const numComponents = Random.Integer(MIN_COMPONENTS_PER_ENTITY, MAX_COMPONENTS_PER_ENTITY + 1);
             const selectedTypes = randomSample(ComponentTypes, numComponents);
-            const componentSet = new Set<Constructor<Component>>();
+            const componentSet = new Set<ComponentType>();
 
             for (const ComponentType of selectedTypes)
             {
@@ -263,7 +263,7 @@ describe("Bitmask Stress Test", () =>
                 const entity = new Entity();
                 const numComponents = Random.Integer(MIN_COMPONENTS_PER_ENTITY, MAX_COMPONENTS_PER_ENTITY + 1);
                 const selectedTypes = randomSample(ComponentTypes, numComponents);
-                const componentSet = new Set<Constructor<Component>>();
+                const componentSet = new Set<ComponentType>();
 
                 for (const ComponentType of selectedTypes)
                 {

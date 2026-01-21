@@ -161,7 +161,23 @@ world.getComponentView(Position, Velocity);
 
 ## Roadmap
 
-### 🟠 Improvements
+### 🔴 Critical Implementations
+
+Essential features that are currently missing.
+
+*Luckily, none at the moment.*
+
+---
+
+### 🟠 Known Bugs & Limitations
+
+Issues and constraints that need addressing.
+
+*Inexplicably, none at the moment.*
+
+---
+
+### 🟡 Improvements
 
 Optimizations and refinements that improve quality and performance.
 
@@ -180,6 +196,20 @@ Ideas and possible evolutions to evaluate based on needs.
   Implement a pooling system for `Entity` and `Component` to reduce Garbage Collector pressure in scenarios with high creation/destruction frequency (e.g., particle systems, projectiles).
 
   > ⚠️ Evaluate carefully: could complicate the API and go against the project's "DX-first" philosophy.
+
+- [ ] **Archetype-based architecture**
+
+  Implement an Archetype system within the query and component management to group entities by their component composition, improving iteration performance and cache locality.
+
+---
+
+### 🔵 Nice to Have
+
+Features that would be beneficial but are not critical.
+
+- [ ] **Advanced Query System**
+
+  Rewrite the query system from scratch to allow users to define queries using, chaining and nesting logical operators: `and`, `or` and `not`.
 
 ---
 

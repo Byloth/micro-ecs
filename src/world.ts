@@ -1,5 +1,5 @@
 import { Publisher, ReferenceException } from "@byloth/core";
-import type { CallbackMap, Constructor, InternalsEventsMap, SmartIterator } from "@byloth/core";
+import type { CallbackMap, InternalsEventsMap, SmartIterator } from "@byloth/core";
 
 import type Entity from "./entity.js";
 import type Component from "./component.js";
@@ -11,7 +11,7 @@ import { AttachmentException, DependencyException } from "./exceptions.js";
 
 import { QueryManager } from "./query/index.js";
 import type { ReadonlyQueryView } from "./query/view.js";
-import type { Instances, SignalEventsMap } from "./types.js";
+import type { ComponentType, Instances, ResourceType, SignalEventsMap, SystemType } from "./types.js";
 
 type P = SignalEventsMap & InternalsEventsMap;
 
@@ -21,12 +21,12 @@ export default class World<T extends CallbackMap<T> = { }>
     private readonly _entities: Map<number, Entity>;
     public get entities(): ReadonlyMap<number, Entity> { return this._entities; }
 
-    private readonly _resources: Map<Constructor<Resource>, Resource>;
-    public get resources(): ReadonlyMap<Constructor<Resource>, Resource> { return this._resources; }
+    private readonly _resources: Map<ResourceType, Resource>;
+    public get resources(): ReadonlyMap<ResourceType, Resource> { return this._resources; }
 
-    private readonly _systems: Map<Constructor<System>, System>;
+    private readonly _systems: Map<SystemType, System>;
     private readonly _enabledSystems: System[];
-    public get systems(): ReadonlyMap<Constructor<System>, System> { return this._systems; }
+    public get systems(): ReadonlyMap<SystemType, System> { return this._systems; }
 
     private readonly _contexts: Map<System, WorldContext<CallbackMap>>;
     private readonly _dependencies: Map<Resource, Set<System>>;
@@ -116,7 +116,7 @@ export default class World<T extends CallbackMap<T> = { }>
         this._enabledSystems.splice(index, 1);
     }
 
-    private _addDependency(system: System, type: Constructor<Resource>): Resource
+    private _addDependency(system: System, type: ResourceType): Resource
     {
         const dependency = this._resources.get(type);
         if ((import.meta.env.DEV) && !(dependency))
@@ -138,7 +138,7 @@ export default class World<T extends CallbackMap<T> = { }>
 
         return dependency!;
     }
-    private _removeDependency(system: System, type: Constructor<Resource>): Resource
+    private _removeDependency(system: System, type: ResourceType): Resource
     {
         const dependency = this._resources.get(type)!;
         const dependants = this._dependencies.get(dependency);
@@ -210,27 +210,27 @@ export default class World<T extends CallbackMap<T> = { }>
         return _entity!;
     }
 
-    public getFirstComponent<C extends Constructor<Component>, R extends InstanceType<C> = InstanceType<C>>(
+    public getFirstComponent<C extends ComponentType, R extends InstanceType<C> = InstanceType<C>>(
         type: C
     ): R | undefined
     {
         return this._queryManager.pickOne<C, R>(type);
     }
-    public getFirstComponents<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(
+    public getFirstComponents<C extends ComponentType[], R extends Instances<C> = Instances<C>>(
         ...types: C
     ): R | undefined
     {
         return this._queryManager.findFirst<C, R>(...types);
     }
 
-    public findAllComponents<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(
+    public findAllComponents<C extends ComponentType[], R extends Instances<C> = Instances<C>>(
         ...types: C
     ): SmartIterator<R>
     {
         return this._queryManager.findAll<C, R>(...types);
     }
 
-    public getComponentView<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(
+    public getComponentView<C extends ComponentType[], R extends Instances<C> = Instances<C>>(
         ...types: C
     ): ReadonlyQueryView<R>
     {
@@ -239,7 +239,7 @@ export default class World<T extends CallbackMap<T> = { }>
 
     public addResource<R extends Resource>(resource: R): R
     {
-        const type = resource.constructor as Constructor<Resource>;
+        const type = resource.constructor as ResourceType;
         if ((import.meta.env.DEV) && (this._resources.has(type)))
         {
             throw new ReferenceException("The resource already exists in the world.");
@@ -264,11 +264,11 @@ export default class World<T extends CallbackMap<T> = { }>
         return resource;
     }
 
-    public removeResource<R extends Resource>(type: Constructor<R>): R;
+    public removeResource<R extends Resource>(type: ResourceType<R>): R;
     public removeResource<R extends Resource>(resource: R): R;
-    public removeResource<R extends Resource>(resource: Constructor<R> | R): R
+    public removeResource<R extends Resource>(resource: ResourceType<R> | R): R
     {
-        const type = (typeof resource === "function") ? resource : resource.constructor as Constructor<Resource>;
+        const type = (typeof resource === "function") ? resource : resource.constructor as ResourceType;
 
         const _resource = this._resources.get(type) as R | undefined;
 
@@ -303,7 +303,7 @@ export default class World<T extends CallbackMap<T> = { }>
 
     public addSystem<S extends System>(system: S): S
     {
-        const type = system.constructor as Constructor<System>;
+        const type = system.constructor as SystemType;
         if ((import.meta.env.DEV) && (this._systems.has(type)))
         {
             throw new ReferenceException("The system already exists in the world.");
@@ -329,11 +329,11 @@ export default class World<T extends CallbackMap<T> = { }>
         return system;
     }
 
-    public removeSystem<S extends System>(type: Constructor<S>): S;
+    public removeSystem<S extends System>(type: SystemType<S>): S;
     public removeSystem<S extends System>(system: S): S;
-    public removeSystem<S extends System>(system: Constructor<S> | S): S
+    public removeSystem<S extends System>(system: SystemType<S> | S): S
     {
-        const type = (typeof system === "function") ? system : system.constructor as Constructor<System>;
+        const type = (typeof system === "function") ? system : system.constructor as SystemType;
 
         const _system = this._systems.get(type) as S | undefined;
         if ((import.meta.env.DEV) && !(_system))
@@ -381,7 +381,7 @@ export default class World<T extends CallbackMap<T> = { }>
 
     public addService<S extends System>(service: S): S
     {
-        const type = service.constructor as Constructor<Resource> & Constructor<System>;
+        const type = service.constructor as ResourceType & SystemType;
         if (import.meta.env.DEV)
         {
             if (this._resources.has(type))
@@ -416,12 +416,12 @@ export default class World<T extends CallbackMap<T> = { }>
         return service;
     }
 
-    public removeService<S extends System>(type: Constructor<S>): S;
+    public removeService<S extends System>(type: SystemType<S>): S;
     public removeService<S extends System>(service: S): S;
-    public removeService<S extends System>(service: Constructor<S> | S): S
+    public removeService<S extends System>(service: SystemType<S> | S): S
     {
         const type = ((typeof service === "function") ? service : service.constructor) as
-            Constructor<Resource> & Constructor<System>;
+            ResourceType & SystemType;
 
         const _service = this._systems.get(type) as S | undefined;
         if (import.meta.env.DEV)

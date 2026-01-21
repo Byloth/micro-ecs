@@ -13,4 +13,13 @@ export { AttachmentException, DependencyException } from "./exceptions.js";
 export { QueryManager, QueryView } from "./query/index.js";
 export type { ReadonlyQueryView } from "./query/view.js";
 
-export type { Instances, Resourceable, SignalEventsMap } from "./types.js";
+export type {
+    EntityType,
+    ComponentType,
+    SystemType,
+    ResourceType,
+    Instances,
+    Resourceable,
+    SignalEventsMap
+
+} from "./types.js";

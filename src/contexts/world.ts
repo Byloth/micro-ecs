@@ -2,7 +2,6 @@ import { TimedPromise } from "@byloth/core";
 import type {
     Callback,
     CallbackMap,
-    Constructor,
     InternalsEventsMap,
     PromiseResolver,
     Publisher,
@@ -10,10 +9,10 @@ import type {
 
 } from "@byloth/core";
 
-import type System from "../system.js";
 import type Resource from "../resource.js";
+import type System from "../system.js";
+import type { Resourceable, ResourceType, SignalEventsMap } from "../types.js";
 import type World from "../world.js";
-import type { Resourceable, SignalEventsMap } from "../types.js";
 
 type P = SignalEventsMap & InternalsEventsMap;
 type S = P & WildcardEventsMap;
@@ -98,9 +97,9 @@ export default class WorldContext<T extends CallbackMap<T> = { }>
         this._publisher.unsubscribe(event, callback);
     }
 
-    public useResource<R extends System>(type: Constructor<R>): Resourceable<R>;
-    public useResource<R extends Resource>(type: Constructor<R>): R;
-    public useResource(type: Constructor<Resource>): Resource
+    public useResource<R extends System>(type: ResourceType<R>): Resourceable<R>;
+    public useResource<R extends Resource>(type: ResourceType<R>): R;
+    public useResource(type: ResourceType): Resource
     {
         const dependency = this._world["_addDependency"](this._system, type);
         this._dependencies.add(dependency);
@@ -108,13 +107,13 @@ export default class WorldContext<T extends CallbackMap<T> = { }>
         return dependency;
     }
 
-    public releaseResource<R extends System>(type: Constructor<R>): void;
+    public releaseResource<R extends System>(type: ResourceType<R>): void;
     public releaseResource<R extends System>(service: R): void;
-    public releaseResource<R extends Resource>(type: Constructor<R>): void;
+    public releaseResource<R extends Resource>(type: ResourceType<R>): void;
     public releaseResource<R extends Resource>(resource: R): void;
-    public releaseResource(resource: Constructor<Resource> | Resource): void
+    public releaseResource(resource: ResourceType | Resource): void
     {
-        const type = (typeof resource === "function") ? resource : resource.constructor as Constructor<Resource>;
+        const type = (typeof resource === "function") ? resource : resource.constructor as ResourceType;
 
         const dependency = this._world["_removeDependency"](this._system, type);
         this._dependencies.delete(dependency);

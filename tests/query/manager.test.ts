@@ -1,7 +1,7 @@
-import type { Constructor } from "@byloth/core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Component, Entity, World } from "../../src/index.js";
+import type { ComponentType } from "../../src/index.js";
 
 class TestComponent1 extends Component { }
 class TestComponent2 extends Component { }
@@ -16,7 +16,7 @@ describe("QueryManager", () =>
     {
         _world = new World();
 
-        const definitions: [[Constructor<Component>, boolean][], boolean][] = [
+        const definitions: [[ComponentType, boolean][], boolean][] = [
             [[[TestComponent3, false], [TestComponent1, true]], true],
             [[[TestComponent2, true], [TestComponent1, true]], true],
             [[[TestComponent1, true], [TestComponent3, true]], true],

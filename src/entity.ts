@@ -1,10 +1,10 @@
 import { ReferenceException, RuntimeException } from "@byloth/core";
-import type { Constructor } from "@byloth/core";
 
 import type Component from "./component.js";
 import EntityContext from "./contexts/entity.js";
 import { AttachmentException, DependencyException } from "./exceptions.js";
 import Resource from "./resource.js";
+import type { ComponentType } from "./types.js";
 import type World from "./world.js";
 
 export default class Entity<W extends World = World> extends Resource<W>
@@ -17,8 +17,8 @@ export default class Entity<W extends World = World> extends Resource<W>
     private _isEnabled: boolean;
     public get isEnabled(): boolean { return this._isEnabled; }
 
-    private readonly _components: Map<Constructor<Component>, Component>;
-    public get components(): ReadonlyMap<Constructor<Component>, Component> { return this._components; }
+    private readonly _components: Map<ComponentType, Component>;
+    public get components(): ReadonlyMap<ComponentType, Component> { return this._components; }
 
     private readonly _contexts: Map<Component, EntityContext>;
     private readonly _dependencies: Map<Component, Set<Component>>;
@@ -52,7 +52,7 @@ export default class Entity<W extends World = World> extends Resource<W>
         this._dependencies = new Map();
     }
 
-    private _addDependency(component: Component, type: Constructor<Component>): Component
+    private _addDependency(component: Component, type: ComponentType): Component
     {
         const dependency = this._components.get(type);
         if ((import.meta.env.DEV) && !(dependency))
@@ -74,7 +74,7 @@ export default class Entity<W extends World = World> extends Resource<W>
 
         return dependency!;
     }
-    private _removeDependency(component: Component, type: Constructor<Component>): Component
+    private _removeDependency(component: Component, type: ComponentType): Component
     {
         const dependency = this._components.get(type)!;
         const dependants = this._dependencies.get(dependency);
@@ -103,7 +103,7 @@ export default class Entity<W extends World = World> extends Resource<W>
 
     public addComponent<C extends Component>(component: C): C
     {
-        const type = component.constructor as Constructor<Component>;
+        const type = component.constructor as ComponentType;
         if ((import.meta.env.DEV) && (this._components.has(type)))
         {
             throw new ReferenceException("The component already exists in the entity.");
@@ -129,7 +129,7 @@ export default class Entity<W extends World = World> extends Resource<W>
         return component;
     }
 
-    public getComponent<C extends Component>(type: Constructor<C>): C
+    public getComponent<C extends Component>(type: ComponentType<C>): C
     {
         const component = this._components.get(type) as C | undefined;
         if ((import.meta.env.DEV) && !(component))
@@ -139,16 +139,16 @@ export default class Entity<W extends World = World> extends Resource<W>
 
         return component!;
     }
-    public hasComponent(type: Constructor<Component>): boolean
+    public hasComponent(type: ComponentType): boolean
     {
         return this._components.has(type);
     }
 
-    public removeComponent<C extends Component>(type: Constructor<C>): C;
+    public removeComponent<C extends Component>(type: ComponentType<C>): C;
     public removeComponent<C extends Component>(component: C): C;
-    public removeComponent<C extends Component>(component: Constructor<C> | C): C
+    public removeComponent<C extends Component>(component: ComponentType<C> | C): C
     {
-        const type = (typeof component === "function") ? component : component.constructor as Constructor<Component>;
+        const type = (typeof component === "function") ? component : component.constructor as ComponentType<C>;
 
         const _component = this._components.get(type) as C | undefined;
 
@@ -186,7 +186,7 @@ export default class Entity<W extends World = World> extends Resource<W>
         }
 
         if (_component!.isEnabled) { this._disableComponent(_component!); }
-        this._components.delete(_component!.constructor as Constructor<Component>);
+        this._components.delete(_component!.constructor as ComponentType);
 
         try
         {

@@ -1,37 +1,22 @@
 import { KeyException, SmartIterator, ValueException } from "@byloth/core";
-import type { CallbackMap, Constructor } from "@byloth/core";
+import type { CallbackMap } from "@byloth/core";
 
 import QueryView from "./view.js";
 import type { ReadonlyQueryView } from "./view.js";
 
 import type Entity from "../entity.js";
 import type Component from "../component.js";
-import type { Instances } from "../types.js";
+import type { ComponentType, Instances } from "../types.js";
 
-const _typeIds = new WeakMap<Constructor<Component>, number>();
-let _nextTypeId = 0;
-
-function _getTypeId(type: Constructor<Component>): number
-{
-    let id = _typeIds.get(type);
-    if (id === undefined)
-    {
-        id = (_nextTypeId += 1);
-
-        _typeIds.set(type, id);
-    }
-
-    return id;
-}
-function _getQueryKey(types: Constructor<Component>[]): string
+function _getQueryKey(types: ComponentType[]): string
 {
     const length = types.length;
-    if (length === 1) { return `${_getTypeId(types[0])}`; }
+    if (length === 1) { return `${types[0].Id}`; }
 
     const ids = new Array<number>(length);
     for (let i = 0; i < length; i += 1)
     {
-        ids[i] = _getTypeId(types[i]);
+        ids[i] = types[i].Id;
     }
 
     ids.sort((a, b) => (a - b));
@@ -58,12 +43,12 @@ function _unsetMaskBit(mask: number[], typeId: number): void
     mask[index] &= ~(bit);
 }
 
-function _createMask(types: Constructor<Component>[]): number[]
+function _createMask(types: ComponentType[]): number[]
 {
     const mask: number[] = [];
     for (const type of types)
     {
-        _setMaskBit(mask, _getTypeId(type));
+        _setMaskBit(mask, type.Id);
     }
 
     return mask;
@@ -84,8 +69,8 @@ function _matchMask(entityMask: number[], queryMask: number[]): boolean
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export default class QueryManager<T extends CallbackMap<T> = { }>
 {
-    private readonly _typeKeys: Map<Constructor<Component>, Set<string>>;
-    private readonly _keyTypes: Map<string, Constructor<Component>[]>;
+    private readonly _typeKeys: Map<ComponentType, Set<string>>;
+    private readonly _keyTypes: Map<string, ComponentType[]>;
 
     private readonly _queryMasks: Map<string, number[]>;
     private readonly _entityMasks: WeakMap<Entity, number[]>;
@@ -119,11 +104,10 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
 
     private _onEntityComponentEnable(entity: Entity, component: Component)
     {
-        const type = component.constructor as Constructor<Component>;
-        const typeId = _getTypeId(type);
+        const type = component.constructor as ComponentType;
 
         const entityMask = this._getEntityMask(entity);
-        _setMaskBit(entityMask, typeId);
+        _setMaskBit(entityMask, type.Id);
 
         const keys = this._typeKeys.get(type);
         if (!(keys)) { return; }
@@ -149,11 +133,10 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
     }
     private _onEntityComponentDisable(entity: Entity, component: Component)
     {
-        const type = component.constructor as Constructor<Component>;
-        const typeId = _getTypeId(type);
+        const type = component.constructor as ComponentType;
 
         const entityMask = this._entityMasks.get(entity);
-        if (entityMask) { _unsetMaskBit(entityMask, typeId); }
+        if (entityMask) { _unsetMaskBit(entityMask, type.Id); }
 
         const keys = this._typeKeys.get(type);
         if (!(keys)) { return; }
@@ -165,7 +148,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         }
     }
 
-    private _addComponentKeys(types: Constructor<Component>[], key: string): void
+    private _addComponentKeys(types: ComponentType[], key: string): void
     {
         for (const type of types)
         {
@@ -174,7 +157,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
             else { this._typeKeys.set(type, new Set([key])); }
         }
     }
-    private _addKeyComponents(key: string, types: Constructor<Component>[]): void
+    private _addKeyComponents(key: string, types: ComponentType[]): void
     {
         if ((import.meta.env.DEV) && (this._keyTypes.has(key)))
         {
@@ -184,11 +167,11 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         this._keyTypes.set(key, types);
     }
 
-    public pickOne<C extends Constructor<Component>, R extends InstanceType<C> = InstanceType<C>>(
+    public pickOne<C extends ComponentType, R extends InstanceType<C> = InstanceType<C>>(
         type: C
     ): R | undefined
     {
-        const key = `${_getTypeId(type)}`;
+        const key = `${type.Id}`;
         const view = this._views.get(key) as QueryView<[R]> | undefined;
         if (view) { return view.components[0][0]; }
 
@@ -203,7 +186,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         return undefined;
     }
 
-    public findFirst<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(
+    public findFirst<C extends ComponentType[], R extends Instances<C> = Instances<C>>(
         ...types: C
     ): R | undefined
     {
@@ -237,7 +220,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
 
         return undefined;
     }
-    public findAll<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(
+    public findAll<C extends ComponentType[], R extends Instances<C> = Instances<C>>(
         ...types: C
     ): SmartIterator<R>
     {
@@ -275,7 +258,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         });
     }
 
-    public getView<C extends Constructor<Component>[], R extends Instances<C> = Instances<C>>(
+    public getView<C extends ComponentType[], R extends Instances<C> = Instances<C>>(
         ...types: C
     ): ReadonlyQueryView<R>
     {

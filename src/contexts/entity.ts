@@ -1,7 +1,6 @@
-import type { Constructor } from "@byloth/core";
-
 import type Entity from "../entity.js";
 import type Component from "../component.js";
+import type { ComponentType } from "src/types.js";
 
 export default class EntityContext
 {
@@ -20,7 +19,7 @@ export default class EntityContext
         this._dependencies = new Set();
     }
 
-    public useComponent<C extends Component>(type: Constructor<C>): C
+    public useComponent<C extends Component>(type: ComponentType<C>): C
     {
         const dependency = this._entity["_addDependency"](this._component, type);
         this._dependencies.add(dependency);
@@ -28,11 +27,11 @@ export default class EntityContext
         return dependency as C;
     }
 
-    public releaseComponent<C extends Component>(type: Constructor<C>): void;
+    public releaseComponent<C extends Component>(type: ComponentType<C>): void;
     public releaseComponent<C extends Component>(component: C): void;
-    public releaseComponent<C extends Component>(component: Constructor<C> | C): void
+    public releaseComponent<C extends Component>(component: ComponentType<C> | C): void
     {
-        const type = (typeof component === "function") ? component : component.constructor as Constructor<Component>;
+        const type = (typeof component === "function") ? component : component.constructor as ComponentType;
 
         const dependency = this._entity["_removeDependency"](this._component, type);
         this._dependencies.delete(dependency);
