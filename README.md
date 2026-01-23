@@ -42,7 +42,7 @@ Using extra memory is acceptable if it yields performance benefits at runtime.
 - **Service** — A System that can be used as a Resource dependency
 - **QueryManager** — Efficient component queries with cached views
 - **QueryView** — Cached, auto-updating view of entities matching a query
-- **Contexts** — Dependency injection for Systems (WorldContext) and Components (EntityContext)
+- **Contexts** — Dependency injection for Systems (`WorldContext`) and Components (`EntityContext`)
 - **Events** — Built-in pub/sub system via `Publisher`
 
 ---
@@ -63,7 +63,7 @@ yarn add @byloth/micro-ecs @byloth/core
 bun add @byloth/micro-ecs @byloth/core
 ```
 
-> **Note:** This library requires `@byloth/core` as a peer dependency.
+> **Note:** This library requires [`@byloth/core`](https://www.npmjs.com/package/@byloth/core) as a peer dependency.
 
 ---
 
@@ -163,7 +163,7 @@ world.getComponentView(Position, Velocity);
 
 ### 🔴 Critical Implementations
 
-Essential features that are currently missing.
+Issues that block or compromise production usage.
 
 *Luckily, none at the moment.*
 
@@ -171,7 +171,7 @@ Essential features that are currently missing.
 
 ### 🟠 Known Bugs & Limitations
 
-Issues and constraints that need addressing.
+Known issues and current limitations to be aware of.
 
 *Inexplicably, none at the moment.*
 
@@ -197,9 +197,12 @@ Ideas and possible evolutions to evaluate based on needs.
 
   > ⚠️ Evaluate carefully: could complicate the API and go against the project's "DX-first" philosophy.
 
-- [ ] **Archetype-based architecture**
+- [ ] **Archetypes**
 
-  Implement an Archetype system within the query and component management to group entities by their component composition, improving iteration performance and cache locality.
+  Consider an archetype system to group entities with the same component "signature", optimizing queries.
+
+  > ⚠️ In a JavaScript context, the traditional benefits of archetypes (cache locality, contiguous memory) are not exploitable.  
+  > The cached View system already present in QueryManager covers part of these advantages. Actual utility to be evaluated.
 
 ---
 
