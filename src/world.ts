@@ -26,6 +26,7 @@ export default class World<T extends CallbackMap<T> = { }>
 
     private readonly _systems: Map<SystemType, System>;
     private readonly _enabledSystems: System[];
+    private readonly _enabledSystemsIndex: Map<System, number>; // O(1) lookup for disable
     public get systems(): ReadonlyMap<SystemType, System> { return this._systems; }
 
     private readonly _contexts: Map<System, WorldContext<CallbackMap>>;
@@ -56,6 +57,7 @@ export default class World<T extends CallbackMap<T> = { }>
 
         this._systems = new Map();
         this._enabledSystems = [];
+        this._enabledSystemsIndex = new Map();
 
         this._contexts = new Map();
         this._dependencies = new Map();
@@ -106,14 +108,28 @@ export default class World<T extends CallbackMap<T> = { }>
             else { left = middle + 1; }
         }
 
+        // Update indices for all systems after insertion point
+        for (let i = left; i < this._enabledSystems.length; i += 1)
+        {
+            this._enabledSystemsIndex.set(this._enabledSystems[i], i + 1);
+        }
+
         this._enabledSystems.splice(left, 0, system);
+        this._enabledSystemsIndex.set(system, left);
     }
     private _disableSystem(system: System): void
     {
-        const index = this._enabledSystems.indexOf(system);
-        if (index === -1) { return; }
+        const index = this._enabledSystemsIndex.get(system);
+        if (index === undefined) { return; }
 
         this._enabledSystems.splice(index, 1);
+        this._enabledSystemsIndex.delete(system);
+
+        // Update indices for all systems after removal point
+        for (let i = index; i < this._enabledSystems.length; i += 1)
+        {
+            this._enabledSystemsIndex.set(this._enabledSystems[i], i);
+        }
     }
 
     private _addDependency(system: System, type: ResourceType): Resource
@@ -528,6 +544,7 @@ export default class World<T extends CallbackMap<T> = { }>
 
         this._systems.clear();
         this._enabledSystems.length = 0;
+        this._enabledSystemsIndex.clear();
 
         try
         {
