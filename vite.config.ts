@@ -1,15 +1,31 @@
 import { fileURLToPath, URL } from "node:url";
 import { defineConfig } from "vite";
+import type { LibraryFormats } from "vite";
 
 export default defineConfig(({ mode }) =>
 {
+  const isBundler = (mode === "bundler");
   const isDev = (mode === "development");
-  const suffix = isDev ? "" : "prod.";
+  const isProd = (mode === "production");
+
+  let suffix: string;
+  if (isBundler) { suffix = "bundler."; }
+  else if (isProd) { suffix = "prod."; }
+  else { suffix = ""; }
+
+  const formats: LibraryFormats[] = [];
+  if (isBundler) { formats.push("es"); }
+  else
+  {
+    formats.push("cjs");
+
+    if (isProd) { formats.push("iife"); }
+  }
 
   return {
-    define: { "import.meta.env.DEV": JSON.stringify(isDev) },
+    define: { "import.meta.env.DEV": isBundler ? "import.meta.env.DEV" : JSON.stringify(isDev) },
     build: {
-      minify: !(isDev),
+      minify: isProd,
       lib: {
         entry: fileURLToPath(new URL("src/index.ts", import.meta.url)),
         fileName: (format) =>
@@ -21,7 +37,7 @@ export default defineConfig(({ mode }) =>
 
           throw new Error(`Unknown build format: ${format}`);
         },
-        formats: ["cjs", "es", "iife", "umd"],
+        formats: formats,
         name: "MicroECS"
       },
       rollupOptions: {
@@ -31,7 +47,7 @@ export default defineConfig(({ mode }) =>
           globals: { "@byloth/core": "Core" }
         }
       },
-      emptyOutDir: !(isDev)
+      emptyOutDir: isProd
     }
   };
 });

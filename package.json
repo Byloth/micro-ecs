@@ -1,6 +1,6 @@
 {
   "name": "@byloth/micro-ecs",
-  "version": "1.0.27",
+  "version": "1.0.28",
   "description": "A simple & lightweight ECS (Entity Component System) library for JavaScript and TypeScript. 🕹",
   "keywords": [
     "ECS",
@@ -31,7 +31,7 @@
     "src"
   ],
   "main": "index.js",
-  "module": "dist/micro-ecs.esm.prod.js",
+  "module": "dist/micro-ecs.esm.bundler.js",
   "types": "src/index.ts",
   "unpkg": "dist/micro-ecs.global.prod.js",
   "jsdelivr": "dist/micro-ecs.global.prod.js",
@@ -40,7 +40,7 @@
       "import": {
         "types": "./src/index.ts",
         "node": "./index.mjs",
-        "default": "./dist/micro-ecs.esm.prod.js"
+        "default": "./dist/micro-ecs.esm.bundler.js"
       },
       "require": {
         "types": "./src/index.ts",
@@ -55,7 +55,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build && vite build --mode development",
+    "build": "vite build && vite build --mode bundler && vite build --mode development",
     "preview": "vite preview",
     "typecheck": "tsc",
     "lint": "eslint .",
