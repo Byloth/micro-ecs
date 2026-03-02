@@ -66,6 +66,17 @@ function _matchMask(entityMask: number[], queryMask: number[]): boolean
     return true;
 }
 
+function _gatherComponents(entity: Entity, types: ComponentType[]): Component[]
+{
+    const components = new Array<Component>(types.length);
+    for (let i = 0; i < types.length; i += 1)
+    {
+        components[i] = entity.components.get(types[i])!;
+    }
+
+    return components;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export default class QueryManager<T extends CallbackMap<T> = { }>
 {
@@ -121,12 +132,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
             if (!(_matchMask(entityMask, queryMask))) { continue; }
 
             const types = this._keyTypes.get(key)!;
-            const length = types.length;
-            const components = new Array<Component>(length);
-            for (let i = 0; i < length; i += 1)
-            {
-                components[i] = entity.components.get(types[i])!;
-            }
+            const components = _gatherComponents(entity, types);
 
             view.set(entity, components);
         }
@@ -200,8 +206,6 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         if (view) { return view.components[0]; }
 
         const queryMask = _createMask(types);
-        const length = types.length;
-
         for (const entity of this._entities.values())
         {
             if (!(entity.isEnabled)) { continue; }
@@ -209,13 +213,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
             const entityMask = this._entityMasks.get(entity);
             if (!(entityMask) || !(_matchMask(entityMask, queryMask))) { continue; }
 
-            const components = new Array<Component>(length);
-            for (let i = 0; i < length; i += 1)
-            {
-                components[i] = entity.components.get(types[i])!;
-            }
-
-            return components as R;
+            return _gatherComponents(entity, types) as R;
         }
 
         return undefined;
@@ -236,7 +234,6 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         const entities = this._entities;
         const entityMasks = this._entityMasks;
         const queryMask = _createMask(types);
-        const length = types.length;
 
         return new SmartIterator(function* (): Generator<R>
         {
@@ -247,13 +244,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
                 const entityMask = entityMasks.get(entity);
                 if (!(entityMask) || !(_matchMask(entityMask, queryMask))) { continue; }
 
-                const components = new Array<Component>(length);
-                for (let i = 0; i < length; i += 1)
-                {
-                    components[i] = entity.components.get(types[i])!;
-                }
-
-                yield components as R;
+                yield _gatherComponents(entity, types) as R;
             }
         });
     }
@@ -272,7 +263,6 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         if (view) { return view; }
 
         const queryMask = _createMask(types);
-        const length = types.length;
         view = new QueryView<R>();
 
         for (const entity of this._entities.values())
@@ -282,13 +272,8 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
             const entityMask = this._entityMasks.get(entity);
             if (!(entityMask) || !(_matchMask(entityMask, queryMask))) { continue; }
 
-            const components = new Array<Component>(length);
-            for (let i = 0; i < length; i += 1)
-            {
-                components[i] = entity.components.get(types[i])!;
-            }
-
-            view.set(entity, components as R);
+            const components = _gatherComponents(entity, types) as R;
+            view.set(entity, components);
         }
 
         this._views.set(key, view);

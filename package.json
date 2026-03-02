@@ -61,22 +61,23 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "bench": "vitest bench",
     "prepare": "husky",
     "ci": "pnpm install --frozen-lockfile"
   },
   "peerDependencies": {
-    "@byloth/core": "^2.2.2"
+    "@byloth/core": "^2.2.4"
   },
   "devDependencies": {
     "@byloth/eslint-config-typescript": "^3.2.2",
-    "@eslint/compat": "^2.0.1",
-    "@types/node": "^22.19.5",
-    "@vitest/coverage-v8": "^4.0.16",
-    "eslint": "^9.39.2",
+    "@eslint/compat": "^2.0.2",
+    "@types/node": "^22.19.13",
+    "@vitest/coverage-v8": "^4.0.18",
+    "eslint": "^9.39.3",
     "husky": "^9.1.7",
     "jsdom": "^27.4.0",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
-    "vitest": "^4.0.16"
+    "vitest": "^4.0.18"
   }
 }
