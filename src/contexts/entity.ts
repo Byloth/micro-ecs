@@ -1,6 +1,6 @@
 import type Entity from "../entity.js";
 import type Component from "../component.js";
-import type { ComponentType } from "src/types.js";
+import type { ComponentType } from "../types.js";
 
 export default class EntityContext
 {
