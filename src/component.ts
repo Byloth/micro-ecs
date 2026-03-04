@@ -16,10 +16,10 @@ export default class Component<E extends Entity = Entity>
         return this["__μECS_typeId__"];
     }
 
-    private _isEnabled: boolean;
+    protected _isEnabled: boolean;
     public get isEnabled(): boolean { return this._isEnabled; }
 
-    private _entity: E | null;
+    protected _entity: E | null;
     public get entity(): E | null { return this._entity; }
 
     public constructor(enabled = true)

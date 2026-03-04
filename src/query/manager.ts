@@ -80,14 +80,14 @@ function _gatherComponents(entity: Entity, types: ComponentType[]): Component[]
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export default class QueryManager<T extends CallbackMap<T> = { }>
 {
-    private readonly _typeKeys: Map<ComponentType, Set<string>>;
-    private readonly _keyTypes: Map<string, ComponentType[]>;
+    protected readonly _typeKeys: Map<ComponentType, Set<string>>;
+    protected readonly _keyTypes: Map<string, ComponentType[]>;
 
-    private readonly _queryMasks: Map<string, number[]>;
-    private readonly _entityMasks: WeakMap<Entity, number[]>;
+    protected readonly _queryMasks: Map<string, number[]>;
+    protected readonly _entityMasks: WeakMap<Entity, number[]>;
 
-    private readonly _entities: ReadonlyMap<number, Entity>;
-    private readonly _views: Map<string, QueryView<Component[]>>;
+    protected readonly _entities: ReadonlyMap<number, Entity>;
+    protected readonly _views: Map<string, QueryView<Component[]>>;
 
     public constructor(entities: ReadonlyMap<number, Entity>)
     {
@@ -101,7 +101,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         this._views = new Map();
     }
 
-    private _getEntityMask(entity: Entity): number[]
+    protected _getEntityMask(entity: Entity): number[]
     {
         let mask = this._entityMasks.get(entity);
         if (!(mask))
@@ -113,7 +113,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         return mask;
     }
 
-    private _onEntityComponentEnable(entity: Entity, component: Component)
+    protected _onEntityComponentEnable(entity: Entity, component: Component)
     {
         const type = component.constructor as ComponentType;
 
@@ -137,7 +137,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
             view.set(entity, components);
         }
     }
-    private _onEntityComponentDisable(entity: Entity, component: Component)
+    protected _onEntityComponentDisable(entity: Entity, component: Component)
     {
         const type = component.constructor as ComponentType;
 
@@ -154,7 +154,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         }
     }
 
-    private _addComponentKeys(types: ComponentType[], key: string): void
+    protected _addComponentKeys(types: ComponentType[], key: string): void
     {
         for (const type of types)
         {
@@ -163,7 +163,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
             else { this._typeKeys.set(type, new Set([key])); }
         }
     }
-    private _addKeyComponents(key: string, types: ComponentType[]): void
+    protected _addKeyComponents(key: string, types: ComponentType[]): void
     {
         if ((import.meta.env.DEV) && (this._keyTypes.has(key)))
         {

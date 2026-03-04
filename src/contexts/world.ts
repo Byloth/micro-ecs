@@ -20,15 +20,15 @@ type S = P & WildcardEventsMap;
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export default class WorldContext<T extends CallbackMap<T> = { }>
 {
-    private get _world(): World { return this._system.world!; }
+    protected get _world(): World { return this._system.world!; }
 
-    private readonly _system: System;
-    private readonly _publisher: Publisher;
+    protected readonly _system: System;
+    protected readonly _publisher: Publisher;
 
-    private readonly _dependencies: Set<Resource>;
+    protected readonly _dependencies: Set<Resource>;
     public get dependencies(): ReadonlySet<Resource> { return this._dependencies; }
 
-    private _onDispose?: (context: WorldContext) => void;
+    protected _onDispose?: (context: WorldContext) => void;
 
     public constructor(system: System, publisher: Publisher)
     {

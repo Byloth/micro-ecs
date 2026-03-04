@@ -12,7 +12,7 @@ export default class System<W extends World = World> extends Resource<W>
 
     public readonly priority: number;
 
-    private _isEnabled: boolean;
+    protected _isEnabled: boolean;
     public get isEnabled(): boolean { return this._isEnabled; }
 
     public constructor(priority = 0, enabled = true)

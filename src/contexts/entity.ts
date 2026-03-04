@@ -4,14 +4,13 @@ import type { ComponentType } from "../types.js";
 
 export default class EntityContext
 {
-    private get _entity(): Entity { return this._component.entity!; }
+    protected get _entity(): Entity { return this._component.entity!; }
 
-    private readonly _component: Component;
-
-    private readonly _dependencies: Set<Component>;
+    protected readonly _component: Component;
+    protected readonly _dependencies: Set<Component>;
     public get dependencies(): ReadonlySet<Component> { return this._dependencies; }
 
-    private _onDispose?: (context: EntityContext) => void;
+    protected _onDispose?: (context: EntityContext) => void;
 
     public constructor(component: Component)
     {

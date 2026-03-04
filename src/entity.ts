@@ -14,16 +14,16 @@ export default class Entity<W extends World = World> extends Resource<W>
 
     public readonly id: number;
 
-    private _isEnabled: boolean;
+    protected _isEnabled: boolean;
     public get isEnabled(): boolean { return this._isEnabled; }
 
-    private readonly _components: Map<ComponentType, Component>;
+    protected readonly _components: Map<ComponentType, Component>;
     public get components(): ReadonlyMap<ComponentType, Component> { return this._components; }
 
-    private readonly _contexts: Map<Component, EntityContext>;
-    private readonly _dependencies: Map<Component, Set<Component>>;
+    protected readonly _contexts: Map<Component, EntityContext>;
+    protected readonly _dependencies: Map<Component, Set<Component>>;
 
-    private _onContextDispose = (context: EntityContext): void =>
+    protected readonly _onContextDispose = (context: EntityContext): void =>
     {
         const component = context["_component"];
 
@@ -52,7 +52,7 @@ export default class Entity<W extends World = World> extends Resource<W>
         this._dependencies = new Map();
     }
 
-    private _addDependency(component: Component, type: ComponentType): Component
+    protected _addDependency(component: Component, type: ComponentType): Component
     {
         const dependency = this._components.get(type);
         if ((import.meta.env.DEV) && !(dependency))
@@ -74,7 +74,7 @@ export default class Entity<W extends World = World> extends Resource<W>
 
         return dependency!;
     }
-    private _removeDependency(component: Component, type: ComponentType): Component
+    protected _removeDependency(component: Component, type: ComponentType): Component
     {
         const dependency = this._components.get(type)!;
         const dependants = this._dependencies.get(dependency);
@@ -88,13 +88,13 @@ export default class Entity<W extends World = World> extends Resource<W>
         return dependency;
     }
 
-    private _enableComponent(component: Component): void
+    protected _enableComponent(component: Component): void
     {
         if (!(this._isEnabled)) { return; }
 
         this.world?.["_enableEntityComponent"](this, component);
     }
-    private _disableComponent(component: Component): void
+    protected _disableComponent(component: Component): void
     {
         if (!(this._isEnabled)) { return; }
 

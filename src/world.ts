@@ -18,23 +18,23 @@ type P = SignalEventsMap & InternalsEventsMap;
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export default class World<T extends CallbackMap<T> = { }>
 {
-    private readonly _entities: Map<number, Entity>;
+    protected readonly _entities: Map<number, Entity>;
     public get entities(): ReadonlyMap<number, Entity> { return this._entities; }
 
-    private readonly _resources: Map<ResourceType, Resource>;
+    protected readonly _resources: Map<ResourceType, Resource>;
     public get resources(): ReadonlyMap<ResourceType, Resource> { return this._resources; }
 
-    private readonly _systems: Map<SystemType, System>;
-    private readonly _enabledSystems: System[];
+    protected readonly _systems: Map<SystemType, System>;
+    protected readonly _enabledSystems: System[];
     public get systems(): ReadonlyMap<SystemType, System> { return this._systems; }
 
-    private readonly _contexts: Map<System, WorldContext<CallbackMap>>;
-    private readonly _dependencies: Map<Resource, Set<System>>;
+    protected readonly _contexts: Map<System, WorldContext<CallbackMap>>;
+    protected readonly _dependencies: Map<Resource, Set<System>>;
 
-    private readonly _queryManager: QueryManager;
-    private readonly _publisher: Publisher;
+    protected readonly _queryManager: QueryManager;
+    protected readonly _publisher: Publisher;
 
-    private _onContextDispose = (context: WorldContext): void =>
+    protected readonly _onContextDispose = (context: WorldContext): void =>
     {
         const system = context["_system"];
 
@@ -64,7 +64,7 @@ export default class World<T extends CallbackMap<T> = { }>
         this._publisher = new Publisher();
     }
 
-    private _enableEntity(entity: Entity): void
+    protected _enableEntity(entity: Entity): void
     {
         for (const component of entity.components.values())
         {
@@ -73,7 +73,7 @@ export default class World<T extends CallbackMap<T> = { }>
             this._enableEntityComponent(entity, component);
         }
     }
-    private _disableEntity(entity: Entity): void
+    protected _disableEntity(entity: Entity): void
     {
         for (const component of entity.components.values())
         {
@@ -83,16 +83,16 @@ export default class World<T extends CallbackMap<T> = { }>
         }
     }
 
-    private _enableEntityComponent(entity: Entity, component: Component): void
+    protected _enableEntityComponent(entity: Entity, component: Component): void
     {
         this._queryManager["_onEntityComponentEnable"](entity, component);
     }
-    private _disableEntityComponent(entity: Entity, component: Component): void
+    protected _disableEntityComponent(entity: Entity, component: Component): void
     {
         this._queryManager["_onEntityComponentDisable"](entity, component);
     }
 
-    private _enableSystem(system: System): void
+    protected _enableSystem(system: System): void
     {
         let left = 0;
         let right = this._enabledSystems.length;
@@ -108,7 +108,7 @@ export default class World<T extends CallbackMap<T> = { }>
 
         this._enabledSystems.splice(left, 0, system);
     }
-    private _disableSystem(system: System): void
+    protected _disableSystem(system: System): void
     {
         const index = this._enabledSystems.indexOf(system);
         if (index === -1) { return; }
@@ -116,7 +116,7 @@ export default class World<T extends CallbackMap<T> = { }>
         this._enabledSystems.splice(index, 1);
     }
 
-    private _addDependency(system: System, type: ResourceType): Resource
+    protected _addDependency(system: System, type: ResourceType): Resource
     {
         const dependency = this._resources.get(type);
         if ((import.meta.env.DEV) && !(dependency))
@@ -138,7 +138,7 @@ export default class World<T extends CallbackMap<T> = { }>
 
         return dependency!;
     }
-    private _removeDependency(system: System, type: ResourceType): Resource
+    protected _removeDependency(system: System, type: ResourceType): Resource
     {
         const dependency = this._resources.get(type)!;
         const dependants = this._dependencies.get(dependency);
