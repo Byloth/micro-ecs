@@ -103,20 +103,19 @@ export default class QueryView<C extends Component[]> implements ReadonlyQueryVi
         if (index === undefined) { return false; }
 
         const components = this._components[index];
-        const lastIndex = this._components.length - 1;
 
-        if (index !== lastIndex)
+        const lastComponent = this._components.pop()!;
+        const lastEntity = this._entities.pop()!;
+
+        if (index < this._components.length)
         {
-            this._components[index] = this._components[lastIndex];
-            this._entities[index] = this._entities[lastIndex];
+            this._components[index] = lastComponent;
+            this._entities[index] = lastEntity;
 
-            this._indexes.set(this._entities[index], index);
+            this._indexes.set(lastEntity, index);
         }
 
-        this._components.pop();
-        this._entities.pop();
         this._indexes.delete(entity);
-
         this._publisher.publish("remove", entity, components);
 
         return true;
