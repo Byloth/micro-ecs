@@ -13,6 +13,7 @@ import ObjectPool from "./pool/object-pool.js";
 import { QueryManager } from "./query/index.js";
 import type { ReadonlyQueryView } from "./query/view.js";
 import type { ComponentType, EntityType, Instances, ResourceType, SignalEventsMap, SystemType } from "./types.js";
+import type { InitializeArgs } from "./pool/poolable.js";
 
 type P = SignalEventsMap & InternalsEventsMap;
 
@@ -170,8 +171,7 @@ export default class World<T extends CallbackMap<T> = { }>
         const pool = _getEntityPool(type ?? Entity);
         const entity = pool.acquire();
 
-        entity.initialize(...args as InitializeArgs<Entity>);
-        entity.onAttach(this);
+        entity.initialize(this, ...args as InitializeArgs<Entity>);
 
         this._entities.set(entity.id, entity);
 
@@ -193,16 +193,6 @@ export default class World<T extends CallbackMap<T> = { }>
 
         if (_entity!.isEnabled) { this._disableEntity(_entity!); }
         this._entities.delete(_entity!.id);
-
-        try { _entity!.onDetach(); }
-        catch (error)
-        {
-            if (import.meta.env.DEV)
-            {
-                // eslint-disable-next-line no-console
-                console.warn("An error occurred while detaching this entity from the world.\n\nSuppressed", error);
-            }
-        }
 
         try { _entity!.dispose(); }
         catch (error)
@@ -478,7 +468,7 @@ export default class World<T extends CallbackMap<T> = { }>
                 if (import.meta.env.DEV)
                 {
                     // eslint-disable-next-line no-console
-                    console.warn("An error occurred while disposing systems of the world.\n\nSuppressed", error);
+                    console.warn("An error occurred while disposing a system of the world.\n\nSuppressed", error);
                 }
             }
         }
@@ -498,7 +488,7 @@ export default class World<T extends CallbackMap<T> = { }>
                 if (import.meta.env.DEV)
                 {
                     // eslint-disable-next-line no-console
-                    console.warn("An error occurred while disposing resources of the world.\n\nSuppressed", error);
+                    console.warn("An error occurred while disposing a resource of the world.\n\nSuppressed", error);
                 }
             }
         }
@@ -507,17 +497,13 @@ export default class World<T extends CallbackMap<T> = { }>
 
         for (const entity of this._entities.values())
         {
-            try
-            {
-                entity.onDetach();
-                entity.dispose();
-            }
+            try { entity.dispose(); }
             catch (error)
             {
                 if (import.meta.env.DEV)
                 {
                     // eslint-disable-next-line no-console
-                    console.warn("An error occurred while disposing entities of the world.\n\nSuppressed", error);
+                    console.warn("An error occurred while disposing an entity of the world.\n\nSuppressed", error);
                 }
             }
             finally
@@ -537,7 +523,7 @@ export default class World<T extends CallbackMap<T> = { }>
                 if (import.meta.env.DEV)
                 {
                     // eslint-disable-next-line no-console
-                    console.warn("An error occurred while disposing contexts of the world.\n\nSuppressed", error);
+                    console.warn("An error occurred while disposing a context of the world.\n\nSuppressed", error);
                 }
             }
         }
