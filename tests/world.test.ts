@@ -2,13 +2,12 @@ import { ReferenceException } from "@byloth/core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+    DependencyException,
     Entity,
-    WorldContext,
+    Resource,
     System,
     World,
-    Resource,
-    DependencyException,
-    AttachmentException
+    WorldContext
 
 } from "../src/index.js";
 
@@ -29,7 +28,8 @@ describe("World", () =>
     {
         const entity = _world.addEntity(new Entity());
 
-        expect(() => _world.addEntity(entity)).toThrowError(ReferenceException);
+        expect(() => _world.addEntity(entity))
+            .toThrow(ReferenceException);
     });
 
     it("Should remove an entity from the world", () =>
@@ -44,7 +44,8 @@ describe("World", () =>
     {
         const entity = new Entity();
 
-        expect(() => _world.removeEntity(entity.id)).toThrowError(ReferenceException);
+        expect(() => _world.removeEntity(entity.id))
+            .toThrow(ReferenceException);
     });
 
     it("Should add a system to the world", () =>
@@ -95,7 +96,8 @@ describe("World", () =>
     {
         const system = new System();
 
-        expect(() => _world.removeSystem(system)).toThrowError(ReferenceException);
+        expect(() => _world.removeSystem(system))
+            .toThrow(ReferenceException);
     });
 
     it("Should call update on all enabled systems", () =>
@@ -277,7 +279,7 @@ describe("World", () =>
             context.useResource(TestResource);
 
             expect(() => context.useResource(TestResource))
-                .toThrowError(DependencyException);
+                .toThrow(DependencyException);
         });
         it("Should throw when trying to release a resource that isn't used in the context", () =>
         {
@@ -290,7 +292,7 @@ describe("World", () =>
             const context = _world.getContext(system);
 
             expect(() => context.releaseResource(TestResource))
-                .toThrowError(DependencyException);
+                .toThrow(DependencyException);
         });
 
         it("Should throw an error when defining a dependency for a resource not attached to the world", () =>
@@ -308,7 +310,7 @@ describe("World", () =>
             }
 
             expect(() => _world.addSystem(new TestSystem()))
-                .toThrowError(AttachmentException);
+                .toThrow(DependencyException);
         });
 
         it("Should block removing a resource that still has dependants", () =>
@@ -329,7 +331,7 @@ describe("World", () =>
             const system = _world.addSystem(new TestSystem());
 
             expect(() => _world.removeResource(resource))
-                .toThrowError(DependencyException);
+                .toThrow(DependencyException);
 
             _world.removeSystem(system);
             _world.removeResource(TestResource);
@@ -369,7 +371,8 @@ describe("World", () =>
             expect(_world["_contexts"].has(system)).toBe(false);
             expect(_world["_dependencies"].has(resource)).toBe(false);
 
-            expect(() => _world.removeResource(TestResource)).not.toThrowError();
+            expect(() => _world.removeResource(TestResource))
+                .not.toThrow();
         });
 
         it("Should clear resource dependencies when the system is removed", () =>
@@ -407,7 +410,8 @@ describe("World", () =>
             expect(_world["_contexts"].has(system)).toBe(false);
             expect(_world["_dependencies"].has(resource)).toBe(false);
 
-            expect(() => _world.removeResource(resource)).not.toThrowError();
+            expect(() => _world.removeResource(resource))
+                .not.toThrow();
         });
     });
 
@@ -441,7 +445,8 @@ describe("World", () =>
 
             _world.addResource(new TestService());
 
-            expect(() => _world.addService(new TestService())).toThrowError(ReferenceException);
+            expect(() => _world.addService(new TestService()))
+                .toThrow(ReferenceException);
         });
 
         it("Should throw an error if the service already exists as a system", () =>
@@ -450,7 +455,8 @@ describe("World", () =>
 
             _world.addSystem(new TestService());
 
-            expect(() => _world.addService(new TestService())).toThrowError(ReferenceException);
+            expect(() => _world.addService(new TestService()))
+                .toThrow(ReferenceException);
         });
 
         it("Should remove a service from the world (both resource and system)", () =>
@@ -485,7 +491,8 @@ describe("World", () =>
 
             _world.addResource(new TestService());
 
-            expect(() => _world.removeService(TestService)).toThrowError(ReferenceException);
+            expect(() => _world.removeService(TestService))
+                .toThrow(ReferenceException);
         });
         it("Should throw an error if the service doesn't exist as a resource", () =>
         {
@@ -493,7 +500,8 @@ describe("World", () =>
 
             _world.addSystem(new TestService());
 
-            expect(() => _world.removeService(TestService)).toThrowError(ReferenceException);
+            expect(() => _world.removeService(TestService))
+                .toThrow(ReferenceException);
         });
 
         it("Should call update on enabled services", () =>
@@ -564,7 +572,8 @@ describe("World", () =>
             expect(_world["_contexts"].has(service)).toBe(false);
             expect(_world["_dependencies"].has(resource)).toBe(false);
 
-            expect(() => _world.removeResource(resource)).not.toThrowError();
+            expect(() => _world.removeResource(resource))
+                .not.toThrow();
         });
 
         it("Should allow a service to be used as a dependency by other systems", () =>

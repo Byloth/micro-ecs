@@ -5,15 +5,15 @@ import type Entity from "./entity.js";
 export default class Component<E extends Entity = Entity>
 {
     // eslint-disable-next-line camelcase
-    private static __μECS_nextId__ = 0;
+    private static __μECS_NextId__ = 0;
 
     // eslint-disable-next-line camelcase
-    private static __μECS_typeId__ = 0;
+    private static __μECS_TypeId__ = 0;
 
     public static get Id(): number
     {
-        if (!(this["__μECS_typeId__"])) { this["__μECS_typeId__"] = Component["__μECS_nextId__"] += 1; }
-        return this["__μECS_typeId__"];
+        if (!(this["__μECS_TypeId__"])) { this["__μECS_TypeId__"] = Component["__μECS_NextId__"] += 1; }
+        return this["__μECS_TypeId__"];
     }
 
     protected _isEnabled: boolean;

@@ -1,7 +1,7 @@
+import { ReferenceException, RuntimeException } from "@byloth/core";
 import { describe, expect, it, vi } from "vitest";
 
-import { AttachmentException, Resource, World } from "../src/index.js";
-import { ReferenceException, RuntimeException } from "@byloth/core";
+import { Resource, World } from "../src/index.js";
 
 describe("Resource", () =>
 {
@@ -48,7 +48,8 @@ describe("Resource", () =>
         const world2 = new World();
         const resource = world1.addResource(new TestResource());
 
-        expect(() => world2.addResource(resource)).toThrowError(AttachmentException);
+        expect(() => world2.addResource(resource))
+            .toThrow(ReferenceException);
     });
 
     it("Should be detachable from a world", () =>
@@ -90,7 +91,9 @@ describe("Resource", () =>
 
         world.removeResource(TestResource);
 
-        expect(() => world.removeResource(resource)).toThrowError(ReferenceException);
+        expect(() => world.removeResource(resource))
+            .toThrow(ReferenceException);
+
         expect(_onDetach).toHaveBeenCalledTimes(1);
     });
 
@@ -110,7 +113,8 @@ describe("Resource", () =>
         const world = new World();
         const resource = world.addResource(new TestResource());
 
-        expect(() => resource.dispose()).toThrowError(RuntimeException);
+        expect(() => resource.dispose())
+            .toThrow(RuntimeException);
 
         world.removeResource(TestResource);
         resource.dispose();

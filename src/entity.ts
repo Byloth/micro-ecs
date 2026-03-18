@@ -2,17 +2,21 @@ import { ReferenceException, RuntimeException } from "@byloth/core";
 
 import type Component from "./component.js";
 import EntityContext from "./contexts/entity.js";
-import { AttachmentException, DependencyException } from "./exceptions.js";
-import Resource from "./resource.js";
+import { DependencyException } from "./exceptions.js";
 import type { ComponentType } from "./types.js";
 import type World from "./world.js";
+import type Poolable from "./pool/poolable.js";
 
-export default class Entity<W extends World = World> extends Resource<W>
+export default class Entity<W extends World = World> implements Poolable<W>
 {
     // eslint-disable-next-line camelcase
-    private static __μECS_nextId__ = 0;
+    private static __μECS_NextId__ = 0;
 
-    public readonly id: number;
+    protected _id: number;
+    public get id(): number { return this._id; }
+
+    protected _world: W | null;
+    public get world(): W | null { return this._world; }
 
     protected _isEnabled: boolean;
     public get isEnabled(): boolean { return this._isEnabled; }
@@ -38,13 +42,12 @@ export default class Entity<W extends World = World> extends Resource<W>
         this._contexts.delete(component);
     };
 
-    public constructor(enabled = true)
+    public constructor()
     {
-        super();
+        this._id = -1;
+        this._world = null;
 
-        this.id = (Entity["__μECS_nextId__"] += 1);
-
-        this._isEnabled = enabled;
+        this._isEnabled = false;
 
         this._components = new Map();
 
@@ -101,6 +104,19 @@ export default class Entity<W extends World = World> extends Resource<W>
         this.world?.["_disableEntityComponent"](this, component);
     }
 
+    public initialize(world: W, enabled = true, ...args: unknown[]): void
+    {
+        if ((import.meta.env.DEV) && (this._world))
+        {
+            throw new ReferenceException("The entity is already attached to a world.");
+        }
+
+        this._id = (Entity["__μECS_NextId__"] += 1);
+        this._world = world;
+
+        this._isEnabled = enabled;
+    }
+
     public addComponent<C extends Component>(component: C): C
     {
         const type = component.constructor as ComponentType;
@@ -109,19 +125,7 @@ export default class Entity<W extends World = World> extends Resource<W>
             throw new ReferenceException("The component already exists in the entity.");
         }
 
-        try
-        {
-            component.onAttach(this);
-        }
-        catch (error)
-        {
-            if (import.meta.env.DEV)
-            {
-                throw new AttachmentException("It wasn't possible to attach this component to the entity.", error);
-            }
-
-            throw error;
-        }
+        component.onAttach(this);
 
         this._components.set(type, component);
 
@@ -166,10 +170,7 @@ export default class Entity<W extends World = World> extends Resource<W>
         const context = this._contexts.get(_component!);
         if (context)
         {
-            try
-            {
-                context.dispose();
-            }
+            try { context.dispose(); }
             catch (error)
             {
                 if (import.meta.env.DEV)
@@ -188,10 +189,7 @@ export default class Entity<W extends World = World> extends Resource<W>
         if (_component!.isEnabled) { this._disableComponent(_component!); }
         this._components.delete(_component!.constructor as ComponentType);
 
-        try
-        {
-            _component!.onDetach();
-        }
+        try { _component!.onDetach(); }
         catch (error)
         {
             if (import.meta.env.DEV)
@@ -238,42 +236,47 @@ export default class Entity<W extends World = World> extends Resource<W>
         this.world?.["_disableEntity"](this);
     }
 
-    public override dispose(): void
+    public dispose(): void
     {
-        super.dispose();
-
-        try
+        if ((import.meta.env.DEV) && !(this._world))
         {
-            for (const component of this._components.values())
+            throw new ReferenceException("The entity isn't attached to any world.");
+        }
+
+        this._id = -1;
+        this._world = null;
+
+        this._isEnabled = false;
+
+        for (const component of this._components.values())
+        {
+            try
             {
                 component.onDetach();
                 component.dispose();
             }
-        }
-        catch (error)
-        {
-            if (import.meta.env.DEV)
+            catch (error)
             {
-                // eslint-disable-next-line no-console
-                console.warn("An error occurred while disposing components of the entity.\n\nSuppressed", error);
+                if (import.meta.env.DEV)
+                {
+                    // eslint-disable-next-line no-console
+                    console.warn("An error occurred while disposing components of the entity.\n\nSuppressed", error);
+                }
             }
         }
 
         this._components.clear();
 
-        try
+        for (const context of this._contexts.values())
         {
-            for (const context of this._contexts.values())
+            try { context.dispose(); }
+            catch (error)
             {
-                context.dispose();
-            }
-        }
-        catch (error)
-        {
-            if (import.meta.env.DEV)
-            {
-                // eslint-disable-next-line no-console
-                console.warn("An error occurred while disposing contexts of the entity.\n\nSuppressed", error);
+                if (import.meta.env.DEV)
+                {
+                    // eslint-disable-next-line no-console
+                    console.warn("An error occurred while disposing contexts of the entity.\n\nSuppressed", error);
+                }
             }
         }
 

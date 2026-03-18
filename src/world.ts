@@ -1,19 +1,32 @@
 import { Publisher, ReferenceException } from "@byloth/core";
 import type { CallbackMap, InternalsEventsMap, SmartIterator } from "@byloth/core";
 
-import type Entity from "./entity.js";
+import Entity from "./entity.js";
 import type Component from "./component.js";
 import type System from "./system.js";
 import type Resource from "./resource.js";
 
 import WorldContext from "./contexts/world.js";
-import { AttachmentException, DependencyException } from "./exceptions.js";
+import { DependencyException } from "./exceptions.js";
+import ObjectPool from "./pool/object-pool.js";
 
 import { QueryManager } from "./query/index.js";
 import type { ReadonlyQueryView } from "./query/view.js";
-import type { ComponentType, Instances, ResourceType, SignalEventsMap, SystemType } from "./types.js";
+import type { ComponentType, EntityType, Instances, ResourceType, SignalEventsMap, SystemType } from "./types.js";
 
 type P = SignalEventsMap & InternalsEventsMap;
+
+const _entityPools = new Map<EntityType, ObjectPool<Entity>>();
+const _getEntityPool = <E extends Entity>(type: EntityType<E>): ObjectPool<E> =>
+{
+    let pool = _entityPools.get(type) as ObjectPool<E> | undefined;
+    if (pool) { return pool; }
+
+    pool = new ObjectPool(() => new type());
+    _entityPools.set(type, pool);
+
+    return pool;
+};
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export default class World<T extends CallbackMap<T> = { }>
@@ -152,40 +165,27 @@ export default class World<T extends CallbackMap<T> = { }>
         return dependency;
     }
 
-    public addEntity<E extends Entity>(entity: E): E
+    public createEntity<E extends Entity>(type?: EntityType<E>, ...args: InitializeArgs<E>): E
     {
-        if ((import.meta.env.DEV) && (this._entities.has(entity.id)))
-        {
-            throw new ReferenceException("The entity already exists in the world.");
-        }
+        const pool = _getEntityPool(type ?? Entity);
+        const entity = pool.acquire();
 
-        try
-        {
-            entity.onAttach(this);
-        }
-        catch (error)
-        {
-            if (import.meta.env.DEV)
-            {
-                throw new AttachmentException("It wasn't possible to attach this entity to the world.", error);
-            }
-
-            throw error;
-        }
+        entity.initialize(...args as InitializeArgs<Entity>);
+        entity.onAttach(this);
 
         this._entities.set(entity.id, entity);
 
         if (entity.isEnabled) { this._enableEntity(entity); }
-        return entity;
+        return entity as E;
     }
 
-    public removeEntity<E extends Entity = Entity>(entityId: number): E;
-    public removeEntity<E extends Entity>(entity: E): E;
-    public removeEntity<E extends Entity>(entity: number | E): E
+    public destroyEntity(entityId: number): void;
+    public destroyEntity(entity: Entity): void;
+    public destroyEntity(entity: number | Entity): void
     {
         const entityId = (typeof entity === "number") ? entity : entity.id;
 
-        const _entity = this._entities.get(entityId) as E | undefined;
+        const _entity = this._entities.get(entityId);
         if ((import.meta.env.DEV) && !(_entity))
         {
             throw new ReferenceException("The entity doesn't exist in the world.");
@@ -194,10 +194,7 @@ export default class World<T extends CallbackMap<T> = { }>
         if (_entity!.isEnabled) { this._disableEntity(_entity!); }
         this._entities.delete(_entity!.id);
 
-        try
-        {
-            _entity!.onDetach();
-        }
+        try { _entity!.onDetach(); }
         catch (error)
         {
             if (import.meta.env.DEV)
@@ -207,7 +204,18 @@ export default class World<T extends CallbackMap<T> = { }>
             }
         }
 
-        return _entity!;
+        try { _entity!.dispose(); }
+        catch (error)
+        {
+            if (import.meta.env.DEV)
+            {
+                // eslint-disable-next-line no-console
+                console.warn("An error occurred while disposing this entity.\n\nSuppressed", error);
+            }
+        }
+
+        _getEntityPool(_entity!.constructor as EntityType)
+            .release(_entity!);
     }
 
     public getFirstComponent<C extends ComponentType, R extends InstanceType<C> = InstanceType<C>>(
@@ -245,19 +253,7 @@ export default class World<T extends CallbackMap<T> = { }>
             throw new ReferenceException("The resource already exists in the world.");
         }
 
-        try
-        {
-            resource.onAttach(this);
-        }
-        catch (error)
-        {
-            if (import.meta.env.DEV)
-            {
-                throw new AttachmentException("It wasn't possible to attach this resource to the world.", error);
-            }
-
-            throw error;
-        }
+        resource.onAttach(this);
 
         this._resources.set(type, resource);
 
@@ -285,10 +281,7 @@ export default class World<T extends CallbackMap<T> = { }>
 
         this._resources.delete(type);
 
-        try
-        {
-            _resource!.onDetach();
-        }
+        try { _resource!.onDetach(); }
         catch (error)
         {
             if (import.meta.env.DEV)
@@ -309,19 +302,7 @@ export default class World<T extends CallbackMap<T> = { }>
             throw new ReferenceException("The system already exists in the world.");
         }
 
-        try
-        {
-            system.onAttach(this);
-        }
-        catch (error)
-        {
-            if (import.meta.env.DEV)
-            {
-                throw new AttachmentException("It wasn't possible to attach this system to the world.", error);
-            }
-
-            throw error;
-        }
+        system.onAttach(this);
 
         this._systems.set(type, system);
         if (system.isEnabled) { this._enableSystem(system); }
@@ -344,10 +325,7 @@ export default class World<T extends CallbackMap<T> = { }>
         const context = this._contexts.get(_system!);
         if (context)
         {
-            try
-            {
-                context.dispose();
-            }
+            try { context.dispose(); }
             catch (error)
             {
                 if (import.meta.env.DEV)
@@ -363,10 +341,7 @@ export default class World<T extends CallbackMap<T> = { }>
         if (_system!.isEnabled) { this._disableSystem(_system!); }
         this._systems.delete(type);
 
-        try
-        {
-            _system!.onDetach();
-        }
+        try { _system!.onDetach(); }
         catch (error)
         {
             if (import.meta.env.DEV)
@@ -394,19 +369,7 @@ export default class World<T extends CallbackMap<T> = { }>
             }
         }
 
-        try
-        {
-            service.onAttach(this);
-        }
-        catch (error)
-        {
-            if (import.meta.env.DEV)
-            {
-                throw new AttachmentException("It wasn't possible to attach this service to the world.", error);
-            }
-
-            throw error;
-        }
+        service.onAttach(this);
 
         this._resources.set(type, service);
         this._systems.set(type, service);
@@ -439,10 +402,7 @@ export default class World<T extends CallbackMap<T> = { }>
         const context = this._contexts.get(_service!);
         if (context)
         {
-            try
-            {
-                context.dispose();
-            }
+            try { context.dispose(); }
             catch (error)
             {
                 if (import.meta.env.DEV)
@@ -460,10 +420,7 @@ export default class World<T extends CallbackMap<T> = { }>
         this._systems.delete(type);
         this._resources.delete(type);
 
-        try
-        {
-            _service!.onDetach();
-        }
+        try { _service!.onDetach(); }
         catch (error)
         {
             if (import.meta.env.DEV)
@@ -509,77 +466,79 @@ export default class World<T extends CallbackMap<T> = { }>
     {
         this._queryManager.dispose();
 
-        try
+        for (const system of this._systems.values())
         {
-            for (const system of this._systems.values())
+            try
             {
                 system.onDetach();
                 system.dispose();
             }
-        }
-        catch (error)
-        {
-            if (import.meta.env.DEV)
+            catch (error)
             {
-                // eslint-disable-next-line no-console
-                console.warn("An error occurred while disposing systems of the world.\n\nSuppressed", error);
+                if (import.meta.env.DEV)
+                {
+                    // eslint-disable-next-line no-console
+                    console.warn("An error occurred while disposing systems of the world.\n\nSuppressed", error);
+                }
             }
         }
 
         this._systems.clear();
         this._enabledSystems.length = 0;
 
-        try
+        for (const resource of this._resources.values())
         {
-            for (const resource of this._resources.values())
+            try
             {
                 resource.onDetach();
                 resource.dispose();
             }
-        }
-        catch (error)
-        {
-            if (import.meta.env.DEV)
+            catch (error)
             {
-                // eslint-disable-next-line no-console
-                console.warn("An error occurred while disposing resources of the world.\n\nSuppressed", error);
+                if (import.meta.env.DEV)
+                {
+                    // eslint-disable-next-line no-console
+                    console.warn("An error occurred while disposing resources of the world.\n\nSuppressed", error);
+                }
             }
         }
 
         this._resources.clear();
 
-        try
+        for (const entity of this._entities.values())
         {
-            for (const entity of this._entities.values())
+            try
             {
                 entity.onDetach();
                 entity.dispose();
             }
-        }
-        catch (error)
-        {
-            if (import.meta.env.DEV)
+            catch (error)
             {
-                // eslint-disable-next-line no-console
-                console.warn("An error occurred while disposing entities of the world.\n\nSuppressed", error);
+                if (import.meta.env.DEV)
+                {
+                    // eslint-disable-next-line no-console
+                    console.warn("An error occurred while disposing entities of the world.\n\nSuppressed", error);
+                }
+            }
+            finally
+            {
+                _getEntityPool(entity.constructor as EntityType)
+                    .release(entity);
             }
         }
 
         this._entities.clear();
 
-        try
+        for (const context of this._contexts.values())
         {
-            for (const context of this._contexts.values())
+            try { context.dispose(); }
+            catch (error)
             {
-                context.dispose();
-            }
-        }
-        catch (error)
-        {
-            if (import.meta.env.DEV)
-            {
-                // eslint-disable-next-line no-console
-                console.warn("An error occurred while disposing contexts of the world.\n\nSuppressed", error);
+                if (import.meta.env.DEV)
+                {
+                    // eslint-disable-next-line no-console
+                    console.warn("An error occurred while disposing contexts of the world.\n\nSuppressed", error);
+                }
             }
         }
 

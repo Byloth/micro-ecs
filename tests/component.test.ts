@@ -1,7 +1,7 @@
 import { ReferenceException, RuntimeException } from "@byloth/core";
 import { describe, expect, it, vi } from "vitest";
 
-import { AttachmentException, Component, Entity } from "../src/index.js";
+import { Component, Entity } from "../src/index.js";
 
 describe("Component", () =>
 {
@@ -47,7 +47,8 @@ describe("Component", () =>
         const entity2 = new Entity();
         const component = entity1.addComponent(new TestComponent());
 
-        expect(() => entity2.addComponent(component)).toThrowError(AttachmentException);
+        expect(() => entity2.addComponent(component))
+            .toThrow(ReferenceException);
     });
 
     it("Should be detachable from an entity", () =>
@@ -89,7 +90,9 @@ describe("Component", () =>
 
         entity.removeComponent(TestComponent);
 
-        expect(() => entity.removeComponent(component)).toThrowError(ReferenceException);
+        expect(() => entity.removeComponent(component))
+            .toThrow(ReferenceException);
+
         expect(_onDetach).toHaveBeenCalledTimes(1);
     });
 
@@ -109,7 +112,8 @@ describe("Component", () =>
         const entity = new Entity();
         const component = entity.addComponent(new TestComponent());
 
-        expect(() => component.dispose()).toThrowError(RuntimeException);
+        expect(() => component.dispose())
+            .toThrow(RuntimeException);
 
         entity.removeComponent(TestComponent);
         component.dispose();
