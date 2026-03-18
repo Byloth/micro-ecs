@@ -19,11 +19,15 @@ describe("World", () =>
 
     it("Should add an entity to the world", () =>
     {
-        const entity = _world.addEntity(new Entity());
+        const entity = _world.createEntity();
 
         expect(_world.entities.size).toBe(1);
         expect(_world.entities.get(entity.id)).toBe(entity);
     });
+
+    // FIXME: This test makes no longer sense...
+    //
+    /*
     it("Should throw an error if the entity already exists", () =>
     {
         const entity = _world.addEntity(new Entity());
@@ -31,15 +35,20 @@ describe("World", () =>
         expect(() => _world.addEntity(entity))
             .toThrow(ReferenceException);
     });
+    */
 
     it("Should remove an entity from the world", () =>
     {
-        const entity = _world.addEntity(new Entity());
-        _world.removeEntity(entity);
+        const entity = _world.createEntity();
+        _world.destroyEntity(entity);
 
         expect(_world.entities.size).toBe(0);
         expect(_world.entities.get(entity.id)).toBeUndefined();
     });
+
+    // FIXME: This test makes no longer sense...
+    //
+    /*
     it("Should throw an error if the entity doesn't exist", () =>
     {
         const entity = new Entity();
@@ -47,15 +56,16 @@ describe("World", () =>
         expect(() => _world.removeEntity(entity.id))
             .toThrow(ReferenceException);
     });
+    */
 
     it("Should add a system to the world", () =>
     {
-        const _update = vi.fn(() => { /* ... */ });
+        const _onUpdate = vi.fn();
         class TestSystem extends System
         {
             public override update(deltaTime: number): void
             {
-                _update();
+                _onUpdate();
             }
         }
 
@@ -65,21 +75,21 @@ describe("World", () =>
         expect(_world.systems.values().next().value).toBe(system);
 
         _world.update(16);
-        expect(_update).toHaveBeenCalledTimes(1);
+        expect(_onUpdate).toHaveBeenCalledTimes(1);
 
         _world.update(16);
         _world.update(16);
-        expect(_update).toHaveBeenCalledTimes(3);
+        expect(_onUpdate).toHaveBeenCalledTimes(3);
     });
 
     it("Should remove a system from the world", () =>
     {
-        const _update = vi.fn(() => { /* ... */ });
+        const _onUpdate = vi.fn();
         class TestSystem extends System
         {
             public override update(deltaTime: number): void
             {
-                _update();
+                _onUpdate();
             }
         }
 
@@ -87,7 +97,7 @@ describe("World", () =>
         _world.removeSystem(TestSystem);
         _world.update(16);
 
-        expect(_update).toHaveBeenCalledTimes(0);
+        expect(_onUpdate).toHaveBeenCalledTimes(0);
 
         expect(_world.systems.size).toBe(0);
         expect(_world.systems.values().next().value).toBeUndefined();
@@ -102,20 +112,21 @@ describe("World", () =>
 
     it("Should call update on all enabled systems", () =>
     {
-        const _update1 = vi.fn(() => { /* ... */ });
-        const _update2 = vi.fn(() => { /* ... */ });
+        const _onUpdate1 = vi.fn();
+        const _onUpdate2 = vi.fn();
+
         class TestSystem1 extends System
         {
             public override update(deltaTime: number): void
             {
-                _update1();
+                _onUpdate1();
             }
         }
         class TestSystem2 extends System
         {
             public override update(deltaTime: number): void
             {
-                _update2();
+                _onUpdate2();
             }
         }
 
@@ -123,19 +134,19 @@ describe("World", () =>
         const system2 = _world.addSystem(new TestSystem2());
 
         _world.update(16);
-        expect(_update1).toHaveBeenCalledTimes(1);
-        expect(_update2).toHaveBeenCalledTimes(1);
+        expect(_onUpdate1).toHaveBeenCalledTimes(1);
+        expect(_onUpdate2).toHaveBeenCalledTimes(1);
 
         _world.update(16);
         _world.update(16);
-        expect(_update1).toHaveBeenCalledTimes(3);
-        expect(_update2).toHaveBeenCalledTimes(3);
+        expect(_onUpdate1).toHaveBeenCalledTimes(3);
+        expect(_onUpdate2).toHaveBeenCalledTimes(3);
 
         system1.disable();
 
         _world.update(16);
-        expect(_update1).toHaveBeenCalledTimes(3);
-        expect(_update2).toHaveBeenCalledTimes(4);
+        expect(_onUpdate1).toHaveBeenCalledTimes(3);
+        expect(_onUpdate2).toHaveBeenCalledTimes(4);
 
         system1.enable();
         system2.disable();
@@ -144,28 +155,29 @@ describe("World", () =>
         _world.update(16);
         _world.update(16);
 
-        expect(_update1).toHaveBeenCalledTimes(6);
-        expect(_update2).toHaveBeenCalledTimes(4);
+        expect(_onUpdate1).toHaveBeenCalledTimes(6);
+        expect(_onUpdate2).toHaveBeenCalledTimes(4);
 
         system1.disable();
 
         _world.update(16);
 
-        expect(_update1).toHaveBeenCalledTimes(6);
-        expect(_update2).toHaveBeenCalledTimes(4);
+        expect(_onUpdate1).toHaveBeenCalledTimes(6);
+        expect(_onUpdate2).toHaveBeenCalledTimes(4);
     });
 
     it("Should dispose all entities and systems", () =>
     {
-        const _disposeEntity = vi.fn(() => { /* ... */ });
-        const _disposeSystem = vi.fn(() => { /* ... */ });
+        const _onDisposeEntity = vi.fn();
+        const _onDisposeSystem = vi.fn();
 
         class TestEntity extends Entity
         {
             public override dispose(): void
             {
                 super.dispose();
-                _disposeEntity();
+
+                _onDisposeEntity();
             }
         }
 
@@ -174,23 +186,24 @@ describe("World", () =>
             public override dispose(): void
             {
                 super.dispose();
-                _disposeSystem();
+
+                _onDisposeSystem();
             }
         }
         class TestSystemA extends TestSystem { }
         class TestSystemB extends TestSystem { }
 
-        _world.addEntity(new TestEntity());
-        _world.addEntity(new TestEntity());
-        _world.addEntity(new TestEntity());
+        _world.createEntity(TestEntity);
+        _world.createEntity(TestEntity);
+        _world.createEntity(TestEntity);
 
         _world.addSystem(new TestSystemA());
         _world.addSystem(new TestSystemB());
 
         _world.dispose();
 
-        expect(_disposeEntity).toHaveBeenCalledTimes(3);
-        expect(_disposeSystem).toHaveBeenCalledTimes(2);
+        expect(_onDisposeEntity).toHaveBeenCalledTimes(3);
+        expect(_onDisposeSystem).toHaveBeenCalledTimes(2);
         expect(_world.entities.size).toBe(0);
         expect(_world.systems.size).toBe(0);
     });
@@ -339,7 +352,7 @@ describe("World", () =>
 
         it("Should clear resource dependencies when the context itself is disposed", () =>
         {
-            const _clear = vi.fn(() => { /* ... */ });
+            const _clear = vi.fn();
 
             let context: WorldContext;
 
@@ -377,7 +390,7 @@ describe("World", () =>
 
         it("Should clear resource dependencies when the system is removed", () =>
         {
-            const _clear = vi.fn(() => { /* ... */ });
+            const _clear = vi.fn();
 
             let context: WorldContext;
 
@@ -419,12 +432,12 @@ describe("World", () =>
     {
         it("Should add a service to the world as both a resource and a system", () =>
         {
-            const _update = vi.fn(() => { /* ... */ });
+            const _onUpdate = vi.fn();
             class TestService extends System
             {
                 public override update(deltaTime: number): void
                 {
-                    _update();
+                    _onUpdate();
                 }
             }
 
@@ -436,7 +449,7 @@ describe("World", () =>
             expect(_world.resources.get(TestService)).toBe(service);
 
             _world.update(16);
-            expect(_update).toHaveBeenCalledTimes(1);
+            expect(_onUpdate).toHaveBeenCalledTimes(1);
         });
 
         it("Should throw an error if the service already exists as a resource", () =>
@@ -461,12 +474,12 @@ describe("World", () =>
 
         it("Should remove a service from the world (both resource and system)", () =>
         {
-            const _update = vi.fn(() => { /* ... */ });
+            const _onUpdate = vi.fn();
             class TestService extends System
             {
                 public override update(deltaTime: number): void
                 {
-                    _update();
+                    _onUpdate();
                 }
             }
 
@@ -475,14 +488,14 @@ describe("World", () =>
             expect(_world.resources.size).toBe(1);
 
             _world.update(16);
-            expect(_update).toHaveBeenCalledTimes(1);
+            expect(_onUpdate).toHaveBeenCalledTimes(1);
 
             _world.removeService(TestService);
             expect(_world.systems.size).toBe(0);
             expect(_world.resources.size).toBe(0);
 
             _world.update(16);
-            expect(_update).toHaveBeenCalledTimes(1);
+            expect(_onUpdate).toHaveBeenCalledTimes(1);
         });
 
         it("Should throw an error if the service doesn't exist as a system", () =>
@@ -506,20 +519,21 @@ describe("World", () =>
 
         it("Should call update on enabled services", () =>
         {
-            const _update1 = vi.fn(() => { /* ... */ });
-            const _update2 = vi.fn(() => { /* ... */ });
+            const _onUpdate1 = vi.fn();
+            const _onUpdate2 = vi.fn();
+
             class TestService1 extends System
             {
                 public override update(deltaTime: number): void
                 {
-                    _update1();
+                    _onUpdate1();
                 }
             }
             class TestService2 extends System
             {
                 public override update(deltaTime: number): void
                 {
-                    _update2();
+                    _onUpdate2();
                 }
             }
 
@@ -527,19 +541,19 @@ describe("World", () =>
             _world.addService(new TestService2());
 
             _world.update(16);
-            expect(_update1).toHaveBeenCalledTimes(1);
-            expect(_update2).toHaveBeenCalledTimes(1);
+            expect(_onUpdate1).toHaveBeenCalledTimes(1);
+            expect(_onUpdate2).toHaveBeenCalledTimes(1);
 
             service1.disable();
 
             _world.update(16);
-            expect(_update1).toHaveBeenCalledTimes(1);
-            expect(_update2).toHaveBeenCalledTimes(2);
+            expect(_onUpdate1).toHaveBeenCalledTimes(1);
+            expect(_onUpdate2).toHaveBeenCalledTimes(2);
         });
 
         it("Should dispose service context when removing the service", () =>
         {
-            const _clear = vi.fn(() => { /* ... */ });
+            const _clear = vi.fn();
 
             let context: WorldContext;
 

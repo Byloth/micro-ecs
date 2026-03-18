@@ -16,19 +16,22 @@ describe("System", () =>
 
     it("Should enable / disable the system", () =>
     {
-        const _enable = vi.fn(() => { /* ... */ });
-        const _disable = vi.fn(() => { /* ... */ });
+        const _onEnable = vi.fn();
+        const _onDisable = vi.fn();
+
         class TestSystem extends System
         {
             public override enable(): void
             {
                 super.enable();
-                _enable();
+
+                _onEnable();
             }
             public override disable(): void
             {
                 super.disable();
-                _disable();
+
+                _onDisable();
             }
         }
 
@@ -37,26 +40,26 @@ describe("System", () =>
         expect(() => system.enable())
             .toThrow(RuntimeException);
 
-        expect(_enable).not.toHaveBeenCalled();
-        expect(_disable).not.toHaveBeenCalled();
+        expect(_onEnable).not.toHaveBeenCalled();
+        expect(_onDisable).not.toHaveBeenCalled();
 
         system.disable();
         expect(system.isEnabled).toBe(false);
         expect(() => system.disable())
             .toThrow(RuntimeException);
 
-        expect(_enable).toHaveBeenCalledTimes(0);
-        expect(_disable).toHaveBeenCalledTimes(1);
+        expect(_onEnable).toHaveBeenCalledTimes(0);
+        expect(_onDisable).toHaveBeenCalledTimes(1);
 
         system.enable();
         expect(system.isEnabled).toBe(true);
-        expect(_enable).toHaveBeenCalledTimes(1);
-        expect(_disable).toHaveBeenCalledTimes(1);
+        expect(_onEnable).toHaveBeenCalledTimes(1);
+        expect(_onDisable).toHaveBeenCalledTimes(1);
     });
 
     it("Should be attachable to a world", () =>
     {
-        const _onAttach = vi.fn(() => { /* ... */ });
+        const _onAttach = vi.fn();
         class TestSystem extends System
         {
             public override onAttach(world: World): void
@@ -75,7 +78,7 @@ describe("System", () =>
     });
     it("Should throw an error if attached to a world while already attached to another", () =>
     {
-        const _onAttach = vi.fn(() => { /* ... */ });
+        const _onAttach = vi.fn();
         class TestSystem extends System
         {
             public override onAttach(world: World): void
@@ -98,12 +101,13 @@ describe("System", () =>
 
     it("Should be detachable from a world", () =>
     {
-        const _onDetach = vi.fn(() => { /* ... */ });
+        const _onDetach = vi.fn();
         class TestSystem extends System
         {
             public override onDetach(): void
             {
                 super.onDetach();
+
                 _onDetach();
             }
         }
@@ -118,12 +122,13 @@ describe("System", () =>
     });
     it("Should throw an error if detached from a world while not attached to one", () =>
     {
-        const _onDetach = vi.fn(() => { /* ... */ });
+        const _onDetach = vi.fn();
         class TestSystem extends System
         {
             public override onDetach(): void
             {
                 super.onDetach();
+
                 _onDetach();
             }
         }
@@ -167,13 +172,14 @@ describe("System", () =>
 
     it("Should be disposable", () =>
     {
-        const _dispose = vi.fn(() => { /* ... */ });
+        const _onDispose = vi.fn();
         class TestSystem extends System
         {
             public override dispose(): void
             {
                 super.dispose();
-                _dispose();
+
+                _onDispose();
             }
         }
 
@@ -187,6 +193,6 @@ describe("System", () =>
         system.dispose();
 
         expect(system.world).toBeNull();
-        expect(_dispose).toHaveBeenCalledTimes(1);
+        expect(_onDispose).toHaveBeenCalledTimes(1);
     });
 });

@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { Random } from "@byloth/core";
 
-import { Component, Entity, World } from "../../src/index.js";
-import type { ComponentType } from "../../src/index.js";
+import { Component, World } from "../../src/index.js";
+import type { ComponentType, Entity } from "../../src/index.js";
 
 const NUM_ENTITIES = 1000;
 const NUM_COMPONENT_TYPES = 64;
@@ -15,13 +15,8 @@ const MAX_QUERY_SIZE = 5;
 const ComponentTypes: ComponentType[] = [];
 for (let i = 0; i < NUM_COMPONENT_TYPES; i += 1)
 {
-    const ComponentClass = class extends Component
-    {
-        public static readonly typeIndex = i;
-        public readonly typeIndex = i;
-    };
+    const ComponentClass = class extends Component { };
 
-    Object.defineProperty(ComponentClass, "name", { value: `DynamicComponent${i}` });
     ComponentTypes.push(ComponentClass);
 }
 
@@ -45,7 +40,8 @@ describe("Bitmask Stress Test", () =>
 
         for (let i = 0; i < NUM_ENTITIES; i += 1)
         {
-            const entity = new Entity();
+            const entity = _world.createEntity();
+
             const numComponents = Random.Integer(MIN_COMPONENTS_PER_ENTITY, MAX_COMPONENTS_PER_ENTITY + 1);
             const selectedTypes = randomSample(ComponentTypes, numComponents);
             const componentSet = new Set<ComponentType>();
@@ -56,7 +52,6 @@ describe("Bitmask Stress Test", () =>
                 componentSet.add(ComponentType);
             }
 
-            _world.addEntity(entity);
             _entities.push(entity);
             _entityComponentMap.set(entity, componentSet);
         }
@@ -210,14 +205,11 @@ describe("Bitmask Stress Test", () =>
 
     it("Should handle extreme case with all component types on single entity", () =>
     {
-        const superEntity = new Entity();
-
+        const superEntity = _world.createEntity();
         for (const ComponentType of ComponentTypes)
         {
             superEntity.addComponent(new ComponentType());
         }
-
-        _world.addEntity(superEntity);
 
         for (let i = 0; i < 20; i += 1)
         {
@@ -231,15 +223,13 @@ describe("Bitmask Stress Test", () =>
 
     it("Should correctly handle entity with components only from second chunk", () =>
     {
-        const secondChunkEntity = new Entity();
+        const secondChunkEntity = _world.createEntity();
         const secondChunkTypes = randomSample(ComponentTypes.slice(32, 64), 5);
 
         for (const ComponentType of secondChunkTypes)
         {
             secondChunkEntity.addComponent(new ComponentType());
         }
-
-        _world.addEntity(secondChunkEntity);
 
         const firstChunkTypes = randomSample(ComponentTypes.slice(0, 32), 2);
 
@@ -260,7 +250,8 @@ describe("Bitmask Stress Test", () =>
             const operation = Random.Integer(0, 3);
             if (operation === 0)
             {
-                const entity = new Entity();
+                const entity = _world.createEntity();
+
                 const numComponents = Random.Integer(MIN_COMPONENTS_PER_ENTITY, MAX_COMPONENTS_PER_ENTITY + 1);
                 const selectedTypes = randomSample(ComponentTypes, numComponents);
                 const componentSet = new Set<ComponentType>();
@@ -271,7 +262,6 @@ describe("Bitmask Stress Test", () =>
                     componentSet.add(ComponentType);
                 }
 
-                _world.addEntity(entity);
                 _entities.push(entity);
                 _entityComponentMap.set(entity, componentSet);
             }
@@ -280,7 +270,8 @@ describe("Bitmask Stress Test", () =>
                 const index = Random.Index(_entities);
                 const entity = _entities[index];
 
-                _world.removeEntity(entity);
+                _world.destroyEntity(entity);
+
                 _entities.splice(index, 1);
                 _entityComponentMap.delete(entity);
             }

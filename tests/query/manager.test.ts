@@ -28,19 +28,16 @@ describe("QueryManager", () =>
             [[[TestComponent1, false], [TestComponent3, false], [TestComponent2, false]], true]
         ];
 
-        let index = 0;
+        Object.defineProperty(Entity, "__μECS_NextId__", { value: 0, writable: true });
+
         for (const [components, entityEnabled] of definitions)
         {
-            const entity = new Entity(entityEnabled);
+            const entity = _world.createEntity(Entity, entityEnabled);
 
             for (const [C, componentEnabled] of components)
             {
                 entity.addComponent(new C(componentEnabled));
             }
-
-            Object.defineProperty(entity, "id", { value: (index += 1) });
-
-            _world.addEntity(entity);
         }
     });
 
@@ -160,13 +157,9 @@ describe("QueryManager", () =>
             expect(before[0][0].entity!.id).toBe(5);
             expect(before[1][0].entity!.id).toBe(7);
 
-            const entity = new Entity();
+            const entity = _world.createEntity();
             entity.addComponent(new TestComponent3());
             entity.addComponent(new TestComponent2());
-
-            Object.defineProperty(entity, "id", { value: 10 });
-
-            _world.addEntity(entity);
 
             const after = Array.from(view.components);
             expect(after.length).toBe(3);
@@ -219,8 +212,8 @@ describe("QueryManager", () =>
             const entity1 = before[0][0].entity!;
             const entity2 = before[1][0].entity!;
 
-            _world.removeEntity(entity1.id);
-            _world.removeEntity(entity2);
+            _world.destroyEntity(entity1.id);
+            _world.destroyEntity(entity2);
 
             const after = Array.from(view.components);
             expect(after.length).toBe(0);
@@ -234,16 +227,13 @@ describe("QueryManager", () =>
         const view = _world.getComponentView(TestComponent1, TestComponent2);
         view.onAdd(_onEntryAdd);
 
-        const entity1 = new Entity();
+        const entity1 = _world.createEntity();
         entity1.addComponent(new TestComponent1());
         entity1.addComponent(new TestComponent2());
 
-        const entity2 = new Entity();
+        const entity2 = _world.createEntity();
         entity2.addComponent(new TestComponent1());
         entity2.addComponent(new TestComponent2());
-
-        _world.addEntity(entity1);
-        _world.addEntity(entity2);
 
         expect(_onEntryAdd).toHaveBeenCalledTimes(2);
     });

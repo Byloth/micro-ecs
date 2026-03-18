@@ -13,7 +13,7 @@ describe("Component", () =>
 
     it("Should be attachable to an entity", () =>
     {
-        const _onAttach = vi.fn(() => { /* ... */ });
+        const _onAttach = vi.fn();
         class TestComponent extends Component
         {
             public override onAttach(entity: Entity): void
@@ -32,7 +32,7 @@ describe("Component", () =>
     });
     it("Should throw an error if attached to an entity while already attached to another", () =>
     {
-        const _onAttach = vi.fn(() => { /* ... */ });
+        const _onAttach = vi.fn();
         class TestComponent extends Component
         {
             public override onAttach(entity: Entity): void
@@ -53,7 +53,7 @@ describe("Component", () =>
 
     it("Should be detachable from an entity", () =>
     {
-        const _onDetach = vi.fn(() => { /* ... */ });
+        const _onDetach = vi.fn();
         class TestComponent extends Component
         {
             public override onDetach(): void
@@ -74,7 +74,7 @@ describe("Component", () =>
     });
     it("Should throw an error if detached from an entity while not attached to one", () =>
     {
-        const _onDetach = vi.fn(() => { /* ... */ });
+        const _onDetach = vi.fn();
         class TestComponent extends Component
         {
             public override onDetach(): void
@@ -98,14 +98,14 @@ describe("Component", () =>
 
     it("Should be disposable", () =>
     {
-        const _dispose = vi.fn(() => { /* ... */ });
+        const _onDispose = vi.fn();
         class TestComponent extends Component
         {
             public override dispose(): void
             {
                 super.dispose();
 
-                _dispose();
+                _onDispose();
             }
         }
 
@@ -119,6 +119,6 @@ describe("Component", () =>
         component.dispose();
 
         expect(component.entity).toBeNull();
-        expect(_dispose).toHaveBeenCalledTimes(1);
+        expect(_onDispose).toHaveBeenCalledTimes(1);
     });
 });

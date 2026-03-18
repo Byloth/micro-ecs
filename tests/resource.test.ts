@@ -13,7 +13,7 @@ describe("Resource", () =>
 
     it("Should be attachable to a world", () =>
     {
-        const _onAttach = vi.fn(() => { /* ... */ });
+        const _onAttach = vi.fn();
         class TestResource extends Resource
         {
             public override onAttach(world: World): void
@@ -33,7 +33,7 @@ describe("Resource", () =>
 
     it("Should throw an error if attached to a world while already attached to another", () =>
     {
-        const _onAttach = vi.fn(() => { /* ... */ });
+        const _onAttach = vi.fn();
         class TestResource extends Resource
         {
             public override onAttach(world: World): void
@@ -54,7 +54,7 @@ describe("Resource", () =>
 
     it("Should be detachable from a world", () =>
     {
-        const _onDetach = vi.fn(() => { /* ... */ });
+        const _onDetach = vi.fn();
         class TestResource extends Resource
         {
             public override onDetach(): void
@@ -75,7 +75,7 @@ describe("Resource", () =>
     });
     it("Should throw an error if detached from a world while not attached to one", () =>
     {
-        const _onDetach = vi.fn(() => { /* ... */ });
+        const _onDetach = vi.fn();
         class TestResource extends Resource
         {
             public override onDetach(): void
@@ -99,14 +99,14 @@ describe("Resource", () =>
 
     it("Should be disposable", () =>
     {
-        const _dispose = vi.fn(() => { /* ... */ });
+        const _onDispose = vi.fn();
         class TestResource extends Resource
         {
-            public override onDetach(): void
+            public override dispose(): void
             {
-                super.onDetach();
+                super.dispose();
 
-                _dispose();
+                _onDispose();
             }
         }
 
@@ -120,6 +120,6 @@ describe("Resource", () =>
         resource.dispose();
 
         expect(resource.world).toBeNull();
-        expect(_dispose).toHaveBeenCalledTimes(1);
+        expect(_onDispose).toHaveBeenCalledTimes(1);
     });
 });

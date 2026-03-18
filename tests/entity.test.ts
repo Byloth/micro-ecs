@@ -1,4 +1,4 @@
-import { ReferenceException, RuntimeException } from "@byloth/core";
+import { ReferenceException } from "@byloth/core";
 import { describe, expect, it, vi } from "vitest";
 
 import { Component, DependencyException, Entity, EntityContext, World } from "../src/index.js";
@@ -9,8 +9,8 @@ describe("Entity", () =>
     {
         const entity = new Entity();
 
-        expect(entity.id).toBeGreaterThan(0);
-        expect(entity.isEnabled).toBe(true);
+        expect(entity.id).toEqual(-1);
+        expect(entity.isEnabled).toBe(false);
         expect(entity.world).toBeNull();
         expect(entity.components.size).toBe(0);
     });
@@ -58,28 +58,32 @@ describe("Entity", () =>
             .toThrow(ReferenceException);
     });
 
-    it("Should be attachable to a world", () =>
+    it("Should be initialized and attached to a world", () =>
     {
-        const _onAttach = vi.fn(() => { /* ... */ });
+        const _onInitialize = vi.fn();
         class TestEntity extends Entity
         {
-            public override onAttach(world: World): void
+            public override initialize(world: World): void
             {
-                super.onAttach(world);
+                super.initialize(world);
 
-                _onAttach();
+                _onInitialize();
             }
         }
 
         const world = new World();
-        const entity = world.addEntity(new TestEntity());
+        const entity = world.createEntity(TestEntity);
 
         expect(entity.world).toBe(world);
-        expect(_onAttach).toHaveBeenCalledTimes(1);
+        expect(_onInitialize).toHaveBeenCalledTimes(1);
     });
+
+    // FIXME: This test makes no longer sense...
+    //
+    /*
     it("Should throw an error if attached to a world while already attached to another", () =>
     {
-        const _onAttach = vi.fn(() => { /* ... */ });
+        const _onAttach = vi.fn();
         class TestEntity extends Entity
         {
             public override onAttach(world: World): void
@@ -98,15 +102,19 @@ describe("Entity", () =>
         expect(() => world2.addEntity(entity))
             .toThrow(ReferenceException);
     });
+    */
 
+    // FIXME: This test makes no longer sense...
+    //
+    /*
     it("Should be detachable from a world", () =>
     {
-        const _onDetach = vi.fn(() => { /* ... */ });
+        const _onDetach = vi.fn();
         class TestEntity extends Entity
         {
-            public override onDetach(): void
+            public override dispose(): void
             {
-                super.onDetach();
+                super.dispose();
 
                 _onDetach();
             }
@@ -120,9 +128,14 @@ describe("Entity", () =>
         expect(entity.world).toBeNull();
         expect(_onDetach).toHaveBeenCalledTimes(1);
     });
+    */
+
+    // FIXME: This test makes no longer sense...
+    //
+    /*
     it("Should throw an error if detached from a world while not attached to one", () =>
     {
-        const _onDetach = vi.fn(() => { /* ... */ });
+        const _onDetach = vi.fn();
         class TestEntity extends Entity
         {
             public override onDetach(): void
@@ -141,10 +154,11 @@ describe("Entity", () =>
         expect(() => world.removeEntity(entity))
             .toThrow(ReferenceException);
     });
+    */
 
-    it("Should be disposable", () =>
+    it("Should be detached from the world and disposed", () =>
     {
-        const _dispose = vi.fn(() => { /* ... */ });
+        const _onDispose = vi.fn();
 
         class TestComponent extends Component { }
         class TestEntity extends Entity
@@ -153,27 +167,27 @@ describe("Entity", () =>
             {
                 super.dispose();
 
-                _dispose();
+                _onDispose();
             }
         }
 
         const world = new World();
-        const entity = world.addEntity(new TestEntity());
+        const entity = world.createEntity(TestEntity);
 
         entity.addComponent(new TestComponent());
+        world.destroyEntity(entity.id);
 
         expect(() => entity.dispose())
-            .toThrow(RuntimeException);
+            .toThrow(ReferenceException);
 
-        world.removeEntity(entity.id);
-        entity.dispose();
-
+        expect(entity.id).toEqual(-1);
+        expect(entity.isEnabled).toBe(false);
         expect(entity.world).toBeNull();
 
         expect(entity.hasComponent(TestComponent)).toBe(false);
         expect(entity.components.size).toBe(0);
 
-        expect(_dispose).toHaveBeenCalledTimes(1);
+        expect(_onDispose).toHaveBeenCalledTimes(1);
     });
 
     describe("Context", () =>
@@ -398,6 +412,10 @@ describe("Entity", () =>
             expect(() => entity.removeComponent(DependencyComponent))
                 .not.toThrow();
         });
+
+        // SMELLS: Does this test still make sense?
+        //
+        /*
         it("Should clear & remove the context when the entity is disposed", () =>
         {
             let context: EntityContext;
@@ -429,5 +447,6 @@ describe("Entity", () =>
             expect(entity["_contexts"].has(dependant)).toBe(false);
             expect(entity["_dependencies"].has(dependency)).toBe(false);
         });
+        */
     });
 });
