@@ -1,16 +1,19 @@
-import { ReferenceException, RuntimeException } from "@byloth/core";
 import { describe, expect, it, vi } from "vitest";
-
 import { Component, Entity } from "../src/index.js";
 
 describe("Component", () =>
 {
-    it("Should be initialized with a `null` entity", () =>
+    it("Should be initialized with default values", () =>
     {
         const component = new Component();
+
         expect(component.entity).toBeNull();
+        expect(component.isEnabled).toBe(false);
     });
 
+    // FIXME: This test makes no longer sense...
+    //
+    /*
     it("Should be attachable to an entity", () =>
     {
         const _onAttach = vi.fn();
@@ -30,6 +33,11 @@ describe("Component", () =>
         expect(component.entity).toBe(entity);
         expect(_onAttach).toHaveBeenCalledTimes(1);
     });
+    */
+
+    // FIXME: This test makes no longer sense...
+    //
+    /*
     it("Should throw an error if attached to an entity while already attached to another", () =>
     {
         const _onAttach = vi.fn();
@@ -50,7 +58,11 @@ describe("Component", () =>
         expect(() => entity2.addComponent(component))
             .toThrow(ReferenceException);
     });
+    */
 
+    // FIXME: This test makes no longer sense...
+    //
+    /*
     it("Should be detachable from an entity", () =>
     {
         const _onDetach = vi.fn();
@@ -72,6 +84,11 @@ describe("Component", () =>
         expect(component.entity).toBeNull();
         expect(_onDetach).toHaveBeenCalledTimes(1);
     });
+    */
+
+    // FIXME: This test makes no longer sense...
+    //
+    /*
     it("Should throw an error if detached from an entity while not attached to one", () =>
     {
         const _onDetach = vi.fn();
@@ -95,7 +112,11 @@ describe("Component", () =>
 
         expect(_onDetach).toHaveBeenCalledTimes(1);
     });
+    */
 
+    // FIXME: This test makes no longer sense...
+    //
+    /*
     it("Should be disposable", () =>
     {
         const _onDispose = vi.fn();
@@ -120,5 +141,47 @@ describe("Component", () =>
 
         expect(component.entity).toBeNull();
         expect(_onDispose).toHaveBeenCalledTimes(1);
+    });
+    */
+
+    it("Should be initialized and attached to an entity", () =>
+    {
+        const _onInitialize = vi.fn();
+        class TestComponent extends Component
+        {
+            public override initialize(entity: Entity): void
+            {
+                super.initialize(entity);
+
+                _onInitialize();
+            }
+        }
+
+        const entity = new Entity();
+        const component = entity.createComponent(TestComponent);
+
+        expect(component.entity).toBe(entity);
+        expect(_onInitialize).toHaveBeenCalledTimes(1);
+    });
+
+    it("Should be detached from the entity and disposed", () =>
+    {
+        const _onDispose = vi.fn();
+        class TestComponent extends Component
+        {
+            public override dispose(): void
+            {
+                super.dispose();
+
+                _onDispose();
+            }
+        }
+
+        const entity = new Entity();
+        entity.createComponent(TestComponent);
+        entity.destroyComponent(TestComponent);
+
+        expect(_onDispose).toHaveBeenCalledTimes(1);
+        expect(entity.hasComponent(TestComponent)).toBe(false);
     });
 });

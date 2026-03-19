@@ -12,49 +12,54 @@ describe("Entity", () =>
         expect(entity.id).toEqual(-1);
         expect(entity.isEnabled).toBe(false);
         expect(entity.world).toBeNull();
-        expect(entity.components.size).toBe(0);
+        expect(entity["_components"].size).toBe(0);
     });
 
-    it("Should be able to add and retrieve a component", () =>
+    it("Should be able to create and retrieve a component", () =>
     {
         class TestComponent extends Component { }
 
-        const entity = new Entity();
-        const component = entity.addComponent(new TestComponent());
+        const world = new World();
+        const entity = world.createEntity();
+        const component = entity.createComponent(TestComponent);
 
         expect(entity.hasComponent(TestComponent)).toBe(true);
         expect(entity.getComponent(TestComponent)).toBe(component);
-        expect(entity.components.size).toBe(1);
+        expect(entity["_components"].size).toBe(1);
     });
-    it("Should throw an error when adding a duplicate component", () =>
+    it("Should throw an error when creating a duplicate component", () =>
     {
         class TestComponent extends Component { }
 
-        const entity = new Entity();
-        const component = entity.addComponent(new TestComponent());
+        const world = new World();
+        const entity = world.createEntity();
+        entity.createComponent(TestComponent);
 
-        expect(() => entity.addComponent(component))
+        expect(() => entity.createComponent(TestComponent))
             .toThrow(ReferenceException);
     });
 
-    it("Should be able to remove a component", () =>
+    it("Should be able to destroy a component", () =>
     {
         class TestComponent extends Component { }
 
-        const entity = new Entity();
-        const component = entity.addComponent(new TestComponent());
+        const world = new World();
+        const entity = world.createEntity();
+        const component = entity.createComponent(TestComponent);
 
-        entity.removeComponent(component);
+        entity.destroyComponent(component);
 
         expect(entity.hasComponent(TestComponent)).toBe(false);
-        expect(entity.components.size).toBe(0);
+        expect(entity["_components"].size).toBe(0);
     });
-    it("Should throw an error when removing a non-existent component", () =>
+    it("Should throw an error when destroying a non-existent component", () =>
     {
         class TestComponent extends Component { }
 
-        const entity = new Entity();
-        expect(() => entity.removeComponent(TestComponent))
+        const world = new World();
+        const entity = world.createEntity();
+
+        expect(() => entity.destroyComponent(TestComponent))
             .toThrow(ReferenceException);
     });
 
@@ -174,7 +179,7 @@ describe("Entity", () =>
         const world = new World();
         const entity = world.createEntity(TestEntity);
 
-        entity.addComponent(new TestComponent());
+        entity.createComponent(TestComponent);
         world.destroyEntity(entity.id);
 
         expect(() => entity.dispose())
@@ -185,7 +190,7 @@ describe("Entity", () =>
         expect(entity.world).toBeNull();
 
         expect(entity.hasComponent(TestComponent)).toBe(false);
-        expect(entity.components.size).toBe(0);
+        expect(entity["_components"].size).toBe(0);
 
         expect(_onDispose).toHaveBeenCalledTimes(1);
     });
@@ -196,8 +201,9 @@ describe("Entity", () =>
         {
             class TestComponent extends Component { }
 
-            const entity = new Entity();
-            const component = entity.addComponent(new TestComponent());
+            const world = new World();
+            const entity = world.createEntity();
+            const component = entity.createComponent(TestComponent);
             const context = entity.getContext(component);
 
             expect(context).toBeInstanceOf(EntityContext);
@@ -206,8 +212,9 @@ describe("Entity", () =>
         {
             class TestComponent extends Component { }
 
-            const entity = new Entity();
-            const component = entity.addComponent(new TestComponent());
+            const world = new World();
+            const entity = world.createEntity();
+            const component = entity.createComponent(TestComponent);
 
             const context1 = entity.getContext(component);
             const context2 = entity.getContext(component);
@@ -220,9 +227,10 @@ describe("Entity", () =>
             class DependencyComponent extends Component { }
             class DependantComponent extends Component { }
 
-            const entity = new Entity();
-            const dependency = entity.addComponent(new DependencyComponent());
-            const dependant = entity.addComponent(new DependantComponent());
+            const world = new World();
+            const entity = world.createEntity();
+            const dependency = entity.createComponent(DependencyComponent);
+            const dependant = entity.createComponent(DependantComponent);
 
             const context = entity.getContext(dependant);
             const _dependency = context.useComponent(DependencyComponent);
@@ -243,10 +251,11 @@ describe("Entity", () =>
             class DependantComponent1 extends Component { }
             class DependantComponent2 extends Component { }
 
-            const entity = new Entity();
-            const dependency = entity.addComponent(new DependencyComponent());
-            const dependant1 = entity.addComponent(new DependantComponent1());
-            const dependant2 = entity.addComponent(new DependantComponent2());
+            const world = new World();
+            const entity = world.createEntity();
+            const dependency = entity.createComponent(DependencyComponent);
+            const dependant1 = entity.createComponent(DependantComponent1);
+            const dependant2 = entity.createComponent(DependantComponent2);
 
             const context1 = entity.getContext(dependant1);
             const context2 = entity.getContext(dependant2);
@@ -270,11 +279,12 @@ describe("Entity", () =>
             class DependencyComponent extends Component { }
             class DependantComponent extends Component { }
 
-            const entity = new Entity();
+            const world = new World();
+            const entity = world.createEntity();
 
-            entity.addComponent(new DependencyComponent());
+            entity.createComponent(DependencyComponent);
 
-            const dependant = entity.addComponent(new DependantComponent());
+            const dependant = entity.createComponent(DependantComponent);
             const context = entity.getContext(dependant);
 
             context.useComponent(DependencyComponent);
@@ -287,61 +297,64 @@ describe("Entity", () =>
             class DependencyComponent extends Component { }
             class DependantComponent extends Component { }
 
-            const entity = new Entity();
+            const world = new World();
+            const entity = world.createEntity();
 
-            entity.addComponent(new DependencyComponent());
+            entity.createComponent(DependencyComponent);
 
-            const dependant = entity.addComponent(new DependantComponent());
+            const dependant = entity.createComponent(DependantComponent);
             const context = entity.getContext(dependant);
 
             expect(() => context.releaseComponent(DependencyComponent))
                 .toThrow(DependencyException);
         });
 
-        it("Should throw an error when defining a dependency for a component not attached to the entity", () =>
+        it("Should throw an error when defining a dependency for a component not yet in the entity", () =>
         {
             class DependencyComponent extends Component { }
             class DependantComponent extends Component
             {
-                public override onAttach(entity: Entity): void
+                public override initialize(entity: Entity): void
                 {
-                    super.onAttach(entity);
+                    super.initialize(entity);
 
                     entity.getContext(this)
                         .useComponent(DependencyComponent);
                 }
             }
 
-            const entity = new Entity();
+            const world = new World();
+            const entity = world.createEntity();
 
-            expect(() => entity.addComponent(new DependantComponent()))
+            expect(() => entity.createComponent(DependantComponent))
                 .toThrow(DependencyException);
         });
 
-        it("Should block removing a dependency that still has dependants", () =>
+        it("Should block destroying a dependency that still has dependants", () =>
         {
             class DependencyComponent extends Component { }
             class DependantComponent extends Component
             {
-                public override onAttach(entity: Entity): void
+                public override initialize(entity: Entity): void
                 {
-                    super.onAttach(entity);
+                    super.initialize(entity);
 
                     entity.getContext(this)
                         .useComponent(DependencyComponent);
                 }
             }
 
-            const entity = new Entity();
+            const world = new World();
+            const entity = world.createEntity();
 
-            const dependency = entity.addComponent(new DependencyComponent());
-            const dependant = entity.addComponent(new DependantComponent());
+            const dependency = entity.createComponent(DependencyComponent);
+            const dependant = entity.createComponent(DependantComponent);
 
-            expect(() => entity.removeComponent(dependency))
+            expect(() => entity.destroyComponent(dependency))
                 .toThrow(DependencyException);
 
-            entity.removeComponent(dependant);
-            entity.removeComponent(DependencyComponent);
+            entity.destroyComponent(dependant);
+            entity.destroyComponent(DependencyComponent);
         });
 
         it("Should clear & remove the context when the context itself is disposed", () =>
@@ -351,18 +364,19 @@ describe("Entity", () =>
             class DependencyComponent extends Component { }
             class DependantComponent extends Component
             {
-                public override onAttach(entity: Entity): void
+                public override initialize(entity: Entity): void
                 {
-                    super.onAttach(entity);
+                    super.initialize(entity);
 
                     context = entity.getContext(this);
                     context.useComponent(DependencyComponent);
                 }
             }
 
-            const entity = new Entity();
-            const dependency = entity.addComponent(new DependencyComponent());
-            const dependant = entity.addComponent(new DependantComponent());
+            const world = new World();
+            const entity = world.createEntity();
+            const dependency = entity.createComponent(DependencyComponent);
+            const dependant = entity.createComponent(DependantComponent);
 
             expect(context!).toBeInstanceOf(EntityContext);
             expect(context!.dependencies.size).toBe(1);
@@ -375,41 +389,42 @@ describe("Entity", () =>
             expect(entity["_contexts"].has(dependant)).toBe(false);
             expect(entity["_dependencies"].has(dependency)).toBe(false);
 
-            expect(() => entity.removeComponent(dependency))
+            expect(() => entity.destroyComponent(dependency))
                 .not.toThrow();
         });
-        it("Should clear & remove the context when the component is removed", () =>
+        it("Should clear & remove the context when the component is destroyed", () =>
         {
             let context: EntityContext;
 
             class DependencyComponent extends Component { }
             class DependantComponent extends Component
             {
-                public override onAttach(entity: Entity): void
+                public override initialize(entity: Entity): void
                 {
-                    super.onAttach(entity);
+                    super.initialize(entity);
 
                     context = entity.getContext(this);
                     context.useComponent(DependencyComponent);
                 }
             }
 
-            const entity = new Entity();
-            const dependency = entity.addComponent(new DependencyComponent());
-            const dependant = entity.addComponent(new DependantComponent());
+            const world = new World();
+            const entity = world.createEntity();
+            const dependency = entity.createComponent(DependencyComponent);
+            const dependant = entity.createComponent(DependantComponent);
 
             expect(context!).toBeInstanceOf(EntityContext);
             expect(context!.dependencies.size).toBe(1);
             expect(entity["_contexts"].has(dependant)).toBe(true);
             expect(entity["_dependencies"].has(dependency)).toBe(true);
 
-            entity.removeComponent(dependant);
+            entity.destroyComponent(dependant);
 
             expect(context!.dependencies.size).toBe(0);
             expect(entity["_contexts"].has(dependant)).toBe(false);
             expect(entity["_dependencies"].has(dependency)).toBe(false);
 
-            expect(() => entity.removeComponent(DependencyComponent))
+            expect(() => entity.destroyComponent(DependencyComponent))
                 .not.toThrow();
         });
 

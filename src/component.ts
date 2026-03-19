@@ -1,8 +1,9 @@
 import { ReferenceException, RuntimeException } from "@byloth/core";
 
 import type Entity from "./entity.js";
+import type Poolable from "./pool/poolable.js";
 
-export default class Component<E extends Entity = Entity>
+export default class Component<E extends Entity = Entity> implements Poolable<E>
 {
     // eslint-disable-next-line camelcase
     private static __μECS_NextId__ = 0;
@@ -16,17 +17,16 @@ export default class Component<E extends Entity = Entity>
         return this["__μECS_TypeId__"];
     }
 
-    protected _isEnabled: boolean;
-    public get isEnabled(): boolean { return this._isEnabled; }
-
     protected _entity: E | null;
     public get entity(): E | null { return this._entity; }
 
-    public constructor(enabled = true)
-    {
-        this._isEnabled = enabled;
+    protected _isEnabled: boolean;
+    public get isEnabled(): boolean { return this._isEnabled; }
 
+    public constructor()
+    {
         this._entity = null;
+        this._isEnabled = false;
     }
 
     public enable(): void
@@ -50,7 +50,7 @@ export default class Component<E extends Entity = Entity>
         this._entity?.["_disableComponent"](this);
     }
 
-    public onAttach(entity: E): void
+    public initialize(entity: E, enabled = true, ...args: unknown[]): void
     {
         if ((import.meta.env.DEV) && (this._entity))
         {
@@ -58,8 +58,9 @@ export default class Component<E extends Entity = Entity>
         }
 
         this._entity = entity;
+        this._isEnabled = enabled;
     }
-    public onDetach(): void
+    public dispose(): void
     {
         if ((import.meta.env.DEV) && !(this._entity))
         {
@@ -67,13 +68,6 @@ export default class Component<E extends Entity = Entity>
         }
 
         this._entity = null;
-    }
-
-    public dispose(): void
-    {
-        if ((import.meta.env.DEV) && (this._entity))
-        {
-            throw new RuntimeException("The component must be detached from the entity before disposing it.");
-        }
+        this._isEnabled = false;
     }
 }

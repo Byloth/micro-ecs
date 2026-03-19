@@ -36,7 +36,8 @@ describe("QueryManager", () =>
 
             for (const [C, componentEnabled] of components)
             {
-                entity.addComponent(new C(componentEnabled));
+                const comp = entity.createComponent(C);
+                if (!componentEnabled) { comp.disable(); }
             }
         }
     });
@@ -76,8 +77,8 @@ describe("QueryManager", () =>
             expect(before[0][0].entity!.id).toBe(3);
             expect(before[1][0].entity!.id).toBe(5);
 
-            const entity = _world.entities.get(2)!;
-            entity.addComponent(new TestComponent3());
+            const entity = _world.getEntity(2);
+            entity.createComponent(TestComponent3);
 
             const after = Array.from(view.components);
             expect(after.length).toBe(3);
@@ -94,11 +95,11 @@ describe("QueryManager", () =>
             expect(before[0][0].entity!.id).toBe(3);
             expect(before[1][0].entity!.id).toBe(5);
 
-            const entity1 = _world.entities.get(1)!;
+            const entity1 = _world.getEntity(1);
             entity1.getComponent(TestComponent3)
                 .enable();
 
-            const entity2 = _world.entities.get(9)!;
+            const entity2 = _world.getEntity(9);
             entity2.getComponent(TestComponent1)
                 .enable();
 
@@ -138,7 +139,7 @@ describe("QueryManager", () =>
             expect(before[1][0].entity!.id).toBe(5);
 
             const { entity } = before[0][0];
-            entity!.removeComponent(TestComponent1);
+            entity!.destroyComponent(TestComponent1);
 
             const after = Array.from(view.components);
             expect(after.length).toBe(1);
@@ -158,8 +159,8 @@ describe("QueryManager", () =>
             expect(before[1][0].entity!.id).toBe(7);
 
             const entity = _world.createEntity();
-            entity.addComponent(new TestComponent3());
-            entity.addComponent(new TestComponent2());
+            entity.createComponent(TestComponent3);
+            entity.createComponent(TestComponent2);
 
             const after = Array.from(view.components);
             expect(after.length).toBe(3);
@@ -176,7 +177,7 @@ describe("QueryManager", () =>
             expect(before[0][0].entity!.id).toBe(5);
             expect(before[1][0].entity!.id).toBe(7);
 
-            _world.entities.get(6)!
+            _world.getEntity(6)
                 .enable();
 
             const after = Array.from(view.components);
@@ -228,12 +229,12 @@ describe("QueryManager", () =>
         view.onAdd(_onEntryAdd);
 
         const entity1 = _world.createEntity();
-        entity1.addComponent(new TestComponent1());
-        entity1.addComponent(new TestComponent2());
+        entity1.createComponent(TestComponent1);
+        entity1.createComponent(TestComponent2);
 
         const entity2 = _world.createEntity();
-        entity2.addComponent(new TestComponent1());
-        entity2.addComponent(new TestComponent2());
+        entity2.createComponent(TestComponent1);
+        entity2.createComponent(TestComponent2);
 
         expect(_onEntryAdd).toHaveBeenCalledTimes(2);
     });

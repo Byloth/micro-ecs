@@ -21,8 +21,8 @@ describe("World", () =>
     {
         const entity = _world.createEntity();
 
-        expect(_world.entities.size).toBe(1);
-        expect(_world.entities.get(entity.id)).toBe(entity);
+        expect(_world["_entities"].size).toBe(1);
+        expect(_world["_entities"].get(entity.id)).toBe(entity);
     });
 
     // FIXME: This test makes no longer sense...
@@ -42,8 +42,8 @@ describe("World", () =>
         const entity = _world.createEntity();
         _world.destroyEntity(entity);
 
-        expect(_world.entities.size).toBe(0);
-        expect(_world.entities.get(entity.id)).toBeUndefined();
+        expect(_world["_entities"].size).toBe(0);
+        expect(_world["_entities"].get(entity.id)).toBeUndefined();
     });
 
     // FIXME: This test makes no longer sense...
@@ -204,7 +204,7 @@ describe("World", () =>
 
         expect(_onDisposeEntity).toHaveBeenCalledTimes(3);
         expect(_onDisposeSystem).toHaveBeenCalledTimes(2);
-        expect(_world.entities.size).toBe(0);
+        expect(_world["_entities"].size).toBe(0);
         expect(_world.systems.size).toBe(0);
     });
 

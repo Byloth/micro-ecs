@@ -18,13 +18,13 @@ import type { InitializeArgs } from "./pool/poolable.js";
 type P = SignalEventsMap & InternalsEventsMap;
 
 const _entityPools = new Map<EntityType, ObjectPool<Entity>>();
-const _getEntityPool = <E extends Entity>(type: EntityType<E>): ObjectPool<E> =>
+const _getEntityPool = <E extends Entity>(Type: EntityType<E>): ObjectPool<E> =>
 {
-    let pool = _entityPools.get(type) as ObjectPool<E> | undefined;
+    let pool = _entityPools.get(Type) as ObjectPool<E> | undefined;
     if (pool) { return pool; }
 
-    pool = new ObjectPool(() => new type());
-    _entityPools.set(type, pool);
+    pool = new ObjectPool(() => new Type());
+    _entityPools.set(Type, pool);
 
     return pool;
 };
@@ -33,7 +33,6 @@ const _getEntityPool = <E extends Entity>(type: EntityType<E>): ObjectPool<E> =>
 export default class World<T extends CallbackMap<T> = { }>
 {
     protected readonly _entities: Map<number, Entity>;
-    public get entities(): ReadonlyMap<number, Entity> { return this._entities; }
 
     protected readonly _resources: Map<ResourceType, Resource>;
     public get resources(): ReadonlyMap<ResourceType, Resource> { return this._resources; }
@@ -80,7 +79,7 @@ export default class World<T extends CallbackMap<T> = { }>
 
     protected _enableEntity(entity: Entity): void
     {
-        for (const component of entity.components.values())
+        for (const component of entity["_components"].values())
         {
             if (!(component.isEnabled)) { continue; }
 
@@ -89,7 +88,7 @@ export default class World<T extends CallbackMap<T> = { }>
     }
     protected _disableEntity(entity: Entity): void
     {
-        for (const component of entity.components.values())
+        for (const component of entity["_components"].values())
         {
             if (!(component.isEnabled)) { continue; }
 
@@ -166,17 +165,29 @@ export default class World<T extends CallbackMap<T> = { }>
         return dependency;
     }
 
-    public createEntity<E extends Entity>(type?: EntityType<E>, ...args: InitializeArgs<E>): E
+    public createEntity<E extends Entity>(Type?: EntityType<E>, ...args: InitializeArgs<E>): E
     {
-        const pool = _getEntityPool(type ?? Entity);
-        const entity = pool.acquire();
+        const pool = _getEntityPool(Type ?? Entity);
+        const entity = pool.acquire() as E;
 
         entity.initialize(this, ...args as InitializeArgs<Entity>);
 
         this._entities.set(entity.id, entity);
 
         if (entity.isEnabled) { this._enableEntity(entity); }
-        return entity as E;
+        return entity;
+    }
+
+    public hasEntity(entityId: number): boolean { return this._entities.has(entityId); }
+    public getEntity<E extends Entity>(entityId: number): E
+    {
+        const entity = this._entities.get(entityId) as E | undefined;
+        if ((import.meta.env.DEV) && !(entity))
+        {
+            throw new ReferenceException("The entity doesn't exist in the world.");
+        }
+
+        return entity!;
     }
 
     public destroyEntity(entityId: number): void;
@@ -237,26 +248,26 @@ export default class World<T extends CallbackMap<T> = { }>
 
     public addResource<R extends Resource>(resource: R): R
     {
-        const type = resource.constructor as ResourceType;
-        if ((import.meta.env.DEV) && (this._resources.has(type)))
+        const Type = resource.constructor as ResourceType;
+        if ((import.meta.env.DEV) && (this._resources.has(Type)))
         {
             throw new ReferenceException("The resource already exists in the world.");
         }
 
         resource.onAttach(this);
 
-        this._resources.set(type, resource);
+        this._resources.set(Type, resource);
 
         return resource;
     }
 
-    public removeResource<R extends Resource>(type: ResourceType<R>): R;
+    public removeResource<R extends Resource>(Type: ResourceType<R>): R;
     public removeResource<R extends Resource>(resource: R): R;
     public removeResource<R extends Resource>(resource: ResourceType<R> | R): R
     {
-        const type = (typeof resource === "function") ? resource : resource.constructor as ResourceType;
+        const Type = (typeof resource === "function") ? resource : resource.constructor as ResourceType;
 
-        const _resource = this._resources.get(type) as R | undefined;
+        const _resource = this._resources.get(Type) as R | undefined;
 
         if (import.meta.env.DEV)
         {
@@ -269,7 +280,7 @@ export default class World<T extends CallbackMap<T> = { }>
             }
         }
 
-        this._resources.delete(type);
+        this._resources.delete(Type);
 
         try { _resource!.onDetach(); }
         catch (error)
@@ -286,27 +297,27 @@ export default class World<T extends CallbackMap<T> = { }>
 
     public addSystem<S extends System>(system: S): S
     {
-        const type = system.constructor as SystemType;
-        if ((import.meta.env.DEV) && (this._systems.has(type)))
+        const Type = system.constructor as SystemType;
+        if ((import.meta.env.DEV) && (this._systems.has(Type)))
         {
             throw new ReferenceException("The system already exists in the world.");
         }
 
         system.onAttach(this);
 
-        this._systems.set(type, system);
+        this._systems.set(Type, system);
         if (system.isEnabled) { this._enableSystem(system); }
 
         return system;
     }
 
-    public removeSystem<S extends System>(type: SystemType<S>): S;
+    public removeSystem<S extends System>(Type: SystemType<S>): S;
     public removeSystem<S extends System>(system: S): S;
     public removeSystem<S extends System>(system: SystemType<S> | S): S
     {
-        const type = (typeof system === "function") ? system : system.constructor as SystemType;
+        const Type = (typeof system === "function") ? system : system.constructor as SystemType;
 
-        const _system = this._systems.get(type) as S | undefined;
+        const _system = this._systems.get(Type) as S | undefined;
         if ((import.meta.env.DEV) && !(_system))
         {
             throw new ReferenceException("The system doesn't exist in the world.");
@@ -329,7 +340,7 @@ export default class World<T extends CallbackMap<T> = { }>
         }
 
         if (_system!.isEnabled) { this._disableSystem(_system!); }
-        this._systems.delete(type);
+        this._systems.delete(Type);
 
         try { _system!.onDetach(); }
         catch (error)
@@ -346,14 +357,14 @@ export default class World<T extends CallbackMap<T> = { }>
 
     public addService<S extends System>(service: S): S
     {
-        const type = service.constructor as ResourceType & SystemType;
+        const Type = service.constructor as ResourceType & SystemType;
         if (import.meta.env.DEV)
         {
-            if (this._resources.has(type))
+            if (this._resources.has(Type))
             {
                 throw new ReferenceException("The service has already been added as a resource in the world.");
             }
-            if (this._systems.has(type))
+            if (this._systems.has(Type))
             {
                 throw new ReferenceException("The service has already been added as a system in the world.");
             }
@@ -361,29 +372,29 @@ export default class World<T extends CallbackMap<T> = { }>
 
         service.onAttach(this);
 
-        this._resources.set(type, service);
-        this._systems.set(type, service);
+        this._resources.set(Type, service);
+        this._systems.set(Type, service);
 
         if (service.isEnabled) { this._enableSystem(service); }
 
         return service;
     }
 
-    public removeService<S extends System>(type: SystemType<S>): S;
+    public removeService<S extends System>(Type: SystemType<S>): S;
     public removeService<S extends System>(service: S): S;
     public removeService<S extends System>(service: SystemType<S> | S): S
     {
-        const type = ((typeof service === "function") ? service : service.constructor) as
+        const Type = ((typeof service === "function") ? service : service.constructor) as
             ResourceType & SystemType;
 
-        const _service = this._systems.get(type) as S | undefined;
+        const _service = this._systems.get(Type) as S | undefined;
         if (import.meta.env.DEV)
         {
             if (!(_service))
             {
                 throw new ReferenceException("The service doesn't exist in the world as a system.");
             }
-            if (!(this._resources.has(type)))
+            if (!(this._resources.has(Type)))
             {
                 throw new ReferenceException("The service doesn't exist in the world as a resource.");
             }
@@ -407,8 +418,8 @@ export default class World<T extends CallbackMap<T> = { }>
 
         if (_service!.isEnabled) { this._disableSystem(_service!); }
 
-        this._systems.delete(type);
-        this._resources.delete(type);
+        this._systems.delete(Type);
+        this._resources.delete(Type);
 
         try { _service!.onDetach(); }
         catch (error)

@@ -3,9 +3,23 @@ import { ReferenceException, RuntimeException } from "@byloth/core";
 import type Component from "./component.js";
 import EntityContext from "./contexts/entity.js";
 import { DependencyException } from "./exceptions.js";
+import ObjectPool from "./pool/object-pool.js";
+import type Poolable from "./pool/poolable.js";
+import type { InitializeArgs } from "./pool/poolable.js";
 import type { ComponentType } from "./types.js";
 import type World from "./world.js";
-import type Poolable from "./pool/poolable.js";
+
+const _componentPools = new Map<ComponentType, ObjectPool<Component>>();
+const _getComponentPool = <C extends Component>(Type: ComponentType<C>): ObjectPool<C> =>
+{
+    let pool = _componentPools.get(Type) as ObjectPool<C> | undefined;
+    if (pool) { return pool; }
+
+    pool = new ObjectPool(() => new Type());
+    _componentPools.set(Type, pool);
+
+    return pool;
+};
 
 export default class Entity<W extends World = World> implements Poolable<W>
 {
@@ -22,7 +36,6 @@ export default class Entity<W extends World = World> implements Poolable<W>
     public get isEnabled(): boolean { return this._isEnabled; }
 
     protected readonly _components: Map<ComponentType, Component>;
-    public get components(): ReadonlyMap<ComponentType, Component> { return this._components; }
 
     protected readonly _contexts: Map<Component, EntityContext>;
     protected readonly _dependencies: Map<Component, Set<Component>>;
@@ -55,9 +68,9 @@ export default class Entity<W extends World = World> implements Poolable<W>
         this._dependencies = new Map();
     }
 
-    protected _addDependency(component: Component, type: ComponentType): Component
+    protected _addDependency(component: Component, Type: ComponentType): Component
     {
-        const dependency = this._components.get(type);
+        const dependency = this._components.get(Type);
         if ((import.meta.env.DEV) && !(dependency))
         {
             throw new DependencyException("The dependency doesn't exist in the entity.");
@@ -77,9 +90,9 @@ export default class Entity<W extends World = World> implements Poolable<W>
 
         return dependency!;
     }
-    protected _removeDependency(component: Component, type: ComponentType): Component
+    protected _removeDependency(component: Component, Type: ComponentType): Component
     {
-        const dependency = this._components.get(type)!;
+        const dependency = this._components.get(Type)!;
         const dependants = this._dependencies.get(dependency);
         if ((import.meta.env.DEV) && !(dependants?.delete(component)))
         {
@@ -117,25 +130,28 @@ export default class Entity<W extends World = World> implements Poolable<W>
         this._isEnabled = enabled;
     }
 
-    public addComponent<C extends Component>(component: C): C
+    public createComponent<C extends Component>(Type: ComponentType<C>, ...args: InitializeArgs<C>): C
     {
-        const type = component.constructor as ComponentType;
-        if ((import.meta.env.DEV) && (this._components.has(type)))
+        if ((import.meta.env.DEV) && (this._components.has(Type)))
         {
             throw new ReferenceException("The component already exists in the entity.");
         }
 
-        component.onAttach(this);
+        const pool = _getComponentPool(Type);
+        const component = pool.acquire() as C;
 
-        this._components.set(type, component);
+        component.initialize(this, ...args as InitializeArgs<Component>);
+
+        this._components.set(Type, component);
 
         if (component.isEnabled) { this._enableComponent(component); }
         return component;
     }
 
-    public getComponent<C extends Component>(type: ComponentType<C>): C
+    public hasComponent(Type: ComponentType): boolean { return this._components.has(Type); }
+    public getComponent<C extends Component>(Type: ComponentType<C>): C
     {
-        const component = this._components.get(type) as C | undefined;
+        const component = this._components.get(Type) as C | undefined;
         if ((import.meta.env.DEV) && !(component))
         {
             throw new ReferenceException("The component doesn't exist in the entity.");
@@ -143,18 +159,14 @@ export default class Entity<W extends World = World> implements Poolable<W>
 
         return component!;
     }
-    public hasComponent(type: ComponentType): boolean
-    {
-        return this._components.has(type);
-    }
 
-    public removeComponent<C extends Component>(type: ComponentType<C>): C;
-    public removeComponent<C extends Component>(component: C): C;
-    public removeComponent<C extends Component>(component: ComponentType<C> | C): C
+    public destroyComponent<C extends Component>(Type: ComponentType<C>): void;
+    public destroyComponent<C extends Component>(component: C): void;
+    public destroyComponent<C extends Component>(component: ComponentType<C> | C): void
     {
-        const type = (typeof component === "function") ? component : component.constructor as ComponentType<C>;
+        const Type = (typeof component === "function") ? component : component.constructor as ComponentType<C>;
 
-        const _component = this._components.get(type) as C | undefined;
+        const _component = this._components.get(Type) as C | undefined;
 
         if (import.meta.env.DEV)
         {
@@ -187,19 +199,20 @@ export default class Entity<W extends World = World> implements Poolable<W>
         }
 
         if (_component!.isEnabled) { this._disableComponent(_component!); }
-        this._components.delete(_component!.constructor as ComponentType);
+        this._components.delete(Type);
 
-        try { _component!.onDetach(); }
+        try { _component!.dispose(); }
         catch (error)
         {
             if (import.meta.env.DEV)
             {
                 // eslint-disable-next-line no-console
-                console.warn("An error occurred while detaching this component from the entity.\n\nSuppressed", error);
+                console.warn("An error occurred while disposing this component.\n\nSuppressed", error);
             }
         }
 
-        return _component!;
+        _getComponentPool(_component!.constructor as ComponentType)
+            .release(_component!);
     }
 
     public getContext(component: Component): EntityContext
@@ -250,11 +263,7 @@ export default class Entity<W extends World = World> implements Poolable<W>
 
         for (const component of this._components.values())
         {
-            try
-            {
-                component.onDetach();
-                component.dispose();
-            }
+            try { component.dispose(); }
             catch (error)
             {
                 if (import.meta.env.DEV)
@@ -262,6 +271,11 @@ export default class Entity<W extends World = World> implements Poolable<W>
                     // eslint-disable-next-line no-console
                     console.warn("An error occurred while disposing components of the entity.\n\nSuppressed", error);
                 }
+            }
+            finally
+            {
+                _getComponentPool(component.constructor as ComponentType)
+                    .release(component);
             }
         }
 

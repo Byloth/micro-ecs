@@ -48,7 +48,7 @@ describe("Bitmask Stress Test", () =>
 
             for (const ComponentType of selectedTypes)
             {
-                entity.addComponent(new ComponentType());
+                entity.createComponent(ComponentType);
                 componentSet.add(ComponentType);
             }
 
@@ -91,7 +91,7 @@ describe("Bitmask Stress Test", () =>
             {
                 const components = _entityComponentMap.get(entity)!;
 
-                return queryTypes.every((type) => components.has(type));
+                return queryTypes.every((Type) => components.has(Type));
             });
 
             expect(view.size).toBe(expectedEntities.length);
@@ -115,7 +115,7 @@ describe("Bitmask Stress Test", () =>
         {
             const components = _entityComponentMap.get(entity)!;
 
-            return queryTypes.every((type) => components.has(type));
+            return queryTypes.every((Type) => components.has(Type));
         });
 
         expect(view.size).toBe(expectedEntities.length);
@@ -138,18 +138,18 @@ describe("Bitmask Stress Test", () =>
         {
             const components = _entityComponentMap.get(entity)!;
 
-            return !(queryTypes.every((type) => components.has(type)));
+            return !(queryTypes.every((Type) => components.has(Type)));
         });
 
         if (nonMatchingEntities.length === 0) { return; }
 
         const targetEntity = Random.Choice(nonMatchingEntities);
         const entityComponents = _entityComponentMap.get(targetEntity)!;
-        const missingTypes = queryTypes.filter((type) => !(entityComponents.has(type)));
+        const missingTypes = queryTypes.filter((Type) => !(entityComponents.has(Type)));
 
         for (const MissingType of missingTypes)
         {
-            targetEntity.addComponent(new MissingType());
+            targetEntity.createComponent(MissingType);
             entityComponents.add(MissingType);
         }
 
@@ -171,7 +171,7 @@ describe("Bitmask Stress Test", () =>
         const targetEntity = Random.Choice(matchingEntities);
         const componentToRemove = Random.Choice(queryTypes);
 
-        targetEntity.removeComponent(componentToRemove);
+        targetEntity.destroyComponent(componentToRemove);
         _entityComponentMap.get(targetEntity)!.delete(componentToRemove);
 
         expect(view.size).toBe(initialSize - 1);
@@ -208,7 +208,7 @@ describe("Bitmask Stress Test", () =>
         const superEntity = _world.createEntity();
         for (const ComponentType of ComponentTypes)
         {
-            superEntity.addComponent(new ComponentType());
+            superEntity.createComponent(ComponentType);
         }
 
         for (let i = 0; i < 20; i += 1)
@@ -228,7 +228,7 @@ describe("Bitmask Stress Test", () =>
 
         for (const ComponentType of secondChunkTypes)
         {
-            secondChunkEntity.addComponent(new ComponentType());
+            secondChunkEntity.createComponent(ComponentType);
         }
 
         const firstChunkTypes = randomSample(ComponentTypes.slice(0, 32), 2);
@@ -258,7 +258,7 @@ describe("Bitmask Stress Test", () =>
 
                 for (const ComponentType of selectedTypes)
                 {
-                    entity.addComponent(new ComponentType());
+                    entity.createComponent(ComponentType);
                     componentSet.add(ComponentType);
                 }
 
@@ -283,12 +283,12 @@ describe("Bitmask Stress Test", () =>
 
                 if (entityComponents.has(randomType))
                 {
-                    entity.removeComponent(randomType);
+                    entity.destroyComponent(randomType);
                     entityComponents.delete(randomType);
                 }
                 else
                 {
-                    entity.addComponent(new randomType());
+                    entity.createComponent(randomType);
                     entityComponents.add(randomType);
                 }
             }
@@ -298,7 +298,7 @@ describe("Bitmask Stress Test", () =>
         {
             const components = _entityComponentMap.get(entity)!;
 
-            return queryTypes.every((type) => components.has(type));
+            return queryTypes.every((Type) => components.has(Type));
         });
 
         expect(view.size).toBe(expectedEntities.length);
