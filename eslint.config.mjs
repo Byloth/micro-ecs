@@ -15,7 +15,7 @@ export default [includeIgnoreFile(gitignorePath), ...eslintTs, {
     "@typescript-eslint/unified-signatures": "off"
   }
 }, {
-  files: ["index.js", "index.mjs"],
+  files: ["packages/*/index.js", "packages/*/index.mjs"],
   rules: {
     "@stylistic/brace-style": ["error", "1tbs"],
     "@stylistic/quotes": ["error", "single"],

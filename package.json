@@ -1,83 +1,20 @@
 {
-  "name": "@byloth/micro-ecs",
-  "version": "1.0.30",
-  "description": "A simple & lightweight ECS (Entity Component System) library for JavaScript and TypeScript. 🕹",
-  "keywords": [
-    "ECS",
-    "Entity Component System",
-    "JavaScript",
-    "TypeScript",
-    "Library"
-  ],
-  "homepage": "https://github.com/Byloth/micro-ecs#readme",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Byloth/micro-ecs.git"
-  },
-  "bugs": {
-    "url": "https://github.com/Byloth/micro-ecs/issues"
-  },
-  "author": {
-    "name": "Matteo Bilotta",
-    "email": "me@byloth.dev",
-    "url": "https://www.byloth.dev/"
-  },
-  "license": "Apache-2.0",
+  "name": "micro-ecs-workspace",
+  "private": true,
   "type": "module",
-  "files": [
-    "index.js",
-    "index.mjs",
-    "dist",
-    "src"
-  ],
-  "main": "index.js",
-  "module": "dist/micro-ecs.esm.bundler.js",
-  "types": "src/index.ts",
-  "unpkg": "dist/micro-ecs.global.prod.js",
-  "jsdelivr": "dist/micro-ecs.global.prod.js",
-  "exports": {
-    ".": {
-      "import": {
-        "types": "./src/index.ts",
-        "node": "./index.mjs",
-        "default": "./dist/micro-ecs.esm.bundler.js"
-      },
-      "require": {
-        "types": "./src/index.ts",
-        "node": {
-          "production": "./dist/micro-ecs.prod.cjs",
-          "development": "./dist/micro-ecs.cjs",
-          "default": "./index.js"
-        },
-        "default": "./index.js"
-      }
-    }
-  },
   "scripts": {
-    "dev": "vite",
-    "build": "vite build && vite build --mode bundler && vite build --mode development",
-    "preview": "vite preview",
-    "typecheck": "tsc",
-    "lint": "eslint .",
-    "test": "vitest run",
-    "test:coverage": "vitest run --coverage",
-    "bench": "vitest bench",
+    "build": "pnpm -r run build",
+    "typecheck": "pnpm -r run typecheck",
+    "lint": "pnpm -r run lint",
+    "test": "pnpm -r run test",
     "prepare": "husky",
     "ci": "pnpm install --frozen-lockfile"
-  },
-  "peerDependencies": {
-    "@byloth/core": "^2.2.5"
   },
   "devDependencies": {
     "@byloth/eslint-config-typescript": "^3.2.2",
     "@eslint/compat": "^2.0.3",
-    "@types/node": "^22.19.15",
-    "@vitest/coverage-v8": "^4.1.0",
     "eslint": "^9.39.4",
     "husky": "^9.1.7",
-    "jsdom": "^28.1.0",
-    "typescript": "^5.9.3",
-    "vite": "^8.0.0",
-    "vitest": "^4.1.0"
+    "typescript": "^5.9.3"
   }
 }

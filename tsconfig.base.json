@@ -23,16 +23,6 @@
     "experimentalDecorators": true,
     "useDefineForClassFields": true,
     "allowSyntheticDefaultImports": true,
-    "forceConsistentCasingInFileNames": true,
-    "types": ["vite/client"],
-    "baseUrl": "."
-  },
-  "include": [
-    "src",
-    "tests"
-  ],
-  "exclude": [
-    "dist",
-    "node_modules"
-  ]
+    "forceConsistentCasingInFileNames": true
+  }
 }
