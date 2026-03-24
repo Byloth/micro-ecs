@@ -517,11 +517,9 @@ export default class World<T extends CallbackMap<T> = { }>
                     console.warn("An error occurred while disposing an entity of the world.\n\nSuppressed", error);
                 }
             }
-            finally
-            {
-                _getEntityPool(entity.constructor as EntityType)
-                    .release(entity);
-            }
+
+            _getEntityPool(entity.constructor as EntityType)
+                .release(entity);
         }
 
         this._entities.clear();

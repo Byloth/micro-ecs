@@ -272,11 +272,9 @@ export default class Entity<W extends World = World> implements Poolable<W>
                     console.warn("An error occurred while disposing components of the entity.\n\nSuppressed", error);
                 }
             }
-            finally
-            {
-                _getComponentPool(component.constructor as ComponentType)
-                    .release(component);
-            }
+
+            _getComponentPool(component.constructor as ComponentType)
+                .release(component);
         }
 
         this._components.clear();
