@@ -2,8 +2,6 @@ import { fileURLToPath, URL } from "node:url";
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 
-import { microECSDevToolsPlugin } from "./src/server/index.js";
-
 export default defineConfig(({ mode }) =>
 {
   if (mode === "client")
@@ -46,12 +44,9 @@ export default defineConfig(({ mode }) =>
     };
   }
 
-  // Default: Vue DevTools UI (dev server + app build).
+  // Default: Vue DevTools UI (dev server only — WS server is started by the host app's plugin).
   return {
-    plugins: [
-      vue(),
-      microECSDevToolsPlugin()
-    ],
+    plugins: [vue()],
     build: {
       outDir: "dist/app",
       emptyOutDir: true

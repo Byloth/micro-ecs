@@ -58,8 +58,8 @@ importers:
   packages/devtools:
     dependencies:
       '@byloth/micro-ecs':
-        specifier: workspace:^
-        version: link:../core
+        specifier: '>=1.0.0'
+        version: 1.0.30(@byloth/core@2.2.5)
       ws:
         specifier: ^8.18.0
         version: 8.20.0
@@ -207,6 +207,11 @@ packages:
 
   '@byloth/eslint-config@3.2.2':
     resolution: {integrity: sha512-E+XiksB3ZZeisIEVuyAXvuaNthCSHyWK0MljzAj+d382w2AO/Bojg5DC5K++lf60Sqsks/mCSl3Oc0A6lDz7iA==}
+
+  '@byloth/micro-ecs@1.0.30':
+    resolution: {integrity: sha512-bhJOBe7JlQ6g60chkJHgaqyBIHokXWZatOMgbuaGQGum+0aOZ7T4b/fmo05gGZEEyvI4WzNV/EhCMm7kJNQ0gg==}
+    peerDependencies:
+      '@byloth/core': ^2.2.4
 
   '@csstools/color-helpers@6.0.2':
     resolution: {integrity: sha512-LMGQLS9EuADloEFkcTBR3BwV/CGHV7zyDxVRtVDTwdI2Ca4it0CCVTT9wCkxSgokjE5Ho41hEPgb8OEUwoXr6Q==}
@@ -2360,6 +2365,10 @@ snapshots:
     transitivePeerDependencies:
       - jiti
       - supports-color
+
+  '@byloth/micro-ecs@1.0.30(@byloth/core@2.2.5)':
+    dependencies:
+      '@byloth/core': 2.2.5
 
   '@csstools/color-helpers@6.0.2': {}
 
