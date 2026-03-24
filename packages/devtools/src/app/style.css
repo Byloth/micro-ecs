@@ -1,0 +1,322 @@
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    --color-bg: #1a1a2e;
+    --color-surface: #16213e;
+    --color-surface-2: #0f3460;
+    --color-border: #2a2a4a;
+    --color-text: #e0e0f0;
+    --color-text-muted: #8888aa;
+    --color-accent: #7b68ee;
+    --color-enabled: #4ade80;
+    --color-disabled: #f87171;
+    --color-service: #fb923c;
+    --color-priority: #60a5fa;
+
+    font-family: "Consolas", "Monaco", "Courier New", monospace;
+    font-size: 13px;
+    color: var(--color-text);
+    background: var(--color-bg);
+}
+
+body {
+    min-height: 100vh;
+}
+
+/* ── Layout ─────────────────────────────────────────────── */
+
+.devtools {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.devtools-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.devtools-header h1 {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--color-accent);
+}
+
+.panels {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1px;
+    flex: 1;
+    background: var(--color-border);
+}
+
+/* ── Status badge ───────────────────────────────────────── */
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.status-badge--connected {
+    background: rgba(74, 222, 128, 0.15);
+    color: var(--color-enabled);
+}
+
+.status-badge--disconnected {
+    background: rgba(248, 113, 113, 0.15);
+    color: var(--color-disabled);
+}
+
+.status-badge__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.status-badge--connected .status-badge__dot {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+/* ── Panel ──────────────────────────────────────────────── */
+
+.panel {
+    background: var(--color-bg);
+    padding: 16px;
+    overflow-y: auto;
+}
+
+.panel__title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-text-muted);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.panel__count {
+    background: var(--color-surface-2);
+    color: var(--color-accent);
+    padding: 1px 6px;
+    border-radius: 9999px;
+    font-size: 11px;
+}
+
+.panel__list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    list-style: none;
+}
+
+.panel__empty {
+    color: var(--color-text-muted);
+    font-style: italic;
+    font-size: 12px;
+}
+
+/* ── Tags ───────────────────────────────────────────────── */
+
+.tag {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.tag--enabled {
+    background: rgba(74, 222, 128, 0.15);
+    color: var(--color-enabled);
+}
+
+.tag--disabled {
+    background: rgba(248, 113, 113, 0.15);
+    color: var(--color-disabled);
+}
+
+.tag--service {
+    background: rgba(251, 146, 60, 0.15);
+    color: var(--color-service);
+}
+
+.tag--priority {
+    background: rgba(96, 165, 250, 0.15);
+    color: var(--color-priority);
+}
+
+/* ── Entity ─────────────────────────────────────────────── */
+
+.entity {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    transition: border-color 0.15s;
+}
+
+.entity:hover {
+    border-color: var(--color-accent);
+}
+
+.entity--disabled {
+    opacity: 0.55;
+}
+
+.entity__header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+}
+
+.entity__id {
+    font-size: 10px;
+    color: var(--color-text-muted);
+    min-width: 28px;
+}
+
+.entity__name {
+    flex: 1;
+    font-weight: 600;
+    color: var(--color-accent);
+}
+
+.entity__components {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.entity__empty {
+    font-size: 11px;
+    color: var(--color-text-muted);
+    font-style: italic;
+}
+
+.component-tag {
+    display: inline-block;
+    padding: 2px 7px;
+    background: rgba(123, 104, 238, 0.2);
+    color: var(--color-accent);
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: default;
+}
+
+.component-tag--disabled {
+    background: rgba(123, 104, 238, 0.07);
+    color: var(--color-text-muted);
+    text-decoration: line-through;
+}
+
+/* ── System ─────────────────────────────────────────────── */
+
+.system {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 8px 10px;
+}
+
+.system--disabled {
+    opacity: 0.55;
+}
+
+.system__name {
+    flex: 1;
+    font-weight: 600;
+}
+
+.system__badges {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+/* ── Resource ───────────────────────────────────────────── */
+
+.resource {
+    display: flex;
+    align-items: center;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 8px 10px;
+}
+
+.resource__name {
+    font-weight: 600;
+}
+
+/* ── Waiting state ──────────────────────────────────────── */
+
+.waiting {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex: 1;
+    min-height: 60vh;
+    color: var(--color-text-muted);
+}
+
+.waiting__spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid var(--color-border);
+    border-top-color: var(--color-accent);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.waiting__hint {
+    font-size: 12px;
+}
+
+.waiting__hint code {
+    background: var(--color-surface);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--color-accent);
+}
