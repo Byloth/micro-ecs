@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) =>
         lib: {
           entry: fileURLToPath(new URL("src/index.ts", import.meta.url)),
           fileName: "micro-ecs-devtools",
-          formats: ["es", "cjs"],
+          formats: ["es", "iife"],
           name: "MicroECSDevTools"
         },
         outDir: "dist/client",
