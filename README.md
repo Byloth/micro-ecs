@@ -30,20 +30,9 @@ This means using recognizable patterns: ES6 classes, getters/setters, pub/sub ev
 - **Speed over Memory**: When trade-offs are necessary, execution speed is preferred over memory consumption.  
 Using extra memory is acceptable if it yields performance benefits at runtime.
 
----
+### Is it any good?
 
-## Features
-
-- **World** — Central container managing Entities, Systems, Resources, and Services
-- **Entity** — Container for Components, can be enabled/disabled
-- **Component** — Data attached to Entities, with independent enable/disable
-- **System** — Logic operating on entities/components, with priority-based execution
-- **Resource** — Singleton data shared across the world
-- **Service** — A System that can be used as a Resource dependency
-- **QueryManager** — Efficient component queries with cached views
-- **QueryView** — Cached, auto-updating view of entities matching a query
-- **Contexts** — Dependency injection for Systems (`WorldContext`) and Components (`EntityContext`)
-- **Events** — Built-in pub/sub system via `Publisher`
+Yes. <sup>[<a href="https://news.ycombinator.com/item?id=3067434">1</a>]</sup>
 
 ---
 
@@ -63,14 +52,15 @@ yarn add @byloth/micro-ecs @byloth/core
 bun add @byloth/micro-ecs @byloth/core
 ```
 
-> **Note:** This library requires [`@byloth/core`](https://www.npmjs.com/package/@byloth/core) as a peer dependency.
+> [!NOTE]
+> This library requires [`@byloth/core`](https://www.npmjs.com/package/@byloth/core) as a peer dependency.
 
 ---
 
 ## Quick Start
 
 ```typescript
-import { World, Entity, Component, System } from "@byloth/micro-ecs";
+import { World, Component, System } from "@byloth/micro-ecs";
 import type { ReadonlyQueryView } from "@byloth/micro-ecs";
 
 // Define Components
@@ -85,14 +75,15 @@ class Velocity extends Component {
 
 // Define a System
 class MovementSystem extends System {
-  private view?: ReadonlyQueryView<[Position, Velocity]>;
+  private _view!: ReadonlyQueryView<[Position, Velocity]>;
 
-  public override onAttach(world: World): void {
-    this.view = world.getComponentView(Position, Velocity);
+  public override initialize(world: World): void {
+    super.initialize(world);
+
+    this._view = world.getComponentView(Position, Velocity);
   }
   public override update(deltaTime: number): void {
-
-    for (const [position, velocity] of this.view!.components) {
+    for (const [position, velocity] of this._view.components) {
       position.x += velocity.vx * deltaTime;
       position.y += velocity.vy * deltaTime;
     }
@@ -102,60 +93,183 @@ class MovementSystem extends System {
 // Create the World
 const world = new World();
 
-// Add Systems and Entities
+// Add Systems
 world.addSystem(new MovementSystem());
 
-const entity = new Entity();
-entity.addComponent(new Position());
-entity.addComponent(new Velocity());
-world.addEntity(entity);
+// Create Entities and Components
+const entity = world.createEntity();
+entity.createComponent(Position);
+entity.createComponent(Velocity);
 
 // Game loop
-function gameLoop(deltaTime: number) {
+let _lastTime = performance.now();
+function gameLoop() {
+  const currentTime = performance.now();
+  const deltaTime = currentTime - _lastTime;
+
   world.update(deltaTime);
+
+  _lastTime = currentTime;
+
+  requestAnimationFrame(gameLoop);
 }
+
+requestAnimationFrame(gameLoop);
 ```
 
 ---
 
-## Architecture
+## Key Concepts
 
-### Core Classes
+### Lifecycle
 
-```
-Component   — Data attached to Entities (standalone class)
-Resource    — Singleton data, attachable to World
-├── Entity  — Container for Components
-└── System  — Logic with update(), priority, enable/disable
-```
+Every core class follows the `Poolable` pattern: the constructor creates the object in an empty state, `initialize()` activates it, and `dispose()` resets it.  
+Entities and Components are pooled automatically by the World.
 
-### QueryManager
+### World
 
-Efficiently queries entities by component types:
+The central container. Creates and destroys Entities, registers Systems and Resources, dispatches events, and drives the update loop.
 
 ```typescript
-// Get first component of type
-world.getFirstComponent(Position);
+const world = new World();
 
-// Get first entity with all component types
+// Entities
+const entity = world.createEntity();
+world.destroyEntity(entity);
+
+// Systems (priority order — lower runs first)
+world.addSystem(new PhysicsSystem());
+world.addSystem(new RenderSystem(10));
+world.removeSystem(PhysicsSystem);
+
+// Resources (singletons shared across the world)
+world.addResource(new GameConfig());
+world.removeResource(GameConfig);
+
+// Services (System + Resource in one)
+world.addService(new InputManager());
+world.removeService(InputManager);
+
+// Events
+world.emit("player:hit", entity, 10);
+
+// Update loop & cleanup
+world.update(deltaTime);
+world.dispose();
+```
+
+### Entity & Component
+
+Entities are containers for Components. Each entity can hold at most one instance of a given Component type.  
+Both can be enabled/disabled to show or hide them from queries.
+
+```typescript
+const entity = world.createEntity();
+
+const hp = entity.createComponent(Health, true, 200);
+entity.hasComponent(Health);  // true
+entity.getComponent(Health);  // Health
+entity.destroyComponent(Health);
+
+entity.disable();  // Hides from queries
+entity.enable();   // Visible again
+```
+
+Components accept custom parameters through `initialize()`:
+
+```typescript
+class Health extends Component {
+  public current = 100;
+  public max = 100;
+
+  public override initialize(entity: Entity, enabled?: boolean, maxHp?: number): void {
+    super.initialize(entity, enabled);
+
+    this.current = maxHp ?? 100;
+    this.max = maxHp ?? 100;
+  }
+}
+```
+
+### System
+
+Systems contain logic that runs every frame via `update()`.  
+They extend `Resource` and support priority-based execution order.
+
+```typescript
+class PhysicsSystem extends System {
+  public constructor() {
+    super(/* priority */ 0, /* enabled */ true);
+  }
+
+  public override initialize(world: World): void {
+    super.initialize(world);
+  }
+  public override update(deltaTime: number): void {
+    // Called every frame by world.update()
+  }
+  public override dispose(): void {
+    super.dispose();
+  }
+}
+```
+
+### Queries & Views
+
+The World exposes methods to query entities by component types.  
+`getComponentView()` returns a cached, auto-updating `ReadonlyQueryView`.
+
+```typescript
+// One-shot queries
+world.getFirstComponent(Position);
 world.getFirstComponents(Position, Velocity);
 
-// Iterate all matching entities
-world.findAllComponents(Position, Velocity);
+// Lazy iteration
+for (const [pos, vel] of world.findAllComponents(Position, Velocity)) { /* ... */ }
 
-// Get cached view that auto-updates
-world.getComponentView(Position, Velocity);
+// Cached view (preferred in Systems)
+const view = world.getComponentView(Position, Velocity);
+
+view.size;         // number
+view.has(entity);  // boolean
+view.get(entity);  // [Position, Velocity] | undefined
+
+for (const [position, velocity] of view.components) {
+  position.x += velocity.vx;
+}
+
+// React to changes
+view.onAdd((entity, components) => { /* ... */ });
+view.onRemove((entity, components) => { /* ... */ });
+view.onClear(() => { /* ... */ });
 ```
 
 ### Contexts
 
-**WorldContext** — Provided to Systems for:
-- Event subscription (`on`, `once`, `wait`, `off`)
-- Event emission (`emit`)
-- Resource dependency management (`useResource`, `releaseResource`)
+A **WorldContext** gives Systems access to events and resource dependencies.  
+An **EntityContext** lets Components declare dependencies on sibling Components.
 
-**EntityContext** — Provided to Components for:
-- Component dependency management (`useComponent`, `releaseComponent`)
+```typescript
+// WorldContext — obtained in System.initialize()
+const ctx = world.getContext(this);
+
+ctx.on("player:hit", handler);    // Subscribe
+ctx.once("game:start", handler);  // Subscribe once
+ctx.off("player:hit", handler);   // Unsubscribe
+await ctx.wait("player:hit");     // Async wait
+
+const config = ctx.useResource(GameConfig);  // Declare dependency
+ctx.releaseResource(GameConfig);             // Release dependency
+
+// EntityContext — obtained in Component.initialize()
+const ctx = entity.getContext(this);
+
+const pos = ctx.useComponent(Position);  // Require sibling
+ctx.releaseComponent(Position);          // Release dependency
+```
+
+> [!NOTE]
+> A component with active dependants cannot be destroyed until its dependants are removed first.
 
 ---
 
@@ -190,12 +304,6 @@ Optimizations and refinements that improve quality and performance.
 ### 🟢 Future Considerations
 
 Ideas and possible evolutions to evaluate based on needs.
-
-- [ ] **Object pooling**
-
-  Implement a pooling system for `Entity` and `Component` to reduce Garbage Collector pressure in scenarios with high creation/destruction frequency (e.g., particle systems, projectiles).
-
-  > ⚠️ Evaluate carefully: could complicate the API and go against the project's "DX-first" philosophy.
 
 - [ ] **Archetypes**
 
