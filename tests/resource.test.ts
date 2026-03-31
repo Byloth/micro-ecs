@@ -1,125 +1,77 @@
-import { ReferenceException, RuntimeException } from "@byloth/core";
+import { ReferenceException } from "@byloth/core";
 import { describe, expect, it, vi } from "vitest";
 
 import { Resource, World } from "../src/index.js";
 
 describe("Resource", () =>
 {
-    it("Should be initialized with a `null` world", () =>
+    describe("Initialization", () =>
     {
-        const resource = new Resource();
-        expect(resource.world).toBeNull();
+        it("Should be initialized with a null world", () =>
+        {
+            const resource = new Resource();
+            expect(resource.world).toBeNull();
+        });
     });
 
-    it("Should be attachable to a world", () =>
+    describe("Lifecycle", () =>
     {
-        const _onAttach = vi.fn();
-        class TestResource extends Resource
+        it("Should be initialized and attached to a world", () =>
         {
-            public override onAttach(world: World): void
+            const _onInitialize = vi.fn();
+            class TestResource extends Resource
             {
-                super.onAttach(world);
+                public override initialize(world: World): void
+                {
+                    super.initialize(world);
 
-                _onAttach();
+                    _onInitialize();
+                }
             }
-        }
 
-        const world = new World();
-        const resource = world.addResource(new TestResource());
+            const world = new World();
+            const resource = world.addResource(new TestResource());
 
-        expect(resource.world).toBe(world);
-        expect(_onAttach).toHaveBeenCalledTimes(1);
-    });
-
-    it("Should throw an error if attached to a world while already attached to another", () =>
-    {
-        const _onAttach = vi.fn();
-        class TestResource extends Resource
+            expect(resource.world).toBe(world);
+            expect(_onInitialize).toHaveBeenCalledTimes(1);
+        });
+        it("Should throw when initializing a resource already attached to a world", () =>
         {
-            public override onAttach(world: World): void
-            {
-                super.onAttach(world);
+            const world1 = new World();
+            const world2 = new World();
+            const resource = world1.addResource(new Resource());
 
-                _onAttach();
-            }
-        }
+            expect(() => world2.addResource(resource))
+                .toThrow(ReferenceException);
+        });
 
-        const world1 = new World();
-        const world2 = new World();
-        const resource = world1.addResource(new TestResource());
-
-        expect(() => world2.addResource(resource))
-            .toThrow(ReferenceException);
-    });
-
-    it("Should be detachable from a world", () =>
-    {
-        const _onDetach = vi.fn();
-        class TestResource extends Resource
+        it("Should be disposed and detached from the world", () =>
         {
-            public override onDetach(): void
+            const _onDispose = vi.fn();
+            class TestResource extends Resource
             {
-                super.onDetach();
+                public override dispose(): void
+                {
+                    _onDispose();
 
-                _onDetach();
+                    super.dispose();
+                }
             }
-        }
 
-        const world = new World();
-        const resource = world.addResource(new TestResource());
+            const world = new World();
+            const resource = world.addResource(new TestResource());
 
-        world.removeResource(TestResource);
+            world.removeResource(TestResource);
 
-        expect(resource.world).toBeNull();
-        expect(_onDetach).toHaveBeenCalledTimes(1);
-    });
-    it("Should throw an error if detached from a world while not attached to one", () =>
-    {
-        const _onDetach = vi.fn();
-        class TestResource extends Resource
+            expect(resource.world).toBeNull();
+            expect(_onDispose).toHaveBeenCalledTimes(1);
+        });
+        it("Should throw when disposing a resource not attached to any world", () =>
         {
-            public override onDetach(): void
-            {
-                super.onDetach();
+            const resource = new Resource();
 
-                _onDetach();
-            }
-        }
-
-        const world = new World();
-        const resource = world.addResource(new TestResource());
-
-        world.removeResource(TestResource);
-
-        expect(() => world.removeResource(resource))
-            .toThrow(ReferenceException);
-
-        expect(_onDetach).toHaveBeenCalledTimes(1);
-    });
-
-    it("Should be disposable", () =>
-    {
-        const _onDispose = vi.fn();
-        class TestResource extends Resource
-        {
-            public override dispose(): void
-            {
-                super.dispose();
-
-                _onDispose();
-            }
-        }
-
-        const world = new World();
-        const resource = world.addResource(new TestResource());
-
-        expect(() => resource.dispose())
-            .toThrow(RuntimeException);
-
-        world.removeResource(TestResource);
-        resource.dispose();
-
-        expect(resource.world).toBeNull();
-        expect(_onDispose).toHaveBeenCalledTimes(1);
+            expect(() => resource.dispose())
+                .toThrow(ReferenceException);
+        });
     });
 });

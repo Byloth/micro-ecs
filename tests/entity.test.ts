@@ -1,198 +1,201 @@
-import { ReferenceException } from "@byloth/core";
+import { ReferenceException, RuntimeException } from "@byloth/core";
 import { describe, expect, it, vi } from "vitest";
 
 import { Component, DependencyException, Entity, EntityContext, World } from "../src/index.js";
 
 describe("Entity", () =>
 {
-    it("Should be initialized with default values", () =>
+    describe("Initialization", () =>
     {
-        const entity = new Entity();
-
-        expect(entity.id).toEqual(-1);
-        expect(entity.isEnabled).toBe(false);
-        expect(entity.world).toBeNull();
-        expect(entity["_components"].size).toBe(0);
-    });
-
-    it("Should be able to create and retrieve a component", () =>
-    {
-        class TestComponent extends Component { }
-
-        const world = new World();
-        const entity = world.createEntity();
-        const component = entity.createComponent(TestComponent);
-
-        expect(entity.hasComponent(TestComponent)).toBe(true);
-        expect(entity.getComponent(TestComponent)).toBe(component);
-        expect(entity["_components"].size).toBe(1);
-    });
-    it("Should throw an error when creating a duplicate component", () =>
-    {
-        class TestComponent extends Component { }
-
-        const world = new World();
-        const entity = world.createEntity();
-        entity.createComponent(TestComponent);
-
-        expect(() => entity.createComponent(TestComponent))
-            .toThrow(ReferenceException);
-    });
-
-    it("Should be able to destroy a component", () =>
-    {
-        class TestComponent extends Component { }
-
-        const world = new World();
-        const entity = world.createEntity();
-        const component = entity.createComponent(TestComponent);
-
-        entity.destroyComponent(component);
-
-        expect(entity.hasComponent(TestComponent)).toBe(false);
-        expect(entity["_components"].size).toBe(0);
-    });
-    it("Should throw an error when destroying a non-existent component", () =>
-    {
-        class TestComponent extends Component { }
-
-        const world = new World();
-        const entity = world.createEntity();
-
-        expect(() => entity.destroyComponent(TestComponent))
-            .toThrow(ReferenceException);
-    });
-
-    it("Should be initialized and attached to a world", () =>
-    {
-        const _onInitialize = vi.fn();
-        class TestEntity extends Entity
+        it("Should be initialized with default values", () =>
         {
-            public override initialize(world: World): void
-            {
-                super.initialize(world);
+            const entity = new Entity();
 
-                _onInitialize();
-            }
-        }
-
-        const world = new World();
-        const entity = world.createEntity(TestEntity);
-
-        expect(entity.world).toBe(world);
-        expect(_onInitialize).toHaveBeenCalledTimes(1);
+            expect(entity.id).toEqual(-1);
+            expect(entity.isEnabled).toBe(false);
+            expect(entity.world).toBeNull();
+            expect(entity["_components"].size).toBe(0);
+        });
     });
 
-    // FIXME: This test makes no longer sense...
-    //
-    /*
-    it("Should throw an error if attached to a world while already attached to another", () =>
+    describe("Lifecycle", () =>
     {
-        const _onAttach = vi.fn();
-        class TestEntity extends Entity
+        it("Should be initialized and attached to a world", () =>
         {
-            public override onAttach(world: World): void
+            const _onInitialize = vi.fn();
+            class TestEntity extends Entity
             {
-                super.onAttach(world);
+                public override initialize(world: World, enabled = true): void
+                {
+                    super.initialize(world, enabled);
 
-                _onAttach();
+                    _onInitialize();
+                }
             }
-        }
 
-        const world1 = new World();
-        const world2 = new World();
+            const world = new World();
+            const entity1 = world.createEntity(TestEntity);
 
-        const entity = world1.addEntity(new TestEntity());
+            expect(entity1.world).toBe(world);
+            expect(entity1.isEnabled).toBe(true);
 
-        expect(() => world2.addEntity(entity))
-            .toThrow(ReferenceException);
+            const entity2 = world.createEntity(Entity, false);
+
+            expect(entity2.world).toBe(world);
+            expect(entity2.isEnabled).toBe(false);
+
+            expect(_onInitialize).toHaveBeenCalledTimes(1);
+        });
+        it("Should throw when initializing an already attached entity", () =>
+        {
+            const world = new World();
+            const entity = world.createEntity(Entity);
+
+            expect(() => entity.initialize(world))
+                .toThrow(ReferenceException);
+        });
+
+        it("Should be disposed and detached from the world", () =>
+        {
+            const _onDispose = vi.fn();
+
+            class TestComponent extends Component { }
+            class TestEntity extends Entity
+            {
+                public override dispose(): void
+                {
+                    super.dispose();
+
+                    _onDispose();
+                }
+            }
+
+            const world = new World();
+            const entity = world.createEntity(TestEntity);
+
+            entity.createComponent(TestComponent);
+            world.destroyEntity(entity.id);
+
+            expect(entity.id).toEqual(-1);
+            expect(entity.isEnabled).toBe(false);
+            expect(entity.world).toBeNull();
+
+            expect(entity.hasComponent(TestComponent)).toBe(false);
+            expect(entity["_components"].size).toBe(0);
+
+            expect(_onDispose).toHaveBeenCalledTimes(1);
+        });
+        it("Should throw when disposing an entity not attached to any world", () =>
+        {
+            const entity = new Entity();
+
+            expect(() => entity.dispose())
+                .toThrow(ReferenceException);
+        });
     });
-    */
 
-    // FIXME: This test makes no longer sense...
-    //
-    /*
-    it("Should be detachable from a world", () =>
+    describe("Enable & Disable", () =>
     {
-        const _onDetach = vi.fn();
-        class TestEntity extends Entity
+        it("Should enable a disabled entity", () =>
         {
-            public override dispose(): void
-            {
-                super.dispose();
+            const world = new World();
+            const entity = world.createEntity(Entity, false);
 
-                _onDetach();
-            }
-        }
+            expect(entity.isEnabled).toBe(false);
 
-        const world = new World();
-        const entity = world.addEntity(new TestEntity());
+            entity.enable();
 
-        world.removeEntity(entity);
+            expect(entity.isEnabled).toBe(true);
+        });
+        it("Should throw when enabling an already enabled entity", () =>
+        {
+            const world = new World();
+            const entity = world.createEntity();
 
-        expect(entity.world).toBeNull();
-        expect(_onDetach).toHaveBeenCalledTimes(1);
+            expect(() => entity.enable())
+                .toThrow(RuntimeException);
+        });
+
+        it("Should disable an enabled entity", () =>
+        {
+            const world = new World();
+            const entity = world.createEntity();
+
+            expect(entity.isEnabled).toBe(true);
+
+            entity.disable();
+
+            expect(entity.isEnabled).toBe(false);
+        });
+        it("Should throw when disabling an already disabled entity", () =>
+        {
+            const world = new World();
+            const entity = world.createEntity(Entity, false);
+
+            expect(() => entity.disable())
+                .toThrow(RuntimeException);
+        });
     });
-    */
 
-    // FIXME: This test makes no longer sense...
-    //
-    /*
-    it("Should throw an error if detached from a world while not attached to one", () =>
+    describe("Components", () =>
     {
-        const _onDetach = vi.fn();
-        class TestEntity extends Entity
+        it("Should create and retrieve a component", () =>
         {
-            public override onDetach(): void
-            {
-                super.onDetach();
+            class TestComponent extends Component { }
 
-                _onDetach();
-            }
-        }
+            const world = new World();
+            const entity = world.createEntity();
+            const component = entity.createComponent(TestComponent);
 
-        const world = new World();
-        const entity = world.addEntity(new TestEntity());
-
-        world.removeEntity(entity.id);
-
-        expect(() => world.removeEntity(entity))
-            .toThrow(ReferenceException);
-    });
-    */
-
-    it("Should be detached from the world and disposed", () =>
-    {
-        const _onDispose = vi.fn();
-
-        class TestComponent extends Component { }
-        class TestEntity extends Entity
+            expect(entity.hasComponent(TestComponent)).toBe(true);
+            expect(entity.getComponent(TestComponent)).toBe(component);
+            expect(entity["_components"].size).toBe(1);
+        });
+        it("Should throw when creating a duplicate component", () =>
         {
-            public override dispose(): void
-            {
-                super.dispose();
+            class TestComponent extends Component { }
 
-                _onDispose();
-            }
-        }
+            const world = new World();
+            const entity = world.createEntity();
+            entity.createComponent(TestComponent);
 
-        const world = new World();
-        const entity = world.createEntity(TestEntity);
+            expect(() => entity.createComponent(TestComponent))
+                .toThrow(ReferenceException);
+        });
+        it("Should throw when getting a non-existent component", () =>
+        {
+            class TestComponent extends Component { }
 
-        entity.createComponent(TestComponent);
-        world.destroyEntity(entity.id);
+            const world = new World();
+            const entity = world.createEntity();
 
-        expect(() => entity.dispose())
-            .toThrow(ReferenceException);
+            expect(() => entity.getComponent(TestComponent))
+                .toThrow(ReferenceException);
+        });
 
-        expect(entity.id).toEqual(-1);
-        expect(entity.isEnabled).toBe(false);
-        expect(entity.world).toBeNull();
+        it("Should destroy a component", () =>
+        {
+            class TestComponent extends Component { }
 
-        expect(entity.hasComponent(TestComponent)).toBe(false);
-        expect(entity["_components"].size).toBe(0);
+            const world = new World();
+            const entity = world.createEntity();
+            const component = entity.createComponent(TestComponent);
 
-        expect(_onDispose).toHaveBeenCalledTimes(1);
+            entity.destroyComponent(component);
+
+            expect(entity.hasComponent(TestComponent)).toBe(false);
+            expect(entity["_components"].size).toBe(0);
+        });
+        it("Should throw when destroying a non-existent component", () =>
+        {
+            class TestComponent extends Component { }
+
+            const world = new World();
+            const entity = world.createEntity();
+
+            expect(() => entity.destroyComponent(TestComponent))
+                .toThrow(ReferenceException);
+        });
     });
 
     describe("Context", () =>
@@ -208,7 +211,7 @@ describe("Entity", () =>
 
             expect(context).toBeInstanceOf(EntityContext);
         });
-        it("Should provide the same context when getting it the same component", () =>
+        it("Should provide the same context when requested again for the same component", () =>
         {
             class TestComponent extends Component { }
 
@@ -274,7 +277,7 @@ describe("Entity", () =>
             expect(entity["_dependencies"].get(dependency)?.size).toBe(1);
         });
 
-        it("Should throw when trying to use the same dependency twice in the same context", () =>
+        it("Should throw when using the same dependency twice in the same context", () =>
         {
             class DependencyComponent extends Component { }
             class DependantComponent extends Component { }
@@ -292,7 +295,7 @@ describe("Entity", () =>
             expect(() => context.useComponent(DependencyComponent))
                 .toThrow(DependencyException);
         });
-        it("Should throw when trying to release a dependency that isn't used in the context", () =>
+        it("Should throw when releasing a dependency that isn't used in the context", () =>
         {
             class DependencyComponent extends Component { }
             class DependantComponent extends Component { }
@@ -309,7 +312,7 @@ describe("Entity", () =>
                 .toThrow(DependencyException);
         });
 
-        it("Should throw an error when defining a dependency for a component not yet in the entity", () =>
+        it("Should throw when using a dependency for a component not yet in the entity", () =>
         {
             class DependencyComponent extends Component { }
             class DependantComponent extends Component
@@ -357,7 +360,7 @@ describe("Entity", () =>
             entity.destroyComponent(DependencyComponent);
         });
 
-        it("Should clear & remove the context when the context itself is disposed", () =>
+        it("Should clear and remove the context when the context itself is disposed", () =>
         {
             let context: EntityContext;
 
@@ -392,7 +395,7 @@ describe("Entity", () =>
             expect(() => entity.destroyComponent(dependency))
                 .not.toThrow();
         });
-        it("Should clear & remove the context when the component is destroyed", () =>
+        it("Should clear and remove the context when the component is destroyed", () =>
         {
             let context: EntityContext;
 
@@ -427,41 +430,37 @@ describe("Entity", () =>
             expect(() => entity.destroyComponent(DependencyComponent))
                 .not.toThrow();
         });
-
-        // SMELLS: Does this test still make sense?
-        //
-        /*
-        it("Should clear & remove the context when the entity is disposed", () =>
+        it("Should clear contexts and dependencies when the entity is disposed", () =>
         {
             let context: EntityContext;
 
             class DependencyComponent extends Component { }
             class DependantComponent extends Component
             {
-                public override onAttach(entity: Entity): void
+                public override initialize(entity: Entity): void
                 {
-                    super.onAttach(entity);
+                    super.initialize(entity);
 
                     context = entity.getContext(this);
                     context.useComponent(DependencyComponent);
                 }
             }
 
-            const entity = new Entity();
-            const dependency = entity.addComponent(new DependencyComponent());
-            const dependant = entity.addComponent(new DependantComponent());
+            const world = new World();
+            const entity = world.createEntity();
+            const dependency = entity.createComponent(DependencyComponent);
+            const dependant = entity.createComponent(DependantComponent);
 
             expect(context!).toBeInstanceOf(EntityContext);
             expect(context!.dependencies.size).toBe(1);
             expect(entity["_contexts"].has(dependant)).toBe(true);
             expect(entity["_dependencies"].has(dependency)).toBe(true);
 
-            entity.dispose();
+            world.destroyEntity(entity);
 
             expect(context!.dependencies.size).toBe(0);
             expect(entity["_contexts"].has(dependant)).toBe(false);
             expect(entity["_dependencies"].has(dependency)).toBe(false);
         });
-        */
     });
 });

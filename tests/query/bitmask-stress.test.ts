@@ -57,7 +57,7 @@ describe("Bitmask Stress Test", () =>
         }
     });
 
-    it("Should correctly match entities with single component queries", () =>
+    it("Should match entities with single component queries", () =>
     {
         for (let i = 0; i < NUM_QUERY_TESTS; i += 1)
         {
@@ -78,7 +78,7 @@ describe("Bitmask Stress Test", () =>
             }
         }
     });
-    it("Should correctly match entities with multi-component queries", () =>
+    it("Should match entities with multi-component queries", () =>
     {
         for (let i = 0; i < NUM_QUERY_TESTS; i += 1)
         {
@@ -103,7 +103,7 @@ describe("Bitmask Stress Test", () =>
         }
     });
 
-    it("Should correctly handle queries spanning multiple bitmask chunks (> 32 types)", () =>
+    it("Should handle queries spanning multiple bitmask chunks (> 32 types)", () =>
     {
         const typesFromFirstChunk = randomSample(ComponentTypes.slice(0, 32), 2);
         const typesFromSecondChunk = randomSample(ComponentTypes.slice(32, 64), 2);
@@ -126,7 +126,7 @@ describe("Bitmask Stress Test", () =>
         }
     });
 
-    it("Should correctly update views when components are added", () =>
+    it("Should update views when components are added", () =>
     {
         const querySize = Random.Integer(2, MAX_QUERY_SIZE + 1);
         const queryTypes = randomSample(ComponentTypes, querySize);
@@ -156,7 +156,7 @@ describe("Bitmask Stress Test", () =>
         expect(view.size).toBe(initialSize + 1);
         expect(view.has(targetEntity)).toBe(true);
     });
-    it("Should correctly update views when components are removed", () =>
+    it("Should update views when components are removed", () =>
     {
         const querySize = Random.Integer(1, MAX_QUERY_SIZE + 1);
         const queryTypes = randomSample(ComponentTypes, querySize);
@@ -178,7 +178,7 @@ describe("Bitmask Stress Test", () =>
         expect(view.has(targetEntity)).toBe(false);
     });
 
-    it("Should correctly handle component enable / disable", () =>
+    it("Should handle component enable and disable", () =>
     {
         const queryType = Random.Choice(ComponentTypes);
 
@@ -203,7 +203,7 @@ describe("Bitmask Stress Test", () =>
         expect(view.has(targetEntity)).toBe(true);
     });
 
-    it("Should handle extreme case with all component types on single entity", () =>
+    it("Should handle an entity with all component types", () =>
     {
         const superEntity = _world.createEntity();
         for (const ComponentType of ComponentTypes)
@@ -221,7 +221,7 @@ describe("Bitmask Stress Test", () =>
         }
     });
 
-    it("Should correctly handle entity with components only from second chunk", () =>
+    it("Should handle an entity with components only from the second chunk", () =>
     {
         const secondChunkEntity = _world.createEntity();
         const secondChunkTypes = randomSample(ComponentTypes.slice(32, 64), 5);

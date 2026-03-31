@@ -42,7 +42,7 @@ describe("QueryManager", () =>
         }
     });
 
-    it("Should retrieve entities matching a condition", () =>
+    it("Should retrieve entities matching component queries", () =>
     {
         const first = _world.getFirstComponents(TestComponent3, TestComponent1)!;
         const second = _world.getFirstComponent(TestComponent4);
@@ -66,9 +66,9 @@ describe("QueryManager", () =>
         expect(second).toBeUndefined();
     });
 
-    describe("When components are manipulated", () =>
+    describe("Component manipulation", () =>
     {
-        it("Should reactively update view when components are added", () =>
+        it("Should update the view when components are added", () =>
         {
             const view = _world.getComponentView(TestComponent1, TestComponent3);
 
@@ -86,7 +86,7 @@ describe("QueryManager", () =>
             expect(after[1][0].entity!.id).toBe(5);
             expect(after[2][0].entity!.id).toBe(2);
         });
-        it("Should reactively update view when components are enabled", () =>
+        it("Should update the view when components are enabled", () =>
         {
             const view = _world.getComponentView(TestComponent1, TestComponent3);
 
@@ -129,7 +129,7 @@ describe("QueryManager", () =>
             const after = Array.from(view.components);
             expect(after.length).toBe(0);
         });
-        it("Should reactively update view when components are removed", () =>
+        it("Should update the view when components are removed", () =>
         {
             const view = _world.getComponentView(TestComponent1, TestComponent3);
 
@@ -147,9 +147,9 @@ describe("QueryManager", () =>
         });
     });
 
-    describe("When entities are manipulated", () =>
+    describe("Entity manipulation", () =>
     {
-        it("Should reactively update view when entities are added", () =>
+        it("Should update the view when entities are added", () =>
         {
             const view = _world.getComponentView(TestComponent2, TestComponent3);
 
@@ -168,7 +168,7 @@ describe("QueryManager", () =>
             expect(after[1][0].entity!.id).toBe(7);
             expect(after[2][0].entity!.id).toBe(10);
         });
-        it("Should reactively update view when entities are enabled", () =>
+        it("Should update the view when entities are enabled", () =>
         {
             const view = _world.getComponentView(TestComponent2, TestComponent3);
 
@@ -186,7 +186,7 @@ describe("QueryManager", () =>
             expect(after[1][0].entity!.id).toBe(7);
             expect(after[2][0].entity!.id).toBe(6);
         });
-        it("Should reactively update view when components are disabled", () =>
+        it("Should update the view when entities are disabled", () =>
         {
             const view = _world.getComponentView(TestComponent2, TestComponent3);
 
@@ -201,7 +201,7 @@ describe("QueryManager", () =>
             expect(after.length).toBe(1);
             expect(after[0][0].entity!.id).toBe(5);
         });
-        it("Should reactively update view when entities are removed", () =>
+        it("Should update the view when entities are removed", () =>
         {
             const view = _world.getComponentView(TestComponent2, TestComponent3);
 
@@ -221,7 +221,7 @@ describe("QueryManager", () =>
         });
     });
 
-    it("Should reactively be called once when an entity with multiple components is added", () =>
+    it("Should trigger the add callback once when an entity with multiple components is added", () =>
     {
         const _onEntryAdd = vi.fn();
 
@@ -239,7 +239,7 @@ describe("QueryManager", () =>
         expect(_onEntryAdd).toHaveBeenCalledTimes(2);
     });
 
-    it("Should be disposable", () =>
+    it("Should clear all views when the world is disposed", () =>
     {
         const entities = _world.getComponentView(TestComponent3);
 
