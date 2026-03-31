@@ -28,23 +28,21 @@ describe("QueryManager", () =>
             [[[TestComponent1, false], [TestComponent3, false], [TestComponent2, false]], true]
         ];
 
-        let index = 0;
+        Object.defineProperty(Entity, "__μECS_NextId__", { value: 0, writable: true });
+
         for (const [components, entityEnabled] of definitions)
         {
-            const entity = new Entity(entityEnabled);
+            const entity = _world.createEntity(Entity, entityEnabled);
 
             for (const [C, componentEnabled] of components)
             {
-                entity.addComponent(new C(componentEnabled));
+                const comp = entity.createComponent(C);
+                if (!componentEnabled) { comp.disable(); }
             }
-
-            Object.defineProperty(entity, "id", { value: (index += 1) });
-
-            _world.addEntity(entity);
         }
     });
 
-    it("Should retrieve entities matching a condition", () =>
+    it("Should retrieve entities matching component queries", () =>
     {
         const first = _world.getFirstComponents(TestComponent3, TestComponent1)!;
         const second = _world.getFirstComponent(TestComponent4);
@@ -68,9 +66,9 @@ describe("QueryManager", () =>
         expect(second).toBeUndefined();
     });
 
-    describe("When components are manipulated", () =>
+    describe("Component manipulation", () =>
     {
-        it("Should reactively update view when components are added", () =>
+        it("Should update the view when components are added", () =>
         {
             const view = _world.getComponentView(TestComponent1, TestComponent3);
 
@@ -79,8 +77,8 @@ describe("QueryManager", () =>
             expect(before[0][0].entity!.id).toBe(3);
             expect(before[1][0].entity!.id).toBe(5);
 
-            const entity = _world.entities.get(2)!;
-            entity.addComponent(new TestComponent3());
+            const entity = _world.getEntity(2);
+            entity.createComponent(TestComponent3);
 
             const after = Array.from(view.components);
             expect(after.length).toBe(3);
@@ -88,7 +86,7 @@ describe("QueryManager", () =>
             expect(after[1][0].entity!.id).toBe(5);
             expect(after[2][0].entity!.id).toBe(2);
         });
-        it("Should reactively update view when components are enabled", () =>
+        it("Should update the view when components are enabled", () =>
         {
             const view = _world.getComponentView(TestComponent1, TestComponent3);
 
@@ -97,11 +95,11 @@ describe("QueryManager", () =>
             expect(before[0][0].entity!.id).toBe(3);
             expect(before[1][0].entity!.id).toBe(5);
 
-            const entity1 = _world.entities.get(1)!;
+            const entity1 = _world.getEntity(1);
             entity1.getComponent(TestComponent3)
                 .enable();
 
-            const entity2 = _world.entities.get(9)!;
+            const entity2 = _world.getEntity(9);
             entity2.getComponent(TestComponent1)
                 .enable();
 
@@ -131,7 +129,7 @@ describe("QueryManager", () =>
             const after = Array.from(view.components);
             expect(after.length).toBe(0);
         });
-        it("Should reactively update view when components are removed", () =>
+        it("Should update the view when components are removed", () =>
         {
             const view = _world.getComponentView(TestComponent1, TestComponent3);
 
@@ -141,7 +139,7 @@ describe("QueryManager", () =>
             expect(before[1][0].entity!.id).toBe(5);
 
             const { entity } = before[0][0];
-            entity!.removeComponent(TestComponent1);
+            entity!.destroyComponent(TestComponent1);
 
             const after = Array.from(view.components);
             expect(after.length).toBe(1);
@@ -149,9 +147,9 @@ describe("QueryManager", () =>
         });
     });
 
-    describe("When entities are manipulated", () =>
+    describe("Entity manipulation", () =>
     {
-        it("Should reactively update view when entities are added", () =>
+        it("Should update the view when entities are added", () =>
         {
             const view = _world.getComponentView(TestComponent2, TestComponent3);
 
@@ -160,13 +158,9 @@ describe("QueryManager", () =>
             expect(before[0][0].entity!.id).toBe(5);
             expect(before[1][0].entity!.id).toBe(7);
 
-            const entity = new Entity();
-            entity.addComponent(new TestComponent3());
-            entity.addComponent(new TestComponent2());
-
-            Object.defineProperty(entity, "id", { value: 10 });
-
-            _world.addEntity(entity);
+            const entity = _world.createEntity();
+            entity.createComponent(TestComponent3);
+            entity.createComponent(TestComponent2);
 
             const after = Array.from(view.components);
             expect(after.length).toBe(3);
@@ -174,7 +168,7 @@ describe("QueryManager", () =>
             expect(after[1][0].entity!.id).toBe(7);
             expect(after[2][0].entity!.id).toBe(10);
         });
-        it("Should reactively update view when entities are enabled", () =>
+        it("Should update the view when entities are enabled", () =>
         {
             const view = _world.getComponentView(TestComponent2, TestComponent3);
 
@@ -183,7 +177,7 @@ describe("QueryManager", () =>
             expect(before[0][0].entity!.id).toBe(5);
             expect(before[1][0].entity!.id).toBe(7);
 
-            _world.entities.get(6)!
+            _world.getEntity(6)
                 .enable();
 
             const after = Array.from(view.components);
@@ -192,7 +186,7 @@ describe("QueryManager", () =>
             expect(after[1][0].entity!.id).toBe(7);
             expect(after[2][0].entity!.id).toBe(6);
         });
-        it("Should reactively update view when components are disabled", () =>
+        it("Should update the view when entities are disabled", () =>
         {
             const view = _world.getComponentView(TestComponent2, TestComponent3);
 
@@ -207,7 +201,7 @@ describe("QueryManager", () =>
             expect(after.length).toBe(1);
             expect(after[0][0].entity!.id).toBe(5);
         });
-        it("Should reactively update view when entities are removed", () =>
+        it("Should update the view when entities are removed", () =>
         {
             const view = _world.getComponentView(TestComponent2, TestComponent3);
 
@@ -219,36 +213,33 @@ describe("QueryManager", () =>
             const entity1 = before[0][0].entity!;
             const entity2 = before[1][0].entity!;
 
-            _world.removeEntity(entity1.id);
-            _world.removeEntity(entity2);
+            _world.destroyEntity(entity1.id);
+            _world.destroyEntity(entity2);
 
             const after = Array.from(view.components);
             expect(after.length).toBe(0);
         });
     });
 
-    it("Should reactively be called once when an entity with multiple components is added", () =>
+    it("Should trigger the add callback once when an entity with multiple components is added", () =>
     {
         const _onEntryAdd = vi.fn();
 
         const view = _world.getComponentView(TestComponent1, TestComponent2);
         view.onAdd(_onEntryAdd);
 
-        const entity1 = new Entity();
-        entity1.addComponent(new TestComponent1());
-        entity1.addComponent(new TestComponent2());
+        const entity1 = _world.createEntity();
+        entity1.createComponent(TestComponent1);
+        entity1.createComponent(TestComponent2);
 
-        const entity2 = new Entity();
-        entity2.addComponent(new TestComponent1());
-        entity2.addComponent(new TestComponent2());
-
-        _world.addEntity(entity1);
-        _world.addEntity(entity2);
+        const entity2 = _world.createEntity();
+        entity2.createComponent(TestComponent1);
+        entity2.createComponent(TestComponent2);
 
         expect(_onEntryAdd).toHaveBeenCalledTimes(2);
     });
 
-    it("Should be disposable", () =>
+    it("Should clear all views when the world is disposed", () =>
     {
         const entities = _world.getComponentView(TestComponent3);
 

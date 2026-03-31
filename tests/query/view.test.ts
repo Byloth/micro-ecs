@@ -44,7 +44,7 @@ describe("QueryView", () =>
 
     describe("Basic operations", () =>
     {
-        it("Should be able to add an entity with components using set()", () =>
+        it("Should add an entity with components", () =>
         {
             const entity = new Entity();
             const component = new TestComponent1();
@@ -68,7 +68,7 @@ describe("QueryView", () =>
             expect(_view.get(entity)).toEqual([component2]);
         });
 
-        it("Should be able to check if an entity exists using has()", () =>
+        it("Should check if an entity exists", () =>
         {
             const entity1 = new Entity();
             const entity2 = new Entity();
@@ -80,7 +80,7 @@ describe("QueryView", () =>
             expect(_view.has(entity2)).toBe(false);
         });
 
-        it("Should be able to get components for an entity using get()", () =>
+        it("Should get components for an entity", () =>
         {
             const entity = new Entity();
             const component = new TestComponent1();
@@ -95,7 +95,7 @@ describe("QueryView", () =>
             expect(_view.get(entity)).toBeUndefined();
         });
 
-        it("Should be able to remove an entity using delete()", () =>
+        it("Should remove an entity", () =>
         {
             const entity = new Entity();
             const component = new TestComponent1();
@@ -138,7 +138,7 @@ describe("QueryView", () =>
             expect(_view.get(entity3)).toEqual([component3]);
         });
 
-        it("Should be able to clear all entities using clear()", () =>
+        it("Should clear all entities", () =>
         {
             const entity1 = new Entity();
             const entity2 = new Entity();
@@ -230,7 +230,7 @@ describe("QueryView", () =>
             expect(callback).not.toHaveBeenCalled();
         });
 
-        it("Should be able to unsubscribe from events", () =>
+        it("Should unsubscribe from events", () =>
         {
             const callback = vi.fn();
             const entity = new Entity();

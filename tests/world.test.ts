@@ -2,13 +2,12 @@ import { ReferenceException } from "@byloth/core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+    DependencyException,
     Entity,
-    WorldContext,
+    Resource,
     System,
     World,
-    Resource,
-    DependencyException,
-    AttachmentException
+    WorldContext
 
 } from "../src/index.js";
 
@@ -18,179 +17,380 @@ describe("World", () =>
 
     beforeEach(() => { _world = new World(); });
 
-    it("Should add an entity to the world", () =>
+    describe("Entities", () =>
     {
-        const entity = _world.addEntity(new Entity());
-
-        expect(_world.entities.size).toBe(1);
-        expect(_world.entities.get(entity.id)).toBe(entity);
-    });
-    it("Should throw an error if the entity already exists", () =>
-    {
-        const entity = _world.addEntity(new Entity());
-
-        expect(() => _world.addEntity(entity)).toThrowError(ReferenceException);
-    });
-
-    it("Should remove an entity from the world", () =>
-    {
-        const entity = _world.addEntity(new Entity());
-        _world.removeEntity(entity);
-
-        expect(_world.entities.size).toBe(0);
-        expect(_world.entities.get(entity.id)).toBeUndefined();
-    });
-    it("Should throw an error if the entity doesn't exist", () =>
-    {
-        const entity = new Entity();
-
-        expect(() => _world.removeEntity(entity.id)).toThrowError(ReferenceException);
-    });
-
-    it("Should add a system to the world", () =>
-    {
-        const _update = vi.fn(() => { /* ... */ });
-        class TestSystem extends System
+        it("Should create an entity and add it to the world", () =>
         {
-            public override update(deltaTime: number): void
-            {
-                _update();
-            }
-        }
+            const entity = _world.createEntity();
 
-        const system = _world.addSystem(new TestSystem());
+            expect(_world["_entities"].size).toBe(1);
+            expect(_world["_entities"].get(entity.id)).toBe(entity);
+        });
 
-        expect(_world.systems.size).toBe(1);
-        expect(_world.systems.values().next().value).toBe(system);
+        it("Should return true when checking for an existing entity", () =>
+        {
+            const entity = _world.createEntity();
 
-        _world.update(16);
-        expect(_update).toHaveBeenCalledTimes(1);
+            expect(_world.hasEntity(entity.id)).toBe(true);
+        });
+        it("Should return false when checking for a non-existent entity", () =>
+        {
+            expect(_world.hasEntity(42)).toBe(false);
+        });
 
-        _world.update(16);
-        _world.update(16);
-        expect(_update).toHaveBeenCalledTimes(3);
+        it("Should return false after destroying the entity", () =>
+        {
+            const entity = _world.createEntity();
+            _world.destroyEntity(entity);
+
+            expect(_world.hasEntity(entity.id)).toBe(false);
+        });
+
+        it("Should destroy an entity and remove it from the world", () =>
+        {
+            const entity = _world.createEntity();
+            _world.destroyEntity(entity);
+
+            expect(_world["_entities"].size).toBe(0);
+            expect(_world["_entities"].get(entity.id)).toBeUndefined();
+        });
+        it("Should throw when destroying a non-existent entity", () =>
+        {
+            expect(() => _world.destroyEntity(42))
+                .toThrow(ReferenceException);
+        });
     });
 
-    it("Should remove a system from the world", () =>
+    describe("Systems", () =>
     {
-        const _update = vi.fn(() => { /* ... */ });
-        class TestSystem extends System
+        it("Should add a system to the world", () =>
         {
-            public override update(deltaTime: number): void
+            const _onUpdate = vi.fn();
+            class TestSystem extends System
             {
-                _update();
+                public override update(deltaTime: number): void
+                {
+                    _onUpdate();
+                }
             }
-        }
 
-        _world.addSystem(new TestSystem());
-        _world.removeSystem(TestSystem);
-        _world.update(16);
+            const system = _world.addSystem(new TestSystem());
 
-        expect(_update).toHaveBeenCalledTimes(0);
+            expect(_world.systems.size).toBe(1);
+            expect(_world.systems.values().next().value).toBe(system);
 
-        expect(_world.systems.size).toBe(0);
-        expect(_world.systems.values().next().value).toBeUndefined();
+            _world.update(16);
+            expect(_onUpdate).toHaveBeenCalledTimes(1);
+
+            _world.update(16);
+            _world.update(16);
+            expect(_onUpdate).toHaveBeenCalledTimes(3);
+        });
+
+        it("Should remove a system from the world", () =>
+        {
+            const _onUpdate = vi.fn();
+            class TestSystem extends System
+            {
+                public override update(deltaTime: number): void
+                {
+                    _onUpdate();
+                }
+            }
+
+            _world.addSystem(new TestSystem());
+            _world.removeSystem(TestSystem);
+            _world.update(16);
+
+            expect(_onUpdate).toHaveBeenCalledTimes(0);
+
+            expect(_world.systems.size).toBe(0);
+            expect(_world.systems.values().next().value).toBeUndefined();
+        });
+        it("Should throw when removing a system that doesn't exist", () =>
+        {
+            const system = new System();
+
+            expect(() => _world.removeSystem(system))
+                .toThrow(ReferenceException);
+        });
+
+        it("Should call update on all enabled systems", () =>
+        {
+            const _onUpdate1 = vi.fn();
+            const _onUpdate2 = vi.fn();
+
+            class TestSystem1 extends System
+            {
+                public override update(deltaTime: number): void
+                {
+                    _onUpdate1();
+                }
+            }
+            class TestSystem2 extends System
+            {
+                public override update(deltaTime: number): void
+                {
+                    _onUpdate2();
+                }
+            }
+
+            const system1 = _world.addSystem(new TestSystem1());
+            const system2 = _world.addSystem(new TestSystem2());
+
+            _world.update(16);
+            expect(_onUpdate1).toHaveBeenCalledTimes(1);
+            expect(_onUpdate2).toHaveBeenCalledTimes(1);
+
+            _world.update(16);
+            _world.update(16);
+            expect(_onUpdate1).toHaveBeenCalledTimes(3);
+            expect(_onUpdate2).toHaveBeenCalledTimes(3);
+
+            system1.disable();
+
+            _world.update(16);
+            expect(_onUpdate1).toHaveBeenCalledTimes(3);
+            expect(_onUpdate2).toHaveBeenCalledTimes(4);
+
+            system1.enable();
+            system2.disable();
+
+            _world.update(16);
+            _world.update(16);
+            _world.update(16);
+
+            expect(_onUpdate1).toHaveBeenCalledTimes(6);
+            expect(_onUpdate2).toHaveBeenCalledTimes(4);
+
+            system1.disable();
+
+            _world.update(16);
+
+            expect(_onUpdate1).toHaveBeenCalledTimes(6);
+            expect(_onUpdate2).toHaveBeenCalledTimes(4);
+        });
     });
-    it("Should throw an error if the system doesn't exist", () =>
-    {
-        const system = new System();
 
-        expect(() => _world.removeSystem(system)).toThrowError(ReferenceException);
+    describe("Resources", () =>
+    {
+        it("Should add a resource to the world", () =>
+        {
+            class TestResource extends Resource { }
+
+            const resource = _world.addResource(new TestResource());
+
+            expect(_world.resources.size).toBe(1);
+            expect(_world.resources.get(TestResource)).toBe(resource);
+        });
+        it("Should throw when adding a resource that already exists", () =>
+        {
+            class TestResource extends Resource { }
+
+            _world.addResource(new TestResource());
+
+            expect(() => _world.addResource(new TestResource()))
+                .toThrow(ReferenceException);
+        });
+
+        it("Should remove a resource from the world", () =>
+        {
+            class TestResource extends Resource { }
+
+            _world.addResource(new TestResource());
+            _world.removeResource(TestResource);
+
+            expect(_world.resources.size).toBe(0);
+        });
+        it("Should throw when removing a resource that doesn't exist", () =>
+        {
+            class TestResource extends Resource { }
+
+            expect(() => _world.removeResource(TestResource))
+                .toThrow(ReferenceException);
+        });
     });
 
-    it("Should call update on all enabled systems", () =>
+    describe("Services", () =>
     {
-        const _update1 = vi.fn(() => { /* ... */ });
-        const _update2 = vi.fn(() => { /* ... */ });
-        class TestSystem1 extends System
+        it("Should add a service as both a resource and a system", () =>
         {
-            public override update(deltaTime: number): void
+            const _onUpdate = vi.fn();
+            class TestService extends System
             {
-                _update1();
+                public override update(deltaTime: number): void
+                {
+                    _onUpdate();
+                }
             }
-        }
-        class TestSystem2 extends System
+
+            const service = _world.addService(new TestService());
+
+            expect(_world.systems.size).toBe(1);
+            expect(_world.resources.size).toBe(1);
+            expect(_world.systems.get(TestService)).toBe(service);
+            expect(_world.resources.get(TestService)).toBe(service);
+
+            _world.update(16);
+            expect(_onUpdate).toHaveBeenCalledTimes(1);
+        });
+
+        it("Should throw when adding a service that already exists as a resource", () =>
         {
-            public override update(deltaTime: number): void
-            {
-                _update2();
-            }
-        }
+            class TestService extends System { }
 
-        const system1 = _world.addSystem(new TestSystem1());
-        const system2 = _world.addSystem(new TestSystem2());
+            _world.addResource(new TestService());
 
-        _world.update(16);
-        expect(_update1).toHaveBeenCalledTimes(1);
-        expect(_update2).toHaveBeenCalledTimes(1);
-
-        _world.update(16);
-        _world.update(16);
-        expect(_update1).toHaveBeenCalledTimes(3);
-        expect(_update2).toHaveBeenCalledTimes(3);
-
-        system1.disable();
-
-        _world.update(16);
-        expect(_update1).toHaveBeenCalledTimes(3);
-        expect(_update2).toHaveBeenCalledTimes(4);
-
-        system1.enable();
-        system2.disable();
-
-        _world.update(16);
-        _world.update(16);
-        _world.update(16);
-
-        expect(_update1).toHaveBeenCalledTimes(6);
-        expect(_update2).toHaveBeenCalledTimes(4);
-
-        system1.disable();
-
-        _world.update(16);
-
-        expect(_update1).toHaveBeenCalledTimes(6);
-        expect(_update2).toHaveBeenCalledTimes(4);
-    });
-
-    it("Should dispose all entities and systems", () =>
-    {
-        const _disposeEntity = vi.fn(() => { /* ... */ });
-        const _disposeSystem = vi.fn(() => { /* ... */ });
-
-        class TestEntity extends Entity
+            expect(() => _world.addService(new TestService()))
+                .toThrow(ReferenceException);
+        });
+        it("Should throw when adding a service that already exists as a system", () =>
         {
-            public override dispose(): void
-            {
-                super.dispose();
-                _disposeEntity();
-            }
-        }
+            class TestService extends System { }
 
-        class TestSystem extends System
+            _world.addSystem(new TestService());
+
+            expect(() => _world.addService(new TestService()))
+                .toThrow(ReferenceException);
+        });
+
+        it("Should remove a service from both resource and system maps", () =>
         {
-            public override dispose(): void
+            const _onUpdate = vi.fn();
+            class TestService extends System
             {
-                super.dispose();
-                _disposeSystem();
+                public override update(deltaTime: number): void
+                {
+                    _onUpdate();
+                }
             }
-        }
-        class TestSystemA extends TestSystem { }
-        class TestSystemB extends TestSystem { }
 
-        _world.addEntity(new TestEntity());
-        _world.addEntity(new TestEntity());
-        _world.addEntity(new TestEntity());
+            _world.addService(new TestService());
+            expect(_world.systems.size).toBe(1);
+            expect(_world.resources.size).toBe(1);
 
-        _world.addSystem(new TestSystemA());
-        _world.addSystem(new TestSystemB());
+            _world.update(16);
+            expect(_onUpdate).toHaveBeenCalledTimes(1);
 
-        _world.dispose();
+            _world.removeService(TestService);
+            expect(_world.systems.size).toBe(0);
+            expect(_world.resources.size).toBe(0);
 
-        expect(_disposeEntity).toHaveBeenCalledTimes(3);
-        expect(_disposeSystem).toHaveBeenCalledTimes(2);
-        expect(_world.entities.size).toBe(0);
-        expect(_world.systems.size).toBe(0);
+            _world.update(16);
+            expect(_onUpdate).toHaveBeenCalledTimes(1);
+        });
+
+        it("Should throw when removing a service that doesn't exist as a system", () =>
+        {
+            class TestService extends System { }
+
+            _world.addResource(new TestService());
+
+            expect(() => _world.removeService(TestService))
+                .toThrow(ReferenceException);
+        });
+        it("Should throw when removing a service that doesn't exist as a resource", () =>
+        {
+            class TestService extends System { }
+
+            _world.addSystem(new TestService());
+
+            expect(() => _world.removeService(TestService))
+                .toThrow(ReferenceException);
+        });
+
+        it("Should call update on enabled services", () =>
+        {
+            const _onUpdate1 = vi.fn();
+            const _onUpdate2 = vi.fn();
+
+            class TestService1 extends System
+            {
+                public override update(deltaTime: number): void
+                {
+                    _onUpdate1();
+                }
+            }
+            class TestService2 extends System
+            {
+                public override update(deltaTime: number): void
+                {
+                    _onUpdate2();
+                }
+            }
+
+            const service1 = _world.addService(new TestService1());
+            _world.addService(new TestService2());
+
+            _world.update(16);
+            expect(_onUpdate1).toHaveBeenCalledTimes(1);
+            expect(_onUpdate2).toHaveBeenCalledTimes(1);
+
+            service1.disable();
+
+            _world.update(16);
+            expect(_onUpdate1).toHaveBeenCalledTimes(1);
+            expect(_onUpdate2).toHaveBeenCalledTimes(2);
+        });
+
+        it("Should allow a service to be used as a dependency by other systems", () =>
+        {
+            class TestService extends System { }
+            class TestSystem extends System
+            {
+                public override initialize(world: World): void
+                {
+                    super.initialize(world);
+
+                    const context = world.getContext(this);
+                    context.useResource(TestService);
+                }
+            }
+
+            const service = _world.addService(new TestService());
+            const system = _world.addSystem(new TestSystem());
+
+            expect(_world["_dependencies"].has(service)).toBe(true);
+            expect(_world["_dependencies"].get(service)!.has(system)).toBe(true);
+        });
+        it("Should dispose service context when removing the service", () =>
+        {
+            const _clear = vi.fn();
+
+            let context: WorldContext;
+
+            class TestResource extends Resource { }
+            class TestService extends System
+            {
+                public override initialize(world: World): void
+                {
+                    super.initialize(world);
+
+                    context = world.getContext(this);
+                    context.useResource(TestResource);
+                }
+            }
+
+            const resource = _world.addResource(new TestResource());
+            const service = _world.addService(new TestService());
+
+            expect(context!).toBeInstanceOf(WorldContext);
+            expect(context!.dependencies.size).toBe(1);
+            expect(_world["_contexts"].has(service)).toBe(true);
+            expect(_world["_dependencies"].has(resource)).toBe(true);
+
+            context!.on("__internals__:clear", _clear);
+
+            _world.removeService(service);
+
+            expect(_clear).toHaveBeenCalledTimes(1);
+            expect(context!.dependencies.size).toBe(0);
+            expect(_world["_contexts"].has(service)).toBe(false);
+            expect(_world["_dependencies"].has(resource)).toBe(false);
+
+            expect(() => _world.removeResource(resource))
+                .not.toThrow();
+        });
     });
 
     describe("Context", () =>
@@ -204,7 +404,7 @@ describe("World", () =>
 
             expect(context).toBeInstanceOf(WorldContext);
         });
-        it("Should provide the same context when getting it the same system", () =>
+        it("Should provide the same context when getting it for the same system", () =>
         {
             class TestSystem extends System { }
 
@@ -264,7 +464,7 @@ describe("World", () =>
             expect(_world["_dependencies"].get(resource)?.size).toBe(1);
         });
 
-        it("Should throw when trying to use the same resource twice in the same context", () =>
+        it("Should throw when using the same resource twice in the same context", () =>
         {
             class TestResource extends Resource { }
             class TestSystem extends System { }
@@ -277,9 +477,9 @@ describe("World", () =>
             context.useResource(TestResource);
 
             expect(() => context.useResource(TestResource))
-                .toThrowError(DependencyException);
+                .toThrow(DependencyException);
         });
-        it("Should throw when trying to release a resource that isn't used in the context", () =>
+        it("Should throw when releasing a resource that isn't used in the context", () =>
         {
             class TestResource extends Resource { }
             class TestSystem extends System { }
@@ -290,17 +490,17 @@ describe("World", () =>
             const context = _world.getContext(system);
 
             expect(() => context.releaseResource(TestResource))
-                .toThrowError(DependencyException);
+                .toThrow(DependencyException);
         });
 
-        it("Should throw an error when defining a dependency for a resource not attached to the world", () =>
+        it("Should throw when using a resource not attached to the world", () =>
         {
             class TestResource extends Resource { }
             class TestSystem extends System
             {
-                public override onAttach(world: World): void
+                public override initialize(world: World): void
                 {
-                    super.onAttach(world);
+                    super.initialize(world);
 
                     world.getContext(this)
                         .useResource(TestResource);
@@ -308,7 +508,7 @@ describe("World", () =>
             }
 
             expect(() => _world.addSystem(new TestSystem()))
-                .toThrowError(AttachmentException);
+                .toThrow(DependencyException);
         });
 
         it("Should block removing a resource that still has dependants", () =>
@@ -316,9 +516,9 @@ describe("World", () =>
             class TestResource extends Resource { }
             class TestSystem extends System
             {
-                public override onAttach(world: World): void
+                public override initialize(world: World): void
                 {
-                    super.onAttach(world);
+                    super.initialize(world);
 
                     world.getContext(this)
                         .useResource(TestResource);
@@ -329,7 +529,7 @@ describe("World", () =>
             const system = _world.addSystem(new TestSystem());
 
             expect(() => _world.removeResource(resource))
-                .toThrowError(DependencyException);
+                .toThrow(DependencyException);
 
             _world.removeSystem(system);
             _world.removeResource(TestResource);
@@ -337,16 +537,16 @@ describe("World", () =>
 
         it("Should clear resource dependencies when the context itself is disposed", () =>
         {
-            const _clear = vi.fn(() => { /* ... */ });
+            const _clear = vi.fn();
 
             let context: WorldContext;
 
             class TestResource extends Resource { }
             class TestSystem extends System
             {
-                public override onAttach(world: World): void
+                public override initialize(world: World): void
                 {
-                    super.onAttach(world);
+                    super.initialize(world);
 
                     context = world.getContext(this);
                     context.useResource(TestResource);
@@ -369,21 +569,21 @@ describe("World", () =>
             expect(_world["_contexts"].has(system)).toBe(false);
             expect(_world["_dependencies"].has(resource)).toBe(false);
 
-            expect(() => _world.removeResource(TestResource)).not.toThrowError();
+            expect(() => _world.removeResource(TestResource))
+                .not.toThrow();
         });
-
         it("Should clear resource dependencies when the system is removed", () =>
         {
-            const _clear = vi.fn(() => { /* ... */ });
+            const _clear = vi.fn();
 
             let context: WorldContext;
 
             class TestResource extends Resource { }
             class TestSystem extends System
             {
-                public override onAttach(world: World): void
+                public override initialize(world: World): void
                 {
-                    super.onAttach(world);
+                    super.initialize(world);
 
                     context = world.getContext(this);
                     context.useResource(TestResource);
@@ -407,185 +607,68 @@ describe("World", () =>
             expect(_world["_contexts"].has(system)).toBe(false);
             expect(_world["_dependencies"].has(resource)).toBe(false);
 
-            expect(() => _world.removeResource(resource)).not.toThrowError();
+            expect(() => _world.removeResource(resource))
+                .not.toThrow();
         });
     });
 
-    describe("Service", () =>
+    describe("Dispose", () =>
     {
-        it("Should add a service to the world as both a resource and a system", () =>
+        it("Should dispose all entities, systems, and resources", () =>
         {
-            const _update = vi.fn(() => { /* ... */ });
-            class TestService extends System
+            const _onDisposeEntity = vi.fn();
+            const _onDisposeSystem = vi.fn();
+            const _onDisposeResource = vi.fn();
+
+            class TestEntity extends Entity
             {
-                public override update(deltaTime: number): void
+                public override dispose(): void
                 {
-                    _update();
+                    super.dispose();
+
+                    _onDisposeEntity();
                 }
             }
 
-            const service = _world.addService(new TestService());
-
-            expect(_world.systems.size).toBe(1);
-            expect(_world.resources.size).toBe(1);
-            expect(_world.systems.get(TestService)).toBe(service);
-            expect(_world.resources.get(TestService)).toBe(service);
-
-            _world.update(16);
-            expect(_update).toHaveBeenCalledTimes(1);
-        });
-
-        it("Should throw an error if the service already exists as a resource", () =>
-        {
-            class TestService extends System { }
-
-            _world.addResource(new TestService());
-
-            expect(() => _world.addService(new TestService())).toThrowError(ReferenceException);
-        });
-
-        it("Should throw an error if the service already exists as a system", () =>
-        {
-            class TestService extends System { }
-
-            _world.addSystem(new TestService());
-
-            expect(() => _world.addService(new TestService())).toThrowError(ReferenceException);
-        });
-
-        it("Should remove a service from the world (both resource and system)", () =>
-        {
-            const _update = vi.fn(() => { /* ... */ });
-            class TestService extends System
-            {
-                public override update(deltaTime: number): void
-                {
-                    _update();
-                }
-            }
-
-            _world.addService(new TestService());
-            expect(_world.systems.size).toBe(1);
-            expect(_world.resources.size).toBe(1);
-
-            _world.update(16);
-            expect(_update).toHaveBeenCalledTimes(1);
-
-            _world.removeService(TestService);
-            expect(_world.systems.size).toBe(0);
-            expect(_world.resources.size).toBe(0);
-
-            _world.update(16);
-            expect(_update).toHaveBeenCalledTimes(1);
-        });
-
-        it("Should throw an error if the service doesn't exist as a system", () =>
-        {
-            class TestService extends System { }
-
-            _world.addResource(new TestService());
-
-            expect(() => _world.removeService(TestService)).toThrowError(ReferenceException);
-        });
-        it("Should throw an error if the service doesn't exist as a resource", () =>
-        {
-            class TestService extends System { }
-
-            _world.addSystem(new TestService());
-
-            expect(() => _world.removeService(TestService)).toThrowError(ReferenceException);
-        });
-
-        it("Should call update on enabled services", () =>
-        {
-            const _update1 = vi.fn(() => { /* ... */ });
-            const _update2 = vi.fn(() => { /* ... */ });
-            class TestService1 extends System
-            {
-                public override update(deltaTime: number): void
-                {
-                    _update1();
-                }
-            }
-            class TestService2 extends System
-            {
-                public override update(deltaTime: number): void
-                {
-                    _update2();
-                }
-            }
-
-            const service1 = _world.addService(new TestService1());
-            _world.addService(new TestService2());
-
-            _world.update(16);
-            expect(_update1).toHaveBeenCalledTimes(1);
-            expect(_update2).toHaveBeenCalledTimes(1);
-
-            service1.disable();
-
-            _world.update(16);
-            expect(_update1).toHaveBeenCalledTimes(1);
-            expect(_update2).toHaveBeenCalledTimes(2);
-        });
-
-        it("Should dispose service context when removing the service", () =>
-        {
-            const _clear = vi.fn(() => { /* ... */ });
-
-            let context: WorldContext;
-
-            class TestResource extends Resource { }
-            class TestService extends System
-            {
-                public override onAttach(world: World): void
-                {
-                    super.onAttach(world);
-
-                    context = world.getContext(this);
-                    context.useResource(TestResource);
-                }
-            }
-
-            const resource = _world.addResource(new TestResource());
-            const service = _world.addService(new TestService());
-
-            expect(context!).toBeInstanceOf(WorldContext);
-            expect(context!.dependencies.size).toBe(1);
-            expect(_world["_contexts"].has(service)).toBe(true);
-            expect(_world["_dependencies"].has(resource)).toBe(true);
-
-            context!.on("__internals__:clear", _clear);
-
-            _world.removeService(service);
-
-            expect(_clear).toHaveBeenCalledTimes(1);
-            expect(context!.dependencies.size).toBe(0);
-            expect(_world["_contexts"].has(service)).toBe(false);
-            expect(_world["_dependencies"].has(resource)).toBe(false);
-
-            expect(() => _world.removeResource(resource)).not.toThrowError();
-        });
-
-        it("Should allow a service to be used as a dependency by other systems", () =>
-        {
-            class TestService extends System { }
             class TestSystem extends System
             {
-                public override onAttach(world: World): void
+                public override dispose(): void
                 {
-                    super.onAttach(world);
+                    super.dispose();
 
-                    const context = world.getContext(this);
-                    context.useResource(TestService);
+                    _onDisposeSystem();
+                }
+            }
+            class TestSystemA extends TestSystem { }
+            class TestSystemB extends TestSystem { }
+
+            class TestResource extends Resource
+            {
+                public override dispose(): void
+                {
+                    super.dispose();
+
+                    _onDisposeResource();
                 }
             }
 
-            const service = _world.addService(new TestService());
-            const system = _world.addSystem(new TestSystem());
+            _world.createEntity(TestEntity);
+            _world.createEntity(TestEntity);
+            _world.createEntity(TestEntity);
 
-            expect(_world["_dependencies"].has(service)).toBe(true);
-            expect(_world["_dependencies"].get(service)!.has(system)).toBe(true);
+            _world.addSystem(new TestSystemA());
+            _world.addSystem(new TestSystemB());
+
+            _world.addResource(new TestResource());
+
+            _world.dispose();
+
+            expect(_onDisposeEntity).toHaveBeenCalledTimes(3);
+            expect(_onDisposeSystem).toHaveBeenCalledTimes(2);
+            expect(_onDisposeResource).toHaveBeenCalledTimes(1);
+            expect(_world["_entities"].size).toBe(0);
+            expect(_world.systems.size).toBe(0);
+            expect(_world.resources.size).toBe(0);
         });
     });
 });

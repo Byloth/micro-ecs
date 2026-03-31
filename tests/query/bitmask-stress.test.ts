@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { Random } from "@byloth/core";
 
-import { Component, Entity, World } from "../../src/index.js";
-import type { ComponentType } from "../../src/index.js";
+import { Component, World } from "../../src/index.js";
+import type { ComponentType, Entity } from "../../src/index.js";
 
 const NUM_ENTITIES = 1000;
 const NUM_COMPONENT_TYPES = 64;
@@ -15,13 +15,8 @@ const MAX_QUERY_SIZE = 5;
 const ComponentTypes: ComponentType[] = [];
 for (let i = 0; i < NUM_COMPONENT_TYPES; i += 1)
 {
-    const ComponentClass = class extends Component
-    {
-        public static readonly typeIndex = i;
-        public readonly typeIndex = i;
-    };
+    const ComponentClass = class extends Component { };
 
-    Object.defineProperty(ComponentClass, "name", { value: `DynamicComponent${i}` });
     ComponentTypes.push(ComponentClass);
 }
 
@@ -45,24 +40,24 @@ describe("Bitmask Stress Test", () =>
 
         for (let i = 0; i < NUM_ENTITIES; i += 1)
         {
-            const entity = new Entity();
+            const entity = _world.createEntity();
+
             const numComponents = Random.Integer(MIN_COMPONENTS_PER_ENTITY, MAX_COMPONENTS_PER_ENTITY + 1);
             const selectedTypes = randomSample(ComponentTypes, numComponents);
             const componentSet = new Set<ComponentType>();
 
             for (const ComponentType of selectedTypes)
             {
-                entity.addComponent(new ComponentType());
+                entity.createComponent(ComponentType);
                 componentSet.add(ComponentType);
             }
 
-            _world.addEntity(entity);
             _entities.push(entity);
             _entityComponentMap.set(entity, componentSet);
         }
     });
 
-    it("Should correctly match entities with single component queries", () =>
+    it("Should match entities with single component queries", () =>
     {
         for (let i = 0; i < NUM_QUERY_TESTS; i += 1)
         {
@@ -83,7 +78,7 @@ describe("Bitmask Stress Test", () =>
             }
         }
     });
-    it("Should correctly match entities with multi-component queries", () =>
+    it("Should match entities with multi-component queries", () =>
     {
         for (let i = 0; i < NUM_QUERY_TESTS; i += 1)
         {
@@ -96,7 +91,7 @@ describe("Bitmask Stress Test", () =>
             {
                 const components = _entityComponentMap.get(entity)!;
 
-                return queryTypes.every((type) => components.has(type));
+                return queryTypes.every((Type) => components.has(Type));
             });
 
             expect(view.size).toBe(expectedEntities.length);
@@ -108,7 +103,7 @@ describe("Bitmask Stress Test", () =>
         }
     });
 
-    it("Should correctly handle queries spanning multiple bitmask chunks (> 32 types)", () =>
+    it("Should handle queries spanning multiple bitmask chunks (> 32 types)", () =>
     {
         const typesFromFirstChunk = randomSample(ComponentTypes.slice(0, 32), 2);
         const typesFromSecondChunk = randomSample(ComponentTypes.slice(32, 64), 2);
@@ -120,7 +115,7 @@ describe("Bitmask Stress Test", () =>
         {
             const components = _entityComponentMap.get(entity)!;
 
-            return queryTypes.every((type) => components.has(type));
+            return queryTypes.every((Type) => components.has(Type));
         });
 
         expect(view.size).toBe(expectedEntities.length);
@@ -131,7 +126,7 @@ describe("Bitmask Stress Test", () =>
         }
     });
 
-    it("Should correctly update views when components are added", () =>
+    it("Should update views when components are added", () =>
     {
         const querySize = Random.Integer(2, MAX_QUERY_SIZE + 1);
         const queryTypes = randomSample(ComponentTypes, querySize);
@@ -143,25 +138,25 @@ describe("Bitmask Stress Test", () =>
         {
             const components = _entityComponentMap.get(entity)!;
 
-            return !(queryTypes.every((type) => components.has(type)));
+            return !(queryTypes.every((Type) => components.has(Type)));
         });
 
         if (nonMatchingEntities.length === 0) { return; }
 
         const targetEntity = Random.Choice(nonMatchingEntities);
         const entityComponents = _entityComponentMap.get(targetEntity)!;
-        const missingTypes = queryTypes.filter((type) => !(entityComponents.has(type)));
+        const missingTypes = queryTypes.filter((Type) => !(entityComponents.has(Type)));
 
         for (const MissingType of missingTypes)
         {
-            targetEntity.addComponent(new MissingType());
+            targetEntity.createComponent(MissingType);
             entityComponents.add(MissingType);
         }
 
         expect(view.size).toBe(initialSize + 1);
         expect(view.has(targetEntity)).toBe(true);
     });
-    it("Should correctly update views when components are removed", () =>
+    it("Should update views when components are removed", () =>
     {
         const querySize = Random.Integer(1, MAX_QUERY_SIZE + 1);
         const queryTypes = randomSample(ComponentTypes, querySize);
@@ -176,14 +171,14 @@ describe("Bitmask Stress Test", () =>
         const targetEntity = Random.Choice(matchingEntities);
         const componentToRemove = Random.Choice(queryTypes);
 
-        targetEntity.removeComponent(componentToRemove);
+        targetEntity.destroyComponent(componentToRemove);
         _entityComponentMap.get(targetEntity)!.delete(componentToRemove);
 
         expect(view.size).toBe(initialSize - 1);
         expect(view.has(targetEntity)).toBe(false);
     });
 
-    it("Should correctly handle component enable / disable", () =>
+    it("Should handle component enable and disable", () =>
     {
         const queryType = Random.Choice(ComponentTypes);
 
@@ -208,16 +203,13 @@ describe("Bitmask Stress Test", () =>
         expect(view.has(targetEntity)).toBe(true);
     });
 
-    it("Should handle extreme case with all component types on single entity", () =>
+    it("Should handle an entity with all component types", () =>
     {
-        const superEntity = new Entity();
-
+        const superEntity = _world.createEntity();
         for (const ComponentType of ComponentTypes)
         {
-            superEntity.addComponent(new ComponentType());
+            superEntity.createComponent(ComponentType);
         }
-
-        _world.addEntity(superEntity);
 
         for (let i = 0; i < 20; i += 1)
         {
@@ -229,17 +221,15 @@ describe("Bitmask Stress Test", () =>
         }
     });
 
-    it("Should correctly handle entity with components only from second chunk", () =>
+    it("Should handle an entity with components only from the second chunk", () =>
     {
-        const secondChunkEntity = new Entity();
+        const secondChunkEntity = _world.createEntity();
         const secondChunkTypes = randomSample(ComponentTypes.slice(32, 64), 5);
 
         for (const ComponentType of secondChunkTypes)
         {
-            secondChunkEntity.addComponent(new ComponentType());
+            secondChunkEntity.createComponent(ComponentType);
         }
-
-        _world.addEntity(secondChunkEntity);
 
         const firstChunkTypes = randomSample(ComponentTypes.slice(0, 32), 2);
 
@@ -260,18 +250,18 @@ describe("Bitmask Stress Test", () =>
             const operation = Random.Integer(0, 3);
             if (operation === 0)
             {
-                const entity = new Entity();
+                const entity = _world.createEntity();
+
                 const numComponents = Random.Integer(MIN_COMPONENTS_PER_ENTITY, MAX_COMPONENTS_PER_ENTITY + 1);
                 const selectedTypes = randomSample(ComponentTypes, numComponents);
                 const componentSet = new Set<ComponentType>();
 
                 for (const ComponentType of selectedTypes)
                 {
-                    entity.addComponent(new ComponentType());
+                    entity.createComponent(ComponentType);
                     componentSet.add(ComponentType);
                 }
 
-                _world.addEntity(entity);
                 _entities.push(entity);
                 _entityComponentMap.set(entity, componentSet);
             }
@@ -280,7 +270,8 @@ describe("Bitmask Stress Test", () =>
                 const index = Random.Index(_entities);
                 const entity = _entities[index];
 
-                _world.removeEntity(entity);
+                _world.destroyEntity(entity);
+
                 _entities.splice(index, 1);
                 _entityComponentMap.delete(entity);
             }
@@ -292,12 +283,12 @@ describe("Bitmask Stress Test", () =>
 
                 if (entityComponents.has(randomType))
                 {
-                    entity.removeComponent(randomType);
+                    entity.destroyComponent(randomType);
                     entityComponents.delete(randomType);
                 }
                 else
                 {
-                    entity.addComponent(new randomType());
+                    entity.createComponent(randomType);
                     entityComponents.add(randomType);
                 }
             }
@@ -307,7 +298,7 @@ describe("Bitmask Stress Test", () =>
         {
             const components = _entityComponentMap.get(entity)!;
 
-            return queryTypes.every((type) => components.has(type));
+            return queryTypes.every((Type) => components.has(Type));
         });
 
         expect(view.size).toBe(expectedEntities.length);

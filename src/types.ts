@@ -5,8 +5,8 @@ import type Component from "./component.js";
 import type System from "./system.js";
 import type Resource from "./resource.js";
 
-export type EntityType<E extends Entity = Entity> = Constructor<E>;
-export type ComponentType<C extends Component = Component> = Constructor<C> & { readonly Id: number };
+export type EntityType<E extends Entity = Entity> = Constructor<E, []>;
+export type ComponentType<C extends Component = Component> = Constructor<C, []> & { readonly Id: number };
 export type SystemType<S extends System = System> = Constructor<S>;
 export type ResourceType<R extends Resource = Resource> = Constructor<R>;
 

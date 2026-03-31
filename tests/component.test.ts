@@ -1,120 +1,139 @@
 import { ReferenceException, RuntimeException } from "@byloth/core";
 import { describe, expect, it, vi } from "vitest";
 
-import { AttachmentException, Component, Entity } from "../src/index.js";
+import { Component, World } from "../src/index.js";
+import type { Entity } from "../src/index.js";
 
 describe("Component", () =>
 {
-    it("Should be initialized with a `null` entity", () =>
+    describe("Initialization", () =>
     {
-        const component = new Component();
-        expect(component.entity).toBeNull();
+        it("Should be initialized with default values", () =>
+        {
+            const component = new Component();
+
+            expect(component.entity).toBeNull();
+            expect(component.isEnabled).toBe(false);
+        });
     });
 
-    it("Should be attachable to an entity", () =>
+    describe("Lifecycle", () =>
     {
-        const _onAttach = vi.fn(() => { /* ... */ });
-        class TestComponent extends Component
+        it("Should be initialized and attached to an entity", () =>
         {
-            public override onAttach(entity: Entity): void
+            const _onInitialize = vi.fn();
+            class TestComponent extends Component
             {
-                super.onAttach(entity);
+                public override initialize(entity: Entity, enabled = true): void
+                {
+                    super.initialize(entity, enabled);
 
-                _onAttach();
+                    _onInitialize();
+                }
             }
-        }
 
-        const entity = new Entity();
-        const component = entity.addComponent(new TestComponent());
+            const world = new World();
+            const entity1 = world.createEntity();
+            const component1 = entity1.createComponent(TestComponent);
 
-        expect(component.entity).toBe(entity);
-        expect(_onAttach).toHaveBeenCalledTimes(1);
-    });
-    it("Should throw an error if attached to an entity while already attached to another", () =>
-    {
-        const _onAttach = vi.fn(() => { /* ... */ });
-        class TestComponent extends Component
+            expect(component1.entity).toBe(entity1);
+            expect(component1.isEnabled).toBe(true);
+
+            const entity2 = world.createEntity();
+            const component2 = entity2.createComponent(TestComponent, false);
+
+            expect(component2.entity).toBe(entity2);
+            expect(component2.isEnabled).toBe(false);
+
+            expect(_onInitialize).toHaveBeenCalledTimes(2);
+        });
+        it("Should throw when initializing an already attached component", () =>
         {
-            public override onAttach(entity: Entity): void
-            {
-                super.onAttach(entity);
+            const world = new World();
 
-                _onAttach();
-            }
-        }
+            const entity1 = world.createEntity();
+            const entity2 = world.createEntity();
 
-        const entity1 = new Entity();
-        const entity2 = new Entity();
-        const component = entity1.addComponent(new TestComponent());
+            const component = entity1.createComponent(Component);
 
-        expect(() => entity2.addComponent(component)).toThrowError(AttachmentException);
-    });
+            expect(() => component.initialize(entity2))
+                .toThrow(ReferenceException);
+        });
 
-    it("Should be detachable from an entity", () =>
-    {
-        const _onDetach = vi.fn(() => { /* ... */ });
-        class TestComponent extends Component
+        it("Should be disposed and detached from the entity", () =>
         {
-            public override onDetach(): void
+            const _onDispose = vi.fn();
+            class TestComponent extends Component
             {
-                super.onDetach();
+                public override dispose(): void
+                {
+                    super.dispose();
 
-                _onDetach();
+                    _onDispose();
+                }
             }
-        }
 
-        const entity = new Entity();
-        const component = entity.addComponent(new TestComponent());
+            const world = new World();
+            const entity = world.createEntity();
+            entity.createComponent(TestComponent);
+            entity.destroyComponent(TestComponent);
 
-        entity.removeComponent(component);
-
-        expect(component.entity).toBeNull();
-        expect(_onDetach).toHaveBeenCalledTimes(1);
-    });
-    it("Should throw an error if detached from an entity while not attached to one", () =>
-    {
-        const _onDetach = vi.fn(() => { /* ... */ });
-        class TestComponent extends Component
+            expect(_onDispose).toHaveBeenCalledTimes(1);
+            expect(entity.hasComponent(TestComponent)).toBe(false);
+        });
+        it("Should throw when disposing a component not attached to any entity", () =>
         {
-            public override onDetach(): void
-            {
-                super.onDetach();
+            const component = new Component();
 
-                _onDetach();
-            }
-        }
-
-        const entity = new Entity();
-        const component = entity.addComponent(new TestComponent());
-
-        entity.removeComponent(TestComponent);
-
-        expect(() => entity.removeComponent(component)).toThrowError(ReferenceException);
-        expect(_onDetach).toHaveBeenCalledTimes(1);
+            expect(() => component.dispose())
+                .toThrow(ReferenceException);
+        });
     });
 
-    it("Should be disposable", () =>
+    describe("Enable & Disable", () =>
     {
-        const _dispose = vi.fn(() => { /* ... */ });
-        class TestComponent extends Component
+        it("Should enable a disabled component", () =>
         {
-            public override dispose(): void
-            {
-                super.dispose();
+            const world = new World();
+            const entity = world.createEntity();
+            const component = entity.createComponent(Component, false);
 
-                _dispose();
-            }
-        }
+            expect(component.isEnabled).toBe(false);
 
-        const entity = new Entity();
-        const component = entity.addComponent(new TestComponent());
+            component.enable();
 
-        expect(() => component.dispose()).toThrowError(RuntimeException);
+            expect(component.isEnabled).toBe(true);
+        });
+        it("Should throw when enabling an already enabled component", () =>
+        {
+            const world = new World();
+            const entity = world.createEntity();
+            const component = entity.createComponent(Component);
 
-        entity.removeComponent(TestComponent);
-        component.dispose();
+            expect(() => component.enable())
+                .toThrow(RuntimeException);
+        });
 
-        expect(component.entity).toBeNull();
-        expect(_dispose).toHaveBeenCalledTimes(1);
+        it("Should disable an enabled component", () =>
+        {
+            const world = new World();
+            const entity = world.createEntity();
+            const component = entity.createComponent(Component);
+
+            expect(component.isEnabled).toBe(true);
+
+            component.disable();
+
+            expect(component.isEnabled).toBe(false);
+        });
+        it("Should throw when disabling an already disabled component", () =>
+        {
+            const world = new World();
+            const entity = world.createEntity();
+            const component = entity.createComponent(Component, false);
+
+            expect(() => component.disable())
+                .toThrow(RuntimeException);
+        });
     });
 });

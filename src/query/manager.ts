@@ -71,7 +71,7 @@ function _gatherComponents(entity: Entity, types: ComponentType[]): Component[]
     const components = new Array<Component>(types.length);
     for (let i = 0; i < types.length; i += 1)
     {
-        components[i] = entity.components.get(types[i])!;
+        components[i] = entity["_components"].get(types[i])!;
     }
 
     return components;
@@ -185,7 +185,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         {
             if (!(entity.isEnabled)) { continue; }
 
-            const component = entity.components.get(type);
+            const component = entity["_components"].get(type);
             if (component?.isEnabled) { return component as R; }
         }
 

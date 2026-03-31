@@ -1,183 +1,216 @@
 import { ReferenceException, RuntimeException } from "@byloth/core";
 import { describe, expect, it, vi } from "vitest";
 
-import { AttachmentException, System, World } from "../src/index.js";
+import { System, World } from "../src/index.js";
 
 describe("System", () =>
 {
-    it("Should be initialized with default values", () =>
+    describe("Initialization", () =>
     {
-        const system = new System();
-
-        expect(system.priority).toBe(0);
-        expect(system.isEnabled).toBe(true);
-        expect(system.world).toBeNull();
-    });
-
-    it("Should enable / disable the system", () =>
-    {
-        const _enable = vi.fn(() => { /* ... */ });
-        const _disable = vi.fn(() => { /* ... */ });
-        class TestSystem extends System
+        it("Should be initialized with default values", () =>
         {
-            public override enable(): void
-            {
-                super.enable();
-                _enable();
-            }
-            public override disable(): void
-            {
-                super.disable();
-                _disable();
-            }
-        }
+            const system = new System();
 
-        const system = new TestSystem();
-        expect(system.isEnabled).toBe(true);
-        expect(() => system.enable()).toThrowError(RuntimeException);
-        expect(_enable).not.toHaveBeenCalled();
-        expect(_disable).not.toHaveBeenCalled();
-
-        system.disable();
-        expect(system.isEnabled).toBe(false);
-        expect(() => system.disable()).toThrowError(RuntimeException);
-        expect(_enable).toHaveBeenCalledTimes(0);
-        expect(_disable).toHaveBeenCalledTimes(1);
-
-        system.enable();
-        expect(system.isEnabled).toBe(true);
-        expect(_enable).toHaveBeenCalledTimes(1);
-        expect(_disable).toHaveBeenCalledTimes(1);
-    });
-
-    it("Should be attachable to a world", () =>
-    {
-        const _onAttach = vi.fn(() => { /* ... */ });
-        class TestSystem extends System
+            expect(system.priority).toBe(0);
+            expect(system.isEnabled).toBe(true);
+            expect(system.world).toBeNull();
+        });
+        it("Should be initialized with a custom priority", () =>
         {
-            public override onAttach(world: World): void
-            {
-                super.onAttach(world);
-
-                _onAttach();
-            }
-        }
-
-        const world = new World();
-        const system = world.addSystem(new TestSystem());
-
-        expect(system.world).toBe(world);
-        expect(_onAttach).toHaveBeenCalledTimes(1);
-    });
-    it("Should throw an error if attached to a world while already attached to another", () =>
-    {
-        const _onAttach = vi.fn(() => { /* ... */ });
-        class TestSystem extends System
+            const system = new System(5);
+            expect(system.priority).toBe(5);
+        });
+        it("Should be initialized as disabled", () =>
         {
-            public override onAttach(world: World): void
-            {
-                super.onAttach(world);
-
-                _onAttach();
-            }
-        }
-
-        const world1 = new World();
-        const world2 = new World();
-        const system = world1.addSystem(new TestSystem());
-
-        expect(() => world2.addSystem(system)).toThrowError(AttachmentException);
-        expect(_onAttach).toHaveBeenCalledTimes(1);
+            const system = new System(Infinity, false);
+            expect(system.isEnabled).toBe(false);
+        });
     });
 
-    it("Should be detachable from a world", () =>
+    describe("Lifecycle", () =>
     {
-        const _onDetach = vi.fn(() => { /* ... */ });
-        class TestSystem extends System
+        it("Should be initialized and attached to a world", () =>
         {
-            public override onDetach(): void
+            const _onInitialize = vi.fn();
+            class TestSystem extends System
             {
-                super.onDetach();
-                _onDetach();
+                public override initialize(world: World): void
+                {
+                    super.initialize(world);
+
+                    _onInitialize();
+                }
             }
-        }
 
-        const world = new World();
-        const system = world.addSystem(new TestSystem());
+            const world = new World();
+            const system = world.addSystem(new TestSystem());
 
-        world.removeSystem(TestSystem);
-
-        expect(system.world).toBeNull();
-        expect(_onDetach).toHaveBeenCalledTimes(1);
-    });
-    it("Should throw an error if detached from a world while not attached to one", () =>
-    {
-        const _onDetach = vi.fn(() => { /* ... */ });
-        class TestSystem extends System
+            expect(system.world).toBe(world);
+            expect(_onInitialize).toHaveBeenCalledTimes(1);
+        });
+        it("Should throw when initializing a system already attached to a world", () =>
         {
-            public override onDetach(): void
-            {
-                super.onDetach();
-                _onDetach();
-            }
-        }
+            const world1 = new World();
+            const world2 = new World();
+            const system = world1.addSystem(new System());
 
-        const world = new World();
-        const system = new TestSystem();
+            expect(() => world2.addSystem(system))
+                .toThrow(ReferenceException);
+        });
 
-        expect(() => world.removeSystem(system)).toThrowError(ReferenceException);
-        expect(_onDetach).not.toHaveBeenCalled();
-    });
-
-    it("Should be sortable by priority", () =>
-    {
-        class SystemA extends System { }
-        class SystemB extends System { }
-        class SystemC extends System { }
-        class SystemD extends System { }
-        class SystemE extends System { }
-        class SystemF extends System { }
-
-        const world = new World();
-        const system0 = new SystemA(2);
-        const system1 = new SystemB(3);
-        const system2 = new SystemC();
-        const system3 = new SystemD(2);
-        const system4 = new SystemE(1);
-        const system5 = new SystemF(-1);
-
-        world.addSystem(system0);
-        world.addSystem(system1);
-        world.addSystem(system2);
-        world.addSystem(system3);
-        world.addSystem(system4);
-        world.addSystem(system5);
-
-        expect(world["_enabledSystems"])
-            .toEqual([system5, system2, system4, system0, system3, system1]);
-    });
-
-    it("Should be disposable", () =>
-    {
-        const _dispose = vi.fn(() => { /* ... */ });
-        class TestSystem extends System
+        it("Should be disposed and detached from the world", () =>
         {
-            public override dispose(): void
+            const _onDispose = vi.fn();
+            class TestSystem extends System
             {
-                super.dispose();
-                _dispose();
+                public override dispose(): void
+                {
+                    _onDispose();
+
+                    super.dispose();
+                }
             }
-        }
 
-        const world = new World();
-        const system = world.addSystem(new TestSystem());
+            const world = new World();
+            const system = world.addSystem(new TestSystem());
 
-        expect(() => system.dispose()).toThrowError(RuntimeException);
+            world.removeSystem(TestSystem);
 
-        world.removeSystem(system);
-        system.dispose();
+            expect(system.world).toBeNull();
+            expect(_onDispose).toHaveBeenCalledTimes(1);
+        });
+        it("Should throw when disposing a system not attached to any world", () =>
+        {
+            const system = new System();
 
-        expect(system.world).toBeNull();
-        expect(_dispose).toHaveBeenCalledTimes(1);
+            expect(() => system.dispose())
+                .toThrow(ReferenceException);
+        });
+
+        it("Should call update with delta time", () =>
+        {
+            const _onUpdate = vi.fn();
+            class TestSystem extends System
+            {
+                public override update(deltaTime: number): void
+                {
+                    _onUpdate(deltaTime);
+                }
+            }
+
+            const world = new World();
+            world.addSystem(new TestSystem());
+
+            world.update(16);
+
+            expect(_onUpdate).toHaveBeenCalledWith(16);
+        });
+        it("Should not call update on disabled systems", () =>
+        {
+            const _onUpdate = vi.fn();
+            class TestSystem extends System
+            {
+                public override update(deltaTime: number): void
+                {
+                    _onUpdate(deltaTime);
+                }
+            }
+
+            const world = new World();
+            const system = world.addSystem(new TestSystem());
+            system.disable();
+
+            world.update(16);
+
+            expect(_onUpdate).not.toHaveBeenCalled();
+        });
+    });
+
+    describe("Enable & Disable", () =>
+    {
+        it("Should enable a disabled system", () =>
+        {
+            const _onEnable = vi.fn();
+            class TestSystem extends System
+            {
+                public override enable(): void
+                {
+                    super.enable();
+
+                    _onEnable();
+                }
+            }
+
+            const system = new TestSystem(0, false);
+            system.enable();
+
+            expect(system.isEnabled).toBe(true);
+            expect(_onEnable).toHaveBeenCalledTimes(1);
+        });
+        it("Should throw when enabling an already enabled system", () =>
+        {
+            const system = new System();
+
+            expect(() => system.enable())
+                .toThrow(RuntimeException);
+        });
+
+        it("Should disable an enabled system", () =>
+        {
+            const _onDisable = vi.fn();
+            class TestSystem extends System
+            {
+                public override disable(): void
+                {
+                    super.disable();
+
+                    _onDisable();
+                }
+            }
+
+            const system = new TestSystem();
+            system.disable();
+
+            expect(system.isEnabled).toBe(false);
+            expect(_onDisable).toHaveBeenCalledTimes(1);
+        });
+        it("Should throw when disabling an already disabled system", () =>
+        {
+            const system = new System(0, false);
+
+            expect(() => system.disable())
+                .toThrow(RuntimeException);
+        });
+    });
+
+    describe("Priority", () =>
+    {
+        it("Should sort systems by priority in the world's update loop", () =>
+        {
+            class SystemA extends System { }
+            class SystemB extends System { }
+            class SystemC extends System { }
+            class SystemD extends System { }
+            class SystemE extends System { }
+            class SystemF extends System { }
+
+            const world = new World();
+            const system0 = new SystemA(2);
+            const system1 = new SystemB(3);
+            const system2 = new SystemC();
+            const system3 = new SystemD(2);
+            const system4 = new SystemE(1);
+            const system5 = new SystemF(-1);
+
+            world.addSystem(system0);
+            world.addSystem(system1);
+            world.addSystem(system2);
+            world.addSystem(system3);
+            world.addSystem(system4);
+            world.addSystem(system5);
+
+            expect(world["_enabledSystems"])
+                .toEqual([system5, system2, system4, system0, system3, system1]);
+        });
     });
 });
