@@ -8,30 +8,23 @@ import type Resource from "./resource.js";
 
 import WorldContext from "./contexts/world.js";
 import { DependencyException } from "./exceptions.js";
+
 import ObjectPool from "./pool/object-pool.js";
+import type { InitializeArgs } from "./pool/poolable.js";
 
 import { QueryManager } from "./query/index.js";
 import type { ReadonlyQueryView } from "./query/view.js";
+
 import type { ComponentType, EntityType, Instances, ResourceType, SignalEventsMap, SystemType } from "./types.js";
-import type { InitializeArgs } from "./pool/poolable.js";
 
 type P = SignalEventsMap & InternalsEventsMap;
-
-const _entityPools = new Map<EntityType, ObjectPool<Entity>>();
-const _getEntityPool = <E extends Entity>(Type: EntityType<E>): ObjectPool<E> =>
-{
-    let pool = _entityPools.get(Type) as ObjectPool<E> | undefined;
-    if (pool) { return pool; }
-
-    pool = new ObjectPool(() => new Type());
-    _entityPools.set(Type, pool);
-
-    return pool;
-};
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export default class World<T extends CallbackMap<T> = { }>
 {
+    protected readonly _componentPools: Map<ComponentType, ObjectPool<Component>>;
+    protected readonly _entityPools: Map<EntityType, ObjectPool<Entity>>;
+
     protected readonly _entities: Map<number, Entity>;
 
     protected readonly _resources: Map<ResourceType, Resource>;
@@ -64,6 +57,9 @@ export default class World<T extends CallbackMap<T> = { }>
 
     public constructor()
     {
+        this._componentPools = new Map();
+        this._entityPools = new Map();
+
         this._entities = new Map();
         this._resources = new Map();
 
@@ -75,6 +71,29 @@ export default class World<T extends CallbackMap<T> = { }>
 
         this._queryManager = new QueryManager(this._entities);
         this._publisher = new Publisher();
+    }
+
+    protected _getComponentPool<C extends Component>(Type: ComponentType<C>): ObjectPool<C>
+    {
+        let pool = this._componentPools.get(Type) as ObjectPool<C> | undefined;
+        if (pool) { return pool; }
+
+        pool = new ObjectPool(() => new Type());
+
+        this._componentPools.set(Type, pool);
+
+        return pool;
+    }
+    protected _getEntityPool<E extends Entity>(Type: EntityType<E>): ObjectPool<E>
+    {
+        let pool = this._entityPools.get(Type) as ObjectPool<E> | undefined;
+        if (pool) { return pool; }
+
+        pool = new ObjectPool(() => new Type());
+
+        this._entityPools.set(Type, pool);
+
+        return pool;
     }
 
     protected _enableEntity(entity: Entity): void
@@ -167,7 +186,7 @@ export default class World<T extends CallbackMap<T> = { }>
 
     public createEntity<E extends Entity>(Type?: EntityType<E>, ...args: InitializeArgs<E>): E
     {
-        const pool = _getEntityPool(Type ?? Entity);
+        const pool = this._getEntityPool((Type ?? Entity) as EntityType<E>);
         const entity = pool.acquire() as E;
 
         entity.initialize(this, ...args as InitializeArgs<Entity>);
@@ -215,7 +234,7 @@ export default class World<T extends CallbackMap<T> = { }>
             }
         }
 
-        _getEntityPool(_entity!.constructor as EntityType)
+        this._getEntityPool(_entity!.constructor as EntityType)
             .release(_entity!);
     }
 
@@ -254,7 +273,7 @@ export default class World<T extends CallbackMap<T> = { }>
             throw new ReferenceException("The resource already exists in the world.");
         }
 
-        resource.onAttach(this);
+        resource.initialize(this);
 
         this._resources.set(Type, resource);
 
@@ -282,13 +301,13 @@ export default class World<T extends CallbackMap<T> = { }>
 
         this._resources.delete(Type);
 
-        try { _resource!.onDetach(); }
+        try { _resource!.dispose(); }
         catch (error)
         {
             if (import.meta.env.DEV)
             {
                 // eslint-disable-next-line no-console
-                console.warn("An error occurred while detaching this resource from the world.\n\nSuppressed", error);
+                console.warn("An error occurred while disposing this resource.\n\nSuppressed", error);
             }
         }
 
@@ -303,7 +322,7 @@ export default class World<T extends CallbackMap<T> = { }>
             throw new ReferenceException("The system already exists in the world.");
         }
 
-        system.onAttach(this);
+        system.initialize(this);
 
         this._systems.set(Type, system);
         if (system.isEnabled) { this._enableSystem(system); }
@@ -342,13 +361,13 @@ export default class World<T extends CallbackMap<T> = { }>
         if (_system!.isEnabled) { this._disableSystem(_system!); }
         this._systems.delete(Type);
 
-        try { _system!.onDetach(); }
+        try { _system!.dispose(); }
         catch (error)
         {
             if (import.meta.env.DEV)
             {
                 // eslint-disable-next-line no-console
-                console.warn("An error occurred while detaching this system from the world.\n\nSuppressed", error);
+                console.warn("An error occurred while disposing this system.\n\nSuppressed", error);
             }
         }
 
@@ -370,7 +389,7 @@ export default class World<T extends CallbackMap<T> = { }>
             }
         }
 
-        service.onAttach(this);
+        service.initialize(this);
 
         this._resources.set(Type, service);
         this._systems.set(Type, service);
@@ -421,13 +440,13 @@ export default class World<T extends CallbackMap<T> = { }>
         this._systems.delete(Type);
         this._resources.delete(Type);
 
-        try { _service!.onDetach(); }
+        try { _service!.dispose(); }
         catch (error)
         {
             if (import.meta.env.DEV)
             {
                 // eslint-disable-next-line no-console
-                console.warn("An error occurred while detaching this service from the world.\n\nSuppressed", error);
+                console.warn("An error occurred while disposing this service.\n\nSuppressed", error);
             }
         }
 
@@ -471,7 +490,6 @@ export default class World<T extends CallbackMap<T> = { }>
         {
             try
             {
-                system.onDetach();
                 system.dispose();
             }
             catch (error)
@@ -491,7 +509,6 @@ export default class World<T extends CallbackMap<T> = { }>
         {
             try
             {
-                resource.onDetach();
                 resource.dispose();
             }
             catch (error)
@@ -518,7 +535,7 @@ export default class World<T extends CallbackMap<T> = { }>
                 }
             }
 
-            _getEntityPool(entity.constructor as EntityType)
+            this._getEntityPool(entity.constructor as EntityType)
                 .release(entity);
         }
 
@@ -539,5 +556,8 @@ export default class World<T extends CallbackMap<T> = { }>
 
         this._contexts.clear();
         this._publisher.clear();
+
+        this._entityPools.clear();
+        this._componentPools.clear();
     }
 }

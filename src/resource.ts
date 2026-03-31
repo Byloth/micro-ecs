@@ -1,8 +1,9 @@
-import { ReferenceException, RuntimeException } from "@byloth/core";
+import { ReferenceException } from "@byloth/core";
 
+import type Poolable from "./pool/poolable.js";
 import type World from "./world.js";
 
-export default class Resource<W extends World = World>
+export default class Resource<W extends World = World> implements Poolable<W>
 {
     protected _world: W | null;
     public get world(): W | null { return this._world; }
@@ -12,7 +13,7 @@ export default class Resource<W extends World = World>
         this._world = null;
     }
 
-    public onAttach(world: W): void
+    public initialize(world: W): void
     {
         if ((import.meta.env.DEV) && (this._world))
         {
@@ -21,7 +22,7 @@ export default class Resource<W extends World = World>
 
         this._world = world;
     }
-    public onDetach(): void
+    public dispose(): void
     {
         if ((import.meta.env.DEV) && !(this._world))
         {
@@ -29,13 +30,5 @@ export default class Resource<W extends World = World>
         }
 
         this._world = null;
-    }
-
-    public dispose(): void
-    {
-        if ((import.meta.env.DEV) && (this._world))
-        {
-            throw new RuntimeException("The object must be detached from the world before disposing it.");
-        }
     }
 }

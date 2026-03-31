@@ -3,23 +3,12 @@ import { ReferenceException, RuntimeException } from "@byloth/core";
 import type Component from "./component.js";
 import EntityContext from "./contexts/entity.js";
 import { DependencyException } from "./exceptions.js";
-import ObjectPool from "./pool/object-pool.js";
+
 import type Poolable from "./pool/poolable.js";
 import type { InitializeArgs } from "./pool/poolable.js";
+
 import type { ComponentType } from "./types.js";
 import type World from "./world.js";
-
-const _componentPools = new Map<ComponentType, ObjectPool<Component>>();
-const _getComponentPool = <C extends Component>(Type: ComponentType<C>): ObjectPool<C> =>
-{
-    let pool = _componentPools.get(Type) as ObjectPool<C> | undefined;
-    if (pool) { return pool; }
-
-    pool = new ObjectPool(() => new Type());
-    _componentPools.set(Type, pool);
-
-    return pool;
-};
 
 export default class Entity<W extends World = World> implements Poolable<W>
 {
@@ -137,7 +126,7 @@ export default class Entity<W extends World = World> implements Poolable<W>
             throw new ReferenceException("The component already exists in the entity.");
         }
 
-        const pool = _getComponentPool(Type);
+        const pool = this._world!["_getComponentPool"](Type);
         const component = pool.acquire() as C;
 
         component.initialize(this, ...args as InitializeArgs<Component>);
@@ -211,7 +200,7 @@ export default class Entity<W extends World = World> implements Poolable<W>
             }
         }
 
-        _getComponentPool(_component!.constructor as ComponentType)
+        this._world!["_getComponentPool"](_component!.constructor as ComponentType)
             .release(_component!);
     }
 
@@ -256,6 +245,8 @@ export default class Entity<W extends World = World> implements Poolable<W>
             throw new ReferenceException("The entity isn't attached to any world.");
         }
 
+        const world = this._world;
+
         this._id = -1;
         this._world = null;
 
@@ -273,7 +264,7 @@ export default class Entity<W extends World = World> implements Poolable<W>
                 }
             }
 
-            _getComponentPool(component.constructor as ComponentType)
+            world!["_getComponentPool"](component.constructor as ComponentType)
                 .release(component);
         }
 

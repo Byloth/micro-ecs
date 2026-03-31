@@ -29,6 +29,17 @@ export default class Component<E extends Entity = Entity> implements Poolable<E>
         this._isEnabled = false;
     }
 
+    public initialize(entity: E, enabled = true, ...args: unknown[]): void
+    {
+        if ((import.meta.env.DEV) && (this._entity))
+        {
+            throw new ReferenceException("The component is already attached to an entity.");
+        }
+
+        this._entity = entity;
+        this._isEnabled = enabled;
+    }
+
     public enable(): void
     {
         if ((import.meta.env.DEV) && (this._isEnabled))
@@ -50,16 +61,6 @@ export default class Component<E extends Entity = Entity> implements Poolable<E>
         this._entity?.["_disableComponent"](this);
     }
 
-    public initialize(entity: E, enabled = true, ...args: unknown[]): void
-    {
-        if ((import.meta.env.DEV) && (this._entity))
-        {
-            throw new ReferenceException("The component is already attached to an entity.");
-        }
-
-        this._entity = entity;
-        this._isEnabled = enabled;
-    }
     public dispose(): void
     {
         if ((import.meta.env.DEV) && !(this._entity))
