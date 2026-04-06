@@ -1,4 +1,4 @@
-export const VERSION = "1.0.32";
+export const VERSION = "1.0.33";
 
 export { default as Entity } from "./entity.js";
 export { default as Component } from "./component.js";

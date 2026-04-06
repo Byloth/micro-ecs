@@ -29,7 +29,7 @@ export default class Component<E extends Entity = Entity> implements Poolable<E>
         this._isEnabled = false;
     }
 
-    public initialize(entity: E): void
+    public initialize(entity: E, ...args: unknown[]): void
     {
         if ((import.meta.env.DEV) && (this._entity))
         {

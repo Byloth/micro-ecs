@@ -106,7 +106,7 @@ export default class Entity<W extends World = World> implements Poolable<W>
         this.world?.["_disableEntityComponent"](this, component);
     }
 
-    public initialize(world: W): void
+    public initialize(world: W, ...args: unknown[]): void
     {
         if ((import.meta.env.DEV) && (this._world))
         {
