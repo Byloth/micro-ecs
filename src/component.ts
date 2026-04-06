@@ -1,7 +1,7 @@
 import { ReferenceException, RuntimeException } from "@byloth/core";
 
 import type Entity from "./entity.js";
-import type Poolable from "./pool/poolable.js";
+import type Poolable from "./object-pool/types.js";
 
 export default class Component<E extends Entity = Entity> implements Poolable<E>
 {
@@ -29,7 +29,7 @@ export default class Component<E extends Entity = Entity> implements Poolable<E>
         this._isEnabled = false;
     }
 
-    public initialize(entity: E, enabled = true, ...args: unknown[]): void
+    public initialize(entity: E): void
     {
         if ((import.meta.env.DEV) && (this._entity))
         {
@@ -37,7 +37,7 @@ export default class Component<E extends Entity = Entity> implements Poolable<E>
         }
 
         this._entity = entity;
-        this._isEnabled = enabled;
+        this._isEnabled = true;
     }
 
     public enable(): void

@@ -9,8 +9,8 @@ import type Resource from "./resource.js";
 import WorldContext from "./contexts/world.js";
 import { DependencyException } from "./exceptions.js";
 
-import ObjectPool from "./pool/object-pool.js";
-import type { InitializeArgs } from "./pool/poolable.js";
+import ObjectPool from "./object-pool/index.js";
+import type { InitializeArgs } from "./object-pool/types.js";
 
 import { QueryManager } from "./query/index.js";
 import type { ReadonlyQueryView } from "./query/view.js";

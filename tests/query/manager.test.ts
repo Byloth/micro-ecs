@@ -3,6 +3,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Component, Entity, World } from "../../src/index.js";
 import type { ComponentType } from "../../src/index.js";
 
+class TestEntity extends Entity
+{
+    public override initialize(world: World, enabled = true): void
+    {
+        super.initialize(world);
+        this._isEnabled = enabled;
+    }
+}
+
 class TestComponent1 extends Component { }
 class TestComponent2 extends Component { }
 class TestComponent3 extends Component { }
@@ -32,7 +41,7 @@ describe("QueryManager", () =>
 
         for (const [components, entityEnabled] of definitions)
         {
-            const entity = _world.createEntity(Entity, entityEnabled);
+            const entity = _world.createEntity(TestEntity, entityEnabled);
 
             for (const [C, componentEnabled] of components)
             {

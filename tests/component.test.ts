@@ -26,7 +26,8 @@ describe("Component", () =>
             {
                 public override initialize(entity: Entity, enabled = true): void
                 {
-                    super.initialize(entity, enabled);
+                    super.initialize(entity);
+                    this._isEnabled = enabled;
 
                     _onInitialize();
                 }
@@ -94,9 +95,18 @@ describe("Component", () =>
     {
         it("Should enable a disabled component", () =>
         {
+            class TestComponent extends Component
+            {
+                public override initialize(entity: Entity, enabled = true): void
+                {
+                    super.initialize(entity);
+                    this._isEnabled = enabled;
+                }
+            }
+
             const world = new World();
             const entity = world.createEntity();
-            const component = entity.createComponent(Component, false);
+            const component = entity.createComponent(TestComponent, false);
 
             expect(component.isEnabled).toBe(false);
 
@@ -128,9 +138,18 @@ describe("Component", () =>
         });
         it("Should throw when disabling an already disabled component", () =>
         {
+            class TestComponent extends Component
+            {
+                public override initialize(entity: Entity, enabled = true): void
+                {
+                    super.initialize(entity);
+                    this._isEnabled = enabled;
+                }
+            }
+
             const world = new World();
             const entity = world.createEntity();
-            const component = entity.createComponent(Component, false);
+            const component = entity.createComponent(TestComponent, false);
 
             expect(() => component.disable())
                 .toThrow(RuntimeException);

@@ -3,6 +3,6 @@ export type InitializeArgs<E extends Poolable> = Tail<Parameters<E["initialize"]
 
 export default interface Poolable<T = unknown>
 {
-    initialize(parent: T, ...args: unknown[]): void;
+    initialize(parent: T): void;
     dispose(): void;
 }

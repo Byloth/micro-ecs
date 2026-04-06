@@ -27,19 +27,20 @@ describe("Entity", () =>
             {
                 public override initialize(world: World, enabled = true): void
                 {
-                    super.initialize(world, enabled);
+                    super.initialize(world);
+                    this._isEnabled = enabled;
 
                     _onInitialize();
                 }
             }
 
             const world = new World();
-            const entity1 = world.createEntity(TestEntity);
+            const entity1 = world.createEntity(Entity);
 
             expect(entity1.world).toBe(world);
             expect(entity1.isEnabled).toBe(true);
 
-            const entity2 = world.createEntity(Entity, false);
+            const entity2 = world.createEntity(TestEntity, false);
 
             expect(entity2.world).toBe(world);
             expect(entity2.isEnabled).toBe(false);
@@ -98,8 +99,17 @@ describe("Entity", () =>
     {
         it("Should enable a disabled entity", () =>
         {
+            class TestEntity extends Entity
+            {
+                public override initialize(world: World, enabled = true): void
+                {
+                    super.initialize(world);
+                    this._isEnabled = enabled;
+                }
+            }
+
             const world = new World();
-            const entity = world.createEntity(Entity, false);
+            const entity = world.createEntity(TestEntity, false);
 
             expect(entity.isEnabled).toBe(false);
 
@@ -129,8 +139,17 @@ describe("Entity", () =>
         });
         it("Should throw when disabling an already disabled entity", () =>
         {
+            class TestEntity extends Entity
+            {
+                public override initialize(world: World, enabled = true): void
+                {
+                    super.initialize(world);
+                    this._isEnabled = enabled;
+                }
+            }
+
             const world = new World();
-            const entity = world.createEntity(Entity, false);
+            const entity = world.createEntity(TestEntity, false);
 
             expect(() => entity.disable())
                 .toThrow(RuntimeException);

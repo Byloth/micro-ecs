@@ -1,6 +1,6 @@
 {
   "name": "@byloth/micro-ecs",
-  "version": "1.0.31",
+  "version": "1.0.32",
   "description": "A simple & lightweight ECS (Entity Component System) library for JavaScript and TypeScript. 🕹",
   "keywords": [
     "ECS",
@@ -70,14 +70,14 @@
   },
   "devDependencies": {
     "@byloth/eslint-config-typescript": "^4.0.0",
-    "@eslint/compat": "^2.0.3",
-    "@types/node": "^22.19.15",
+    "@eslint/compat": "^2.0.4",
+    "@types/node": "^22.19.17",
     "@vitest/coverage-v8": "^4.1.2",
-    "eslint": "^10.1.0",
+    "eslint": "^10.2.0",
     "husky": "^9.1.7",
     "jsdom": "^29.0.1",
     "typescript": "^6.0.2",
-    "vite": "^8.0.3",
+    "vite": "^8.0.5",
     "vitest": "^4.1.2"
   }
 }

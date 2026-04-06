@@ -4,8 +4,8 @@ import type Component from "./component.js";
 import EntityContext from "./contexts/entity.js";
 import { DependencyException } from "./exceptions.js";
 
-import type Poolable from "./pool/poolable.js";
-import type { InitializeArgs } from "./pool/poolable.js";
+import type Poolable from "./object-pool/types.js";
+import type { InitializeArgs } from "./object-pool/types.js";
 
 import type { ComponentType } from "./types.js";
 import type World from "./world.js";
@@ -106,7 +106,7 @@ export default class Entity<W extends World = World> implements Poolable<W>
         this.world?.["_disableEntityComponent"](this, component);
     }
 
-    public initialize(world: W, enabled = true, ...args: unknown[]): void
+    public initialize(world: W): void
     {
         if ((import.meta.env.DEV) && (this._world))
         {
@@ -116,7 +116,7 @@ export default class Entity<W extends World = World> implements Poolable<W>
         this._id = (Entity["__μECS_NextId__"] += 1);
         this._world = world;
 
-        this._isEnabled = enabled;
+        this._isEnabled = true;
     }
 
     public createComponent<C extends Component>(Type: ComponentType<C>, ...args: InitializeArgs<C>): C

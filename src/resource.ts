@@ -1,6 +1,6 @@
 import { ReferenceException } from "@byloth/core";
 
-import type Poolable from "./pool/poolable.js";
+import type Poolable from "./object-pool/types.js";
 import type World from "./world.js";
 
 export default class Resource<W extends World = World> implements Poolable<W>

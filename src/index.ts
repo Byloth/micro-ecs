@@ -1,4 +1,4 @@
-export const VERSION = "1.0.31";
+export const VERSION = "1.0.32";
 
 export { default as Entity } from "./entity.js";
 export { default as Component } from "./component.js";
@@ -13,8 +13,8 @@ export { DependencyException } from "./exceptions.js";
 export { QueryManager, QueryView } from "./query/index.js";
 export type { ReadonlyQueryView } from "./query/index.js";
 
-export { ObjectPool } from "./pool/index.js";
-export type { Poolable, InitializeArgs } from "./pool/index.js";
+export { default as ObjectPool } from "./object-pool/index.js";
+export type { default as Poolable, InitializeArgs } from "./object-pool/types.js";
 
 export type {
     EntityType,
