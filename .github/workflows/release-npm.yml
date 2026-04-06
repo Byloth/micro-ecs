@@ -18,18 +18,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Downloading the artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: byloth-micro-ecs
 
-      - name: Configuring Node.js 22 (LTS)
+      - name: Configuring Node.js 24 (LTS)
         uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
           registry-url: https://registry.npmjs.org/
 
-      - name: Updating npm to the latest version
-        run: npm install -g npm@latest
       - if: ${{ github.event.release.prerelease == true }}
         name: Publishing pre-release package
         run: npm publish --access public --tag next

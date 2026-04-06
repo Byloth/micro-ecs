@@ -10,15 +10,15 @@ jobs:
       - name: Cloning source code
         uses: actions/checkout@v6
       - name: "`pnpm` installation"
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
         with:
           version: latest
 
-      - name: Configuring Node.js 22 (LTS)
+      - name: Configuring Node.js 24 (LTS)
         uses: actions/setup-node@v6
         with:
           cache: pnpm
-          node-version: 22
+          node-version: 24
 
       - name: Installing dependencies
         run: pnpm run ci
@@ -41,7 +41,7 @@ jobs:
           tar -xzvf "${PACKAGE_NAME}" -C "."
 
       - name: Uploading the artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: byloth-micro-ecs
           path: package
