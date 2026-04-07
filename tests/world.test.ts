@@ -357,8 +357,6 @@ describe("World", () =>
         {
             const _clear = vi.fn();
 
-            let context: WorldContext;
-
             class TestResource extends Resource { }
             class TestService extends System
             {
@@ -366,25 +364,26 @@ describe("World", () =>
                 {
                     super.initialize(world);
 
-                    context = world.getContext(this);
-                    context.useResource(TestResource);
+                    world.getContext(this)
+                        .useResource(TestResource);
                 }
             }
 
             const resource = _world.addResource(new TestResource());
             const service = _world.addService(new TestService());
+            const context = _world.getContext(service);
 
-            expect(context!).toBeInstanceOf(WorldContext);
-            expect(context!.dependencies.size).toBe(1);
+            expect(context).toBeInstanceOf(WorldContext);
+            expect(context.dependencies.size).toBe(1);
             expect(_world["_contexts"].has(service)).toBe(true);
             expect(_world["_dependencies"].has(resource)).toBe(true);
 
-            context!.on("__internals__:clear", _clear);
+            context.on("__internals__:clear", _clear);
 
             _world.removeService(service);
 
             expect(_clear).toHaveBeenCalledTimes(1);
-            expect(context!.dependencies.size).toBe(0);
+            expect(context.dependencies.size).toBe(0);
             expect(_world["_contexts"].has(service)).toBe(false);
             expect(_world["_dependencies"].has(resource)).toBe(false);
 
@@ -539,8 +538,6 @@ describe("World", () =>
         {
             const _clear = vi.fn();
 
-            let context: WorldContext;
-
             class TestResource extends Resource { }
             class TestSystem extends System
             {
@@ -548,24 +545,26 @@ describe("World", () =>
                 {
                     super.initialize(world);
 
-                    context = world.getContext(this);
-                    context.useResource(TestResource);
+                    world.getContext(this)
+                        .useResource(TestResource);
                 }
             }
 
             const resource = _world.addResource(new TestResource());
             const system = _world.addSystem(new TestSystem());
 
-            expect(context!).toBeInstanceOf(WorldContext);
-            expect(context!.dependencies.size).toBe(1);
+            const context = _world.getContext(system);
+
+            expect(context).toBeInstanceOf(WorldContext);
+            expect(context.dependencies.size).toBe(1);
             expect(_world["_contexts"].has(system)).toBe(true);
             expect(_world["_dependencies"].has(resource)).toBe(true);
 
-            context!.on("__internals__:clear", _clear);
-            context!.dispose();
+            context.on("__internals__:clear", _clear);
+            context.dispose();
 
             expect(_clear).toHaveBeenCalledTimes(1);
-            expect(context!.dependencies.size).toBe(0);
+            expect(context.dependencies.size).toBe(0);
             expect(_world["_contexts"].has(system)).toBe(false);
             expect(_world["_dependencies"].has(resource)).toBe(false);
 
@@ -576,8 +575,6 @@ describe("World", () =>
         {
             const _clear = vi.fn();
 
-            let context: WorldContext;
-
             class TestResource extends Resource { }
             class TestSystem extends System
             {
@@ -585,25 +582,27 @@ describe("World", () =>
                 {
                     super.initialize(world);
 
-                    context = world.getContext(this);
-                    context.useResource(TestResource);
+                    world.getContext(this)
+                        .useResource(TestResource);
                 }
             }
 
             const resource = _world.addResource(new TestResource());
             const system = _world.addSystem(new TestSystem());
 
-            expect(context!).toBeInstanceOf(WorldContext);
-            expect(context!.dependencies.size).toBe(1);
+            const context = _world.getContext(system);
+
+            expect(context).toBeInstanceOf(WorldContext);
+            expect(context.dependencies.size).toBe(1);
             expect(_world["_contexts"].has(system)).toBe(true);
             expect(_world["_dependencies"].has(resource)).toBe(true);
 
-            context!.on("__internals__:clear", _clear);
+            context.on("__internals__:clear", _clear);
 
             _world.removeSystem(TestSystem);
 
             expect(_clear).toHaveBeenCalledTimes(1);
-            expect(context!.dependencies.size).toBe(0);
+            expect(context.dependencies.size).toBe(0);
             expect(_world["_contexts"].has(system)).toBe(false);
             expect(_world["_dependencies"].has(resource)).toBe(false);
 

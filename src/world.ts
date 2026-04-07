@@ -148,9 +148,9 @@ export default class World<T extends CallbackMap<T> = { }>
         this._enabledSystems.splice(index, 1);
     }
 
-    protected _addDependency(system: System, type: ResourceType): Resource
+    protected _addDependency(system: System, Type: ResourceType): Resource
     {
-        const dependency = this._resources.get(type);
+        const dependency = this._resources.get(Type);
         if ((import.meta.env.DEV) && !(dependency))
         {
             throw new DependencyException("The dependency doesn't exist in the world.");
@@ -170,9 +170,9 @@ export default class World<T extends CallbackMap<T> = { }>
 
         return dependency!;
     }
-    protected _removeDependency(system: System, type: ResourceType): Resource
+    protected _removeDependency(system: System, Type: ResourceType): Resource
     {
-        const dependency = this._resources.get(type)!;
+        const dependency = this._resources.get(Type)!;
         const dependants = this._dependencies.get(dependency);
         if ((import.meta.env.DEV) && !(dependants?.delete(system)))
         {
@@ -239,30 +239,30 @@ export default class World<T extends CallbackMap<T> = { }>
     }
 
     public getFirstComponent<C extends ComponentType, R extends InstanceType<C> = InstanceType<C>>(
-        type: C
+        Type: C
     ): R | undefined
     {
-        return this._queryManager.pickOne<C, R>(type);
+        return this._queryManager.pickOne<C, R>(Type);
     }
     public getFirstComponents<C extends ComponentType[], R extends Instances<C> = Instances<C>>(
-        ...types: C
+        ...Types: C
     ): R | undefined
     {
-        return this._queryManager.findFirst<C, R>(...types);
+        return this._queryManager.findFirst<C, R>(...Types);
     }
 
     public findAllComponents<C extends ComponentType[], R extends Instances<C> = Instances<C>>(
-        ...types: C
+        ...Types: C
     ): SmartIterator<R>
     {
-        return this._queryManager.findAll<C, R>(...types);
+        return this._queryManager.findAll<C, R>(...Types);
     }
 
     public getComponentView<C extends ComponentType[], R extends Instances<C> = Instances<C>>(
-        ...types: C
+        ...Types: C
     ): ReadonlyQueryView<R>
     {
-        return this._queryManager.getView<C, R>(...types);
+        return this._queryManager.getView<C, R>(...Types);
     }
 
     public addResource<R extends Resource>(resource: R): R

@@ -97,25 +97,25 @@ export default class WorldContext<T extends CallbackMap<T> = { }>
         this._publisher.unsubscribe(event, callback);
     }
 
-    public useResource<R extends System>(type: ResourceType<R>): Resourceable<R>;
-    public useResource<R extends Resource>(type: ResourceType<R>): R;
-    public useResource(type: ResourceType): Resource
+    public useResource<R extends System>(Type: ResourceType<R>): Resourceable<R>;
+    public useResource<R extends Resource>(Type: ResourceType<R>): R;
+    public useResource(Type: ResourceType): Resource
     {
-        const dependency = this._world["_addDependency"](this._system, type);
+        const dependency = this._world["_addDependency"](this._system, Type);
         this._dependencies.add(dependency);
 
         return dependency;
     }
 
-    public releaseResource<R extends System>(type: ResourceType<R>): void;
+    public releaseResource<R extends System>(Type: ResourceType<R>): void;
     public releaseResource<R extends System>(service: R): void;
-    public releaseResource<R extends Resource>(type: ResourceType<R>): void;
+    public releaseResource<R extends Resource>(Type: ResourceType<R>): void;
     public releaseResource<R extends Resource>(resource: R): void;
     public releaseResource(resource: ResourceType | Resource): void
     {
-        const type = (typeof resource === "function") ? resource : resource.constructor as ResourceType;
+        const Type = (typeof resource === "function") ? resource : resource.constructor as ResourceType;
 
-        const dependency = this._world["_removeDependency"](this._system, type);
+        const dependency = this._world["_removeDependency"](this._system, Type);
         this._dependencies.delete(dependency);
     }
 

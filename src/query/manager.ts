@@ -8,15 +8,15 @@ import type Entity from "../entity.js";
 import type Component from "../component.js";
 import type { ComponentType, Instances } from "../types.js";
 
-function _getQueryKey(types: ComponentType[]): string
+function _getQueryKey(Types: ComponentType[]): string
 {
-    const length = types.length;
-    if (length === 1) { return `${types[0].Id}`; }
+    const length = Types.length;
+    if (length === 1) { return `${Types[0].Id}`; }
 
     const ids = new Array<number>(length);
     for (let i = 0; i < length; i += 1)
     {
-        ids[i] = types[i].Id;
+        ids[i] = Types[i].Id;
     }
 
     ids.sort((a, b) => (a - b));
@@ -43,12 +43,12 @@ function _unsetMaskBit(mask: number[], typeId: number): void
     mask[index] &= ~(bit);
 }
 
-function _createMask(types: ComponentType[]): number[]
+function _createMask(Types: ComponentType[]): number[]
 {
     const mask: number[] = [];
-    for (const type of types)
+    for (const Type of Types)
     {
-        _setMaskBit(mask, type.Id);
+        _setMaskBit(mask, Type.Id);
     }
 
     return mask;
@@ -66,12 +66,12 @@ function _matchMask(entityMask: number[], queryMask: number[]): boolean
     return true;
 }
 
-function _gatherComponents(entity: Entity, types: ComponentType[]): Component[]
+function _gatherComponents(entity: Entity, Types: ComponentType[]): Component[]
 {
-    const components = new Array<Component>(types.length);
-    for (let i = 0; i < types.length; i += 1)
+    const components = new Array<Component>(Types.length);
+    for (let i = 0; i < Types.length; i += 1)
     {
-        components[i] = entity["_components"].get(types[i])!;
+        components[i] = entity["_components"].get(Types[i])!;
     }
 
     return components;
@@ -115,12 +115,12 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
 
     protected _onEntityComponentEnable(entity: Entity, component: Component)
     {
-        const type = component.constructor as ComponentType;
+        const Type = component.constructor as ComponentType;
 
         const entityMask = this._getEntityMask(entity);
-        _setMaskBit(entityMask, type.Id);
+        _setMaskBit(entityMask, Type.Id);
 
-        const keys = this._typeKeys.get(type);
+        const keys = this._typeKeys.get(Type);
         if (!(keys)) { return; }
 
         for (const key of keys)
@@ -131,20 +131,20 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
             const queryMask = this._queryMasks.get(key)!;
             if (!(_matchMask(entityMask, queryMask))) { continue; }
 
-            const types = this._keyTypes.get(key)!;
-            const components = _gatherComponents(entity, types);
+            const Types = this._keyTypes.get(key)!;
+            const components = _gatherComponents(entity, Types);
 
             view.set(entity, components);
         }
     }
     protected _onEntityComponentDisable(entity: Entity, component: Component)
     {
-        const type = component.constructor as ComponentType;
+        const Type = component.constructor as ComponentType;
 
         const entityMask = this._entityMasks.get(entity);
-        if (entityMask) { _unsetMaskBit(entityMask, type.Id); }
+        if (entityMask) { _unsetMaskBit(entityMask, Type.Id); }
 
-        const keys = this._typeKeys.get(type);
+        const keys = this._typeKeys.get(Type);
         if (!(keys)) { return; }
 
         for (const key of keys)
@@ -154,30 +154,30 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         }
     }
 
-    protected _addComponentKeys(types: ComponentType[], key: string): void
+    protected _addComponentKeys(Types: ComponentType[], key: string): void
     {
-        for (const type of types)
+        for (const Type of Types)
         {
-            const view = this._typeKeys.get(type);
+            const view = this._typeKeys.get(Type);
             if (view) { view.add(key); }
-            else { this._typeKeys.set(type, new Set([key])); }
+            else { this._typeKeys.set(Type, new Set([key])); }
         }
     }
-    protected _addKeyComponents(key: string, types: ComponentType[]): void
+    protected _addKeyComponents(key: string, Types: ComponentType[]): void
     {
         if ((import.meta.env.DEV) && (this._keyTypes.has(key)))
         {
             throw new KeyException(`The key "${key}" is already registered.`);
         }
 
-        this._keyTypes.set(key, types);
+        this._keyTypes.set(key, Types);
     }
 
     public pickOne<C extends ComponentType, R extends InstanceType<C> = InstanceType<C>>(
-        type: C
+        Type: C
     ): R | undefined
     {
-        const key = `${type.Id}`;
+        const key = `${Type.Id}`;
         const view = this._views.get(key) as QueryView<[R]> | undefined;
         if (view) { return view.components[0][0]; }
 
@@ -185,7 +185,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         {
             if (!(entity.isEnabled)) { continue; }
 
-            const component = entity["_components"].get(type);
+            const component = entity["_components"].get(Type);
             if (component?.isEnabled) { return component as R; }
         }
 
@@ -193,19 +193,19 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
     }
 
     public findFirst<C extends ComponentType[], R extends Instances<C> = Instances<C>>(
-        ...types: C
+        ...Types: C
     ): R | undefined
     {
-        if ((import.meta.env.DEV) && !(types.length))
+        if ((import.meta.env.DEV) && !(Types.length))
         {
             throw new ValueException("At least one type must be provided.");
         }
 
-        const key = _getQueryKey(types);
+        const key = _getQueryKey(Types);
         const view = this._views.get(key) as QueryView<R> | undefined;
         if (view) { return view.components[0]; }
 
-        const queryMask = _createMask(types);
+        const queryMask = _createMask(Types);
         for (const entity of this._entities.values())
         {
             if (!(entity.isEnabled)) { continue; }
@@ -213,27 +213,27 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
             const entityMask = this._entityMasks.get(entity);
             if (!(entityMask) || !(_matchMask(entityMask, queryMask))) { continue; }
 
-            return _gatherComponents(entity, types) as R;
+            return _gatherComponents(entity, Types) as R;
         }
 
         return undefined;
     }
     public findAll<C extends ComponentType[], R extends Instances<C> = Instances<C>>(
-        ...types: C
+        ...Types: C
     ): SmartIterator<R>
     {
-        if ((import.meta.env.DEV) && !(types.length))
+        if ((import.meta.env.DEV) && !(Types.length))
         {
             throw new ValueException("At least one type must be provided.");
         }
 
-        const key = _getQueryKey(types);
+        const key = _getQueryKey(Types);
         const view = this._views.get(key) as QueryView<R> | undefined;
         if (view) { return new SmartIterator(view.components); }
 
         const entities = this._entities;
         const entityMasks = this._entityMasks;
-        const queryMask = _createMask(types);
+        const queryMask = _createMask(Types);
 
         return new SmartIterator(function* (): Generator<R>
         {
@@ -244,25 +244,25 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
                 const entityMask = entityMasks.get(entity);
                 if (!(entityMask) || !(_matchMask(entityMask, queryMask))) { continue; }
 
-                yield _gatherComponents(entity, types) as R;
+                yield _gatherComponents(entity, Types) as R;
             }
         });
     }
 
     public getView<C extends ComponentType[], R extends Instances<C> = Instances<C>>(
-        ...types: C
+        ...Types: C
     ): ReadonlyQueryView<R>
     {
-        if ((import.meta.env.DEV) && !(types.length))
+        if ((import.meta.env.DEV) && !(Types.length))
         {
             throw new ValueException("At least one type must be provided.");
         }
 
-        const key = _getQueryKey(types);
+        const key = _getQueryKey(Types);
         let view = this._views.get(key) as QueryView<R> | undefined;
         if (view) { return view; }
 
-        const queryMask = _createMask(types);
+        const queryMask = _createMask(Types);
         view = new QueryView<R>();
 
         for (const entity of this._entities.values())
@@ -272,15 +272,15 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
             const entityMask = this._entityMasks.get(entity);
             if (!(entityMask) || !(_matchMask(entityMask, queryMask))) { continue; }
 
-            const components = _gatherComponents(entity, types) as R;
+            const components = _gatherComponents(entity, Types) as R;
             view.set(entity, components);
         }
 
         this._views.set(key, view);
         this._queryMasks.set(key, queryMask);
 
-        this._addComponentKeys(types, key);
-        this._addKeyComponents(key, types);
+        this._addComponentKeys(Types, key);
+        this._addKeyComponents(key, Types);
 
         return view;
     }

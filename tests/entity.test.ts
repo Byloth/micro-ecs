@@ -379,10 +379,148 @@ describe("Entity", () =>
             entity.destroyComponent(DependencyComponent);
         });
 
+        it("Should create a child component and register it as a dependency", () =>
+        {
+            class ChildComponent extends Component { }
+            class ParentComponent extends Component
+            {
+                public override initialize(entity: Entity): void
+                {
+                    super.initialize(entity);
+
+                    entity.getContext(this)
+                        .createChild(ChildComponent);
+                }
+            }
+
+            const world = new World();
+            const entity = world.createEntity();
+            const parent = entity.createComponent(ParentComponent);
+            const context = entity.getContext(parent);
+            const child = entity.getComponent(ChildComponent);
+
+            expect(entity.hasComponent(ChildComponent)).toBe(true);
+            expect(context.children.has(ChildComponent)).toBe(true);
+            expect(context.dependencies.size).toBe(1);
+            expect(context.dependencies.has(child)).toBe(true);
+        });
+        it("Should explicitly destroy a child component with `destroyChild`", () =>
+        {
+            class ChildComponent extends Component { }
+            class ParentComponent extends Component
+            {
+                public override initialize(entity: Entity): void
+                {
+                    super.initialize(entity);
+
+                    entity.getContext(this)
+                        .createChild(ChildComponent);
+                }
+            }
+
+            const world = new World();
+            const entity = world.createEntity();
+            const parent = entity.createComponent(ParentComponent);
+            const context = entity.getContext(parent);
+
+            context.destroyChild(ChildComponent);
+
+            expect(entity.hasComponent(ChildComponent)).toBe(false);
+            expect(context.children.has(ChildComponent)).toBe(false);
+            expect(context.dependencies.size).toBe(0);
+        });
+
+        it("Should block destroying a child component that still has a parent", () =>
+        {
+            class ChildComponent extends Component { }
+            class ParentComponent extends Component
+            {
+                public override initialize(entity: Entity): void
+                {
+                    super.initialize(entity);
+
+                    entity.getContext(this)
+                        .createChild(ChildComponent);
+                }
+            }
+
+            const world = new World();
+            const entity = world.createEntity();
+            entity.createComponent(ParentComponent);
+
+            expect(() => entity.destroyComponent(ChildComponent))
+                .toThrow(DependencyException);
+        });
+
+        it("Should throw when calling `destroyChild` on a non-child component", () =>
+        {
+            class OtherComponent extends Component { }
+            class ParentComponent extends Component { }
+
+            const world = new World();
+            const entity = world.createEntity();
+            entity.createComponent(OtherComponent);
+            const parent = entity.createComponent(ParentComponent);
+            const context = entity.getContext(parent);
+
+            expect(() => context.destroyChild(OtherComponent))
+                .toThrow(ReferenceException);
+        });
+
+        it("Should auto-destroy children when the parent component is destroyed", () =>
+        {
+            class ChildComponent extends Component { }
+            class ParentComponent extends Component
+            {
+                public override initialize(entity: Entity): void
+                {
+                    super.initialize(entity);
+
+                    entity.getContext(this)
+                        .createChild(ChildComponent);
+                }
+            }
+
+            const world = new World();
+            const entity = world.createEntity();
+
+            entity.createComponent(ParentComponent);
+            expect(entity.hasComponent(ChildComponent)).toBe(true);
+
+            entity.destroyComponent(ParentComponent);
+            expect(entity.hasComponent(ParentComponent)).toBe(false);
+            expect(entity.hasComponent(ChildComponent)).toBe(false);
+        });
+        it("Should auto-destroy children when the context is manually disposed", () =>
+        {
+            class ChildComponent extends Component { }
+            class ParentComponent extends Component
+            {
+                public override initialize(entity: Entity): void
+                {
+                    super.initialize(entity);
+
+                    entity.getContext(this)
+                        .createChild(ChildComponent);
+                }
+            }
+
+            const world = new World();
+            const entity = world.createEntity();
+            const parent = entity.createComponent(ParentComponent);
+
+            expect(entity.hasComponent(ChildComponent)).toBe(true);
+
+            const context = entity.getContext(parent);
+            context.dispose();
+
+            expect(entity.hasComponent(ChildComponent)).toBe(false);
+            expect(context.children.size).toBe(0);
+            expect(context.dependencies.size).toBe(0);
+        });
+
         it("Should clear and remove the context when the context itself is disposed", () =>
         {
-            let context: EntityContext;
-
             class DependencyComponent extends Component { }
             class DependantComponent extends Component
             {
@@ -390,8 +528,8 @@ describe("Entity", () =>
                 {
                     super.initialize(entity);
 
-                    context = entity.getContext(this);
-                    context.useComponent(DependencyComponent);
+                    entity.getContext(this)
+                        .useComponent(DependencyComponent);
                 }
             }
 
@@ -399,15 +537,16 @@ describe("Entity", () =>
             const entity = world.createEntity();
             const dependency = entity.createComponent(DependencyComponent);
             const dependant = entity.createComponent(DependantComponent);
+            const context = entity.getContext(dependant);
 
-            expect(context!).toBeInstanceOf(EntityContext);
-            expect(context!.dependencies.size).toBe(1);
+            expect(context).toBeInstanceOf(EntityContext);
+            expect(context.dependencies.size).toBe(1);
             expect(entity["_contexts"].has(dependant)).toBe(true);
             expect(entity["_dependencies"].has(dependency)).toBe(true);
 
-            context!.dispose();
+            context.dispose();
 
-            expect(context!.dependencies.size).toBe(0);
+            expect(context.dependencies.size).toBe(0);
             expect(entity["_contexts"].has(dependant)).toBe(false);
             expect(entity["_dependencies"].has(dependency)).toBe(false);
 
@@ -416,8 +555,6 @@ describe("Entity", () =>
         });
         it("Should clear and remove the context when the component is destroyed", () =>
         {
-            let context: EntityContext;
-
             class DependencyComponent extends Component { }
             class DependantComponent extends Component
             {
@@ -425,8 +562,8 @@ describe("Entity", () =>
                 {
                     super.initialize(entity);
 
-                    context = entity.getContext(this);
-                    context.useComponent(DependencyComponent);
+                    entity.getContext(this)
+                        .useComponent(DependencyComponent);
                 }
             }
 
@@ -434,15 +571,16 @@ describe("Entity", () =>
             const entity = world.createEntity();
             const dependency = entity.createComponent(DependencyComponent);
             const dependant = entity.createComponent(DependantComponent);
+            const context = entity.getContext(dependant);
 
-            expect(context!).toBeInstanceOf(EntityContext);
-            expect(context!.dependencies.size).toBe(1);
+            expect(context).toBeInstanceOf(EntityContext);
+            expect(context.dependencies.size).toBe(1);
             expect(entity["_contexts"].has(dependant)).toBe(true);
             expect(entity["_dependencies"].has(dependency)).toBe(true);
 
             entity.destroyComponent(dependant);
 
-            expect(context!.dependencies.size).toBe(0);
+            expect(context.dependencies.size).toBe(0);
             expect(entity["_contexts"].has(dependant)).toBe(false);
             expect(entity["_dependencies"].has(dependency)).toBe(false);
 
@@ -451,8 +589,6 @@ describe("Entity", () =>
         });
         it("Should clear contexts and dependencies when the entity is disposed", () =>
         {
-            let context: EntityContext;
-
             class DependencyComponent extends Component { }
             class DependantComponent extends Component
             {
@@ -460,8 +596,8 @@ describe("Entity", () =>
                 {
                     super.initialize(entity);
 
-                    context = entity.getContext(this);
-                    context.useComponent(DependencyComponent);
+                    entity.getContext(this)
+                        .useComponent(DependencyComponent);
                 }
             }
 
@@ -469,15 +605,16 @@ describe("Entity", () =>
             const entity = world.createEntity();
             const dependency = entity.createComponent(DependencyComponent);
             const dependant = entity.createComponent(DependantComponent);
+            const context = entity.getContext(dependant);
 
-            expect(context!).toBeInstanceOf(EntityContext);
-            expect(context!.dependencies.size).toBe(1);
+            expect(context).toBeInstanceOf(EntityContext);
+            expect(context.dependencies.size).toBe(1);
             expect(entity["_contexts"].has(dependant)).toBe(true);
             expect(entity["_dependencies"].has(dependency)).toBe(true);
 
             world.destroyEntity(entity);
 
-            expect(context!.dependencies.size).toBe(0);
+            expect(context.dependencies.size).toBe(0);
             expect(entity["_contexts"].has(dependant)).toBe(false);
             expect(entity["_dependencies"].has(dependency)).toBe(false);
         });
