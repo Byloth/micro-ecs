@@ -155,4 +155,50 @@ describe("Component", () =>
                 .toThrow(RuntimeException);
         });
     });
+
+    describe("Static Id — Multi-level Inheritance", () =>
+    {
+        class BaseComponent extends Component { public value = 0; }
+
+        class DerivedComponent extends BaseComponent { public extra = ""; }
+        class SiblingComponent extends BaseComponent { public flag = false; }
+
+        class DeepComponent extends DerivedComponent { public deep = true; }
+
+        it("Should assign unique Ids to each level of the inheritance chain", () =>
+        {
+            const baseId = BaseComponent.Id;
+            const derivedId = DerivedComponent.Id;
+            const siblingId = SiblingComponent.Id;
+            const deepId = DeepComponent.Id;
+
+            expect(derivedId).not.toBe(baseId);
+            expect(siblingId).not.toBe(baseId);
+            expect(siblingId).not.toBe(derivedId);
+            expect(deepId).not.toBe(derivedId);
+            expect(deepId).not.toBe(baseId);
+        });
+
+        it("Should correctly distinguish inherited components in queries", () =>
+        {
+            const world = new World();
+            const entity = world.createEntity();
+
+            entity.createComponent(BaseComponent);
+            entity.createComponent(DerivedComponent);
+
+            const baseView = world.getComponentView(BaseComponent);
+            const derivedView = world.getComponentView(DerivedComponent);
+
+            expect(baseView.size).toBe(1);
+            expect(derivedView.size).toBe(1);
+
+            const [base] = baseView.components[0];
+            const [derived] = derivedView.components[0];
+
+            expect(base).toBeInstanceOf(BaseComponent);
+            expect(derived).toBeInstanceOf(DerivedComponent);
+            expect(base).not.toBe(derived);
+        });
+    });
 });

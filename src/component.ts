@@ -13,7 +13,11 @@ export default class Component<E extends Entity = Entity> implements Poolable<E>
 
     public static get Id(): number
     {
-        if (!(this["__μECS_TypeId__"])) { this["__μECS_TypeId__"] = Component["__μECS_NextId__"] += 1; }
+        if (!(Object.hasOwn(this, "__μECS_TypeId__")))
+        {
+            this["__μECS_TypeId__"] = (Component["__μECS_NextId__"] += 1);
+        }
+
         return this["__μECS_TypeId__"];
     }
 
