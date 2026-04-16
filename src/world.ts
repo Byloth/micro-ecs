@@ -486,6 +486,22 @@ export default class World<T extends CallbackMap<T> = { }>
     {
         this._queryManager.dispose();
 
+        for (const context of this._contexts.values())
+        {
+            try { context.dispose(); }
+            catch (error)
+            {
+                if (import.meta.env.DEV)
+                {
+                    // eslint-disable-next-line no-console
+                    console.warn("An error occurred while disposing a context of the world.\n\nSuppressed", error);
+                }
+            }
+        }
+
+        this._contexts.clear();
+        this._publisher.clear();
+
         for (const system of this._systems.values())
         {
             try
@@ -505,24 +521,6 @@ export default class World<T extends CallbackMap<T> = { }>
         this._systems.clear();
         this._enabledSystems.length = 0;
 
-        for (const resource of this._resources.values())
-        {
-            try
-            {
-                resource.dispose();
-            }
-            catch (error)
-            {
-                if (import.meta.env.DEV)
-                {
-                    // eslint-disable-next-line no-console
-                    console.warn("An error occurred while disposing a resource of the world.\n\nSuppressed", error);
-                }
-            }
-        }
-
-        this._resources.clear();
-
         for (const entity of this._entities.values())
         {
             try { entity.dispose(); }
@@ -541,23 +539,25 @@ export default class World<T extends CallbackMap<T> = { }>
 
         this._entities.clear();
 
-        for (const context of this._contexts.values())
+        for (const resource of this._resources.values())
         {
-            try { context.dispose(); }
+            try
+            {
+                resource.dispose();
+            }
             catch (error)
             {
                 if (import.meta.env.DEV)
                 {
                     // eslint-disable-next-line no-console
-                    console.warn("An error occurred while disposing a context of the world.\n\nSuppressed", error);
+                    console.warn("An error occurred while disposing a resource of the world.\n\nSuppressed", error);
                 }
             }
         }
 
-        this._contexts.clear();
-        this._publisher.clear();
+        this._resources.clear();
 
-        this._entityPools.clear();
         this._componentPools.clear();
+        this._entityPools.clear();
     }
 }

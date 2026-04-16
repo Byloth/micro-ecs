@@ -252,6 +252,22 @@ export default class Entity<W extends World = World> implements Poolable<W>
 
         this._isEnabled = false;
 
+        for (const context of this._contexts.values())
+        {
+            try { context.dispose(); }
+            catch (error)
+            {
+                if (import.meta.env.DEV)
+                {
+                    // eslint-disable-next-line no-console
+                    console.warn("An error occurred while disposing contexts of the entity.\n\nSuppressed", error);
+                }
+            }
+        }
+
+        this._contexts.clear();
+        this._dependencies.clear();
+
         for (const component of this._components.values())
         {
             try { component.dispose(); }
@@ -269,21 +285,5 @@ export default class Entity<W extends World = World> implements Poolable<W>
         }
 
         this._components.clear();
-
-        for (const context of this._contexts.values())
-        {
-            try { context.dispose(); }
-            catch (error)
-            {
-                if (import.meta.env.DEV)
-                {
-                    // eslint-disable-next-line no-console
-                    console.warn("An error occurred while disposing contexts of the entity.\n\nSuppressed", error);
-                }
-            }
-        }
-
-        this._contexts.clear();
-        this._dependencies.clear();
     }
 }
