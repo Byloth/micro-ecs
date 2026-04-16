@@ -8,7 +8,7 @@ import type { ComponentType } from "../types.js";
 export default class EntityContext
 {
     protected readonly _component: Component;
-    protected get _entity(): Entity { return this._component.entity!; }
+    protected get _entity(): Entity { return this._component.entity; }
 
     protected readonly _children: Set<ComponentType>;
     public get children(): ReadonlySet<ComponentType> { return this._children; }

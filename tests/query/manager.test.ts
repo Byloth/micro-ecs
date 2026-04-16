@@ -60,18 +60,18 @@ describe("QueryManager", () =>
 
         expect(view.length).toBe(4);
 
-        expect(view[0][0].entity!.id).toBe(1);
-        expect(view[1][0].entity!.id).toBe(2);
-        expect(view[2][0].entity!.id).toBe(3);
-        expect(view[3][0].entity!.id).toBe(5);
+        expect(view[0][0].entity.id).toBe(1);
+        expect(view[1][0].entity.id).toBe(2);
+        expect(view[2][0].entity.id).toBe(3);
+        expect(view[3][0].entity.id).toBe(5);
 
         expect(iterator.length).toBe(4);
-        expect(iterator[0][0].entity!.id).toBe(2);
-        expect(iterator[1][0].entity!.id).toBe(5);
-        expect(iterator[2][0].entity!.id).toBe(7);
-        expect(iterator[3][0].entity!.id).toBe(8);
+        expect(iterator[0][0].entity.id).toBe(2);
+        expect(iterator[1][0].entity.id).toBe(5);
+        expect(iterator[2][0].entity.id).toBe(7);
+        expect(iterator[3][0].entity.id).toBe(8);
 
-        expect(first[0].entity!.id).toBe(3);
+        expect(first[0].entity.id).toBe(3);
         expect(second).toBeUndefined();
     });
 
@@ -83,17 +83,17 @@ describe("QueryManager", () =>
 
             const before = Array.from(view.components);
             expect(before.length).toBe(2);
-            expect(before[0][0].entity!.id).toBe(3);
-            expect(before[1][0].entity!.id).toBe(5);
+            expect(before[0][0].entity.id).toBe(3);
+            expect(before[1][0].entity.id).toBe(5);
 
             const entity = _world.getEntity(2);
             entity.createComponent(TestComponent3);
 
             const after = Array.from(view.components);
             expect(after.length).toBe(3);
-            expect(after[0][0].entity!.id).toBe(3);
-            expect(after[1][0].entity!.id).toBe(5);
-            expect(after[2][0].entity!.id).toBe(2);
+            expect(after[0][0].entity.id).toBe(3);
+            expect(after[1][0].entity.id).toBe(5);
+            expect(after[2][0].entity.id).toBe(2);
         });
         it("Should update the view when components are enabled", () =>
         {
@@ -101,8 +101,8 @@ describe("QueryManager", () =>
 
             const before = Array.from(view.components);
             expect(before.length).toBe(2);
-            expect(before[0][0].entity!.id).toBe(3);
-            expect(before[1][0].entity!.id).toBe(5);
+            expect(before[0][0].entity.id).toBe(3);
+            expect(before[1][0].entity.id).toBe(5);
 
             const entity1 = _world.getEntity(1);
             entity1.getComponent(TestComponent3)
@@ -117,10 +117,10 @@ describe("QueryManager", () =>
 
             const after = Array.from(view.components);
             expect(after.length).toBe(4);
-            expect(after[0][0].entity!.id).toBe(3);
-            expect(after[1][0].entity!.id).toBe(5);
-            expect(after[2][0].entity!.id).toBe(1);
-            expect(after[3][0].entity!.id).toBe(9);
+            expect(after[0][0].entity.id).toBe(3);
+            expect(after[1][0].entity.id).toBe(5);
+            expect(after[2][0].entity.id).toBe(1);
+            expect(after[3][0].entity.id).toBe(9);
         });
         it("Should reactively update view when components are disabled", () =>
         {
@@ -128,8 +128,8 @@ describe("QueryManager", () =>
 
             const before = Array.from(view.components);
             expect(before.length).toBe(2);
-            expect(before[0][0].entity!.id).toBe(3);
-            expect(before[1][0].entity!.id).toBe(5);
+            expect(before[0][0].entity.id).toBe(3);
+            expect(before[1][0].entity.id).toBe(5);
 
             const [entity1, entity2] = before;
             entity1[1].disable();
@@ -144,15 +144,15 @@ describe("QueryManager", () =>
 
             const before = Array.from(view.components);
             expect(before.length).toBe(2);
-            expect(before[0][0].entity!.id).toBe(3);
-            expect(before[1][0].entity!.id).toBe(5);
+            expect(before[0][0].entity.id).toBe(3);
+            expect(before[1][0].entity.id).toBe(5);
 
             const { entity } = before[0][0];
-            entity!.destroyComponent(TestComponent1);
+            entity.destroyComponent(TestComponent1);
 
             const after = Array.from(view.components);
             expect(after.length).toBe(1);
-            expect(after[0][0].entity!.id).toBe(5);
+            expect(after[0][0].entity.id).toBe(5);
         });
     });
 
@@ -164,8 +164,8 @@ describe("QueryManager", () =>
 
             const before = Array.from(view.components);
             expect(before.length).toBe(2);
-            expect(before[0][0].entity!.id).toBe(5);
-            expect(before[1][0].entity!.id).toBe(7);
+            expect(before[0][0].entity.id).toBe(5);
+            expect(before[1][0].entity.id).toBe(7);
 
             const entity = _world.createEntity();
             entity.createComponent(TestComponent3);
@@ -173,9 +173,9 @@ describe("QueryManager", () =>
 
             const after = Array.from(view.components);
             expect(after.length).toBe(3);
-            expect(after[0][0].entity!.id).toBe(5);
-            expect(after[1][0].entity!.id).toBe(7);
-            expect(after[2][0].entity!.id).toBe(10);
+            expect(after[0][0].entity.id).toBe(5);
+            expect(after[1][0].entity.id).toBe(7);
+            expect(after[2][0].entity.id).toBe(10);
         });
         it("Should update the view when entities are enabled", () =>
         {
@@ -183,17 +183,17 @@ describe("QueryManager", () =>
 
             const before = Array.from(view.components);
             expect(before.length).toBe(2);
-            expect(before[0][0].entity!.id).toBe(5);
-            expect(before[1][0].entity!.id).toBe(7);
+            expect(before[0][0].entity.id).toBe(5);
+            expect(before[1][0].entity.id).toBe(7);
 
             _world.getEntity(6)
                 .enable();
 
             const after = Array.from(view.components);
             expect(after.length).toBe(3);
-            expect(after[0][0].entity!.id).toBe(5);
-            expect(after[1][0].entity!.id).toBe(7);
-            expect(after[2][0].entity!.id).toBe(6);
+            expect(after[0][0].entity.id).toBe(5);
+            expect(after[1][0].entity.id).toBe(7);
+            expect(after[2][0].entity.id).toBe(6);
         });
         it("Should update the view when entities are disabled", () =>
         {
@@ -201,14 +201,14 @@ describe("QueryManager", () =>
 
             const before = Array.from(view.components);
             expect(before.length).toBe(2);
-            expect(before[0][0].entity!.id).toBe(5);
-            expect(before[1][0].entity!.id).toBe(7);
+            expect(before[0][0].entity.id).toBe(5);
+            expect(before[1][0].entity.id).toBe(7);
 
-            before[1][0].entity!.disable();
+            before[1][0].entity.disable();
 
             const after = Array.from(view.components);
             expect(after.length).toBe(1);
-            expect(after[0][0].entity!.id).toBe(5);
+            expect(after[0][0].entity.id).toBe(5);
         });
         it("Should update the view when entities are removed", () =>
         {
@@ -216,8 +216,8 @@ describe("QueryManager", () =>
 
             const before = Array.from(view.components);
             expect(before.length).toBe(2);
-            expect(before[0][0].entity!.id).toBe(5);
-            expect(before[1][0].entity!.id).toBe(7);
+            expect(before[0][0].entity.id).toBe(5);
+            expect(before[1][0].entity.id).toBe(7);
 
             const entity1 = before[0][0].entity!;
             const entity2 = before[1][0].entity!;
@@ -254,10 +254,10 @@ describe("QueryManager", () =>
 
         const before = Array.from(entities.components);
         expect(before.length).toBe(4);
-        expect(before[0][0].entity!.id).toBe(3);
-        expect(before[1][0].entity!.id).toBe(4);
-        expect(before[2][0].entity!.id).toBe(5);
-        expect(before[3][0].entity!.id).toBe(7);
+        expect(before[0][0].entity.id).toBe(3);
+        expect(before[1][0].entity.id).toBe(4);
+        expect(before[2][0].entity.id).toBe(5);
+        expect(before[3][0].entity.id).toBe(7);
 
         _world.dispose();
 

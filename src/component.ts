@@ -18,7 +18,7 @@ export default class Component<E extends Entity = Entity> implements Poolable<E>
     }
 
     protected _entity: E | null;
-    public get entity(): E | null { return this._entity; }
+    public get entity(): E { return this._entity!; }
 
     protected _isEnabled: boolean;
     public get isEnabled(): boolean { return this._isEnabled; }

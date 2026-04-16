@@ -19,7 +19,7 @@ export default class Entity<W extends World = World> implements Poolable<W>
     public get id(): number { return this._id; }
 
     protected _world: W | null;
-    public get world(): W | null { return this._world; }
+    public get world(): W { return this._world!; }
 
     protected _isEnabled: boolean;
     public get isEnabled(): boolean { return this._isEnabled; }
@@ -97,13 +97,13 @@ export default class Entity<W extends World = World> implements Poolable<W>
     {
         if (!(this._isEnabled)) { return; }
 
-        this.world?.["_enableEntityComponent"](this, component);
+        this.world["_enableEntityComponent"](this, component);
     }
     protected _disableComponent(component: Component): void
     {
         if (!(this._isEnabled)) { return; }
 
-        this.world?.["_disableEntityComponent"](this, component);
+        this.world["_disableEntityComponent"](this, component);
     }
 
     public initialize(world: W, ...args: unknown[]): void
@@ -225,7 +225,7 @@ export default class Entity<W extends World = World> implements Poolable<W>
         }
 
         this._isEnabled = true;
-        this.world?.["_enableEntity"](this);
+        this.world["_enableEntity"](this);
     }
     public disable(): void
     {
@@ -235,7 +235,7 @@ export default class Entity<W extends World = World> implements Poolable<W>
         }
 
         this._isEnabled = false;
-        this.world?.["_disableEntity"](this);
+        this.world["_disableEntity"](this);
     }
 
     public dispose(): void
