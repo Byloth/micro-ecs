@@ -179,7 +179,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
     {
         const key = `${Type.Id}`;
         const view = this._views.get(key) as QueryView<[R]> | undefined;
-        if (view) { return view.components[0][0]; }
+        if (view) { return view.components[0]?.[0]; }
 
         for (const entity of this._entities.values())
         {
