@@ -86,6 +86,41 @@ describe("World", () =>
             _world.update(16);
             expect(_onUpdate).toHaveBeenCalledTimes(3);
         });
+        it("Should throw when adding a system that already exists", () =>
+        {
+            const system = new System();
+            _world.addSystem(system);
+
+            expect(() => _world.addSystem(system))
+                .toThrow(ReferenceException);
+        });
+
+        it("Should forward initialization arguments to the system", () =>
+        {
+            const _onInitialize = vi.fn();
+            class TestSystem extends System
+            {
+                public threshold!: number;
+                public name!: string;
+
+                public override initialize(world: World, threshold: number, name: string): void
+                {
+                    super.initialize(world);
+
+                    this.threshold = threshold;
+                    this.name = name;
+
+                    _onInitialize(threshold, name);
+                }
+            }
+
+            const system = _world.addSystem(new TestSystem(), 10, "main");
+            expect(system.threshold).toBe(10);
+            expect(system.name).toBe("main");
+
+            expect(_onInitialize).toHaveBeenCalledTimes(1);
+            expect(_onInitialize).toHaveBeenCalledWith(10, "main");
+        });
 
         it("Should remove a system from the world", () =>
         {
@@ -183,6 +218,33 @@ describe("World", () =>
             expect(_world.resources.size).toBe(1);
             expect(_world.resources.get(TestResource)).toBe(resource);
         });
+        it("Should forward initialization arguments to the resource", () =>
+        {
+            const _onInitialize = vi.fn();
+            class TestResource extends Resource
+            {
+                public value!: number;
+                public label!: string;
+
+                public override initialize(world: World, value: number, label: string): void
+                {
+                    super.initialize(world);
+
+                    this.value = value;
+                    this.label = label;
+
+                    _onInitialize(value, label);
+                }
+            }
+
+            const resource = _world.addResource(new TestResource(), 42, "answer");
+            expect(resource.value).toBe(42);
+            expect(resource.label).toBe("answer");
+
+            expect(_onInitialize).toHaveBeenCalledTimes(1);
+            expect(_onInitialize).toHaveBeenCalledWith(42, "answer");
+        });
+
         it("Should throw when adding a resource that already exists", () =>
         {
             class TestResource extends Resource { }
@@ -233,6 +295,32 @@ describe("World", () =>
 
             _world.update(16);
             expect(_onUpdate).toHaveBeenCalledTimes(1);
+        });
+        it("Should forward initialization arguments to the service", () =>
+        {
+            const _onInitialize = vi.fn();
+            class TestService extends System
+            {
+                public step!: number;
+                public tag!: string;
+
+                public override initialize(world: World, step: number, tag: string): void
+                {
+                    super.initialize(world);
+
+                    this.step = step;
+                    this.tag = tag;
+
+                    _onInitialize(step, tag);
+                }
+            }
+
+            const service = _world.addService(new TestService(), 7, "core");
+            expect(service.step).toBe(7);
+            expect(service.tag).toBe("core");
+
+            expect(_onInitialize).toHaveBeenCalledTimes(1);
+            expect(_onInitialize).toHaveBeenCalledWith(7, "core");
         });
 
         it("Should throw when adding a service that already exists as a resource", () =>

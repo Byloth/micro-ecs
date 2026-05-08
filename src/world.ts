@@ -265,7 +265,7 @@ export default class World<T extends CallbackMap<T> = { }>
         return this._queryManager.getView<C, R>(...Types);
     }
 
-    public addResource<R extends Resource>(resource: R): R
+    public addResource<R extends Resource>(resource: R, ...args: InitializeArgs<R>): R
     {
         const Type = resource.constructor as ResourceType;
         if ((import.meta.env.DEV) && (this._resources.has(Type)))
@@ -273,7 +273,7 @@ export default class World<T extends CallbackMap<T> = { }>
             throw new ReferenceException("The resource already exists in the world.");
         }
 
-        resource.initialize(this);
+        resource.initialize(this, ...args as InitializeArgs<R>);
 
         this._resources.set(Type, resource);
 
@@ -314,7 +314,7 @@ export default class World<T extends CallbackMap<T> = { }>
         return _resource!;
     }
 
-    public addSystem<S extends System>(system: S): S
+    public addSystem<S extends System>(system: S, ...args: InitializeArgs<S>): S
     {
         const Type = system.constructor as SystemType;
         if ((import.meta.env.DEV) && (this._systems.has(Type)))
@@ -322,7 +322,7 @@ export default class World<T extends CallbackMap<T> = { }>
             throw new ReferenceException("The system already exists in the world.");
         }
 
-        system.initialize(this);
+        system.initialize(this, ...args as InitializeArgs<S>);
 
         this._systems.set(Type, system);
         if (system.isEnabled) { this._enableSystem(system); }
@@ -374,7 +374,7 @@ export default class World<T extends CallbackMap<T> = { }>
         return _system!;
     }
 
-    public addService<S extends System>(service: S): S
+    public addService<S extends System>(service: S, ...args: InitializeArgs<S>): S
     {
         const Type = service.constructor as ResourceType & SystemType;
         if (import.meta.env.DEV)
@@ -389,7 +389,7 @@ export default class World<T extends CallbackMap<T> = { }>
             }
         }
 
-        service.initialize(this);
+        service.initialize(this, ...args as InitializeArgs<S>);
 
         this._resources.set(Type, service);
         this._systems.set(Type, service);
