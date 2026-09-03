@@ -239,10 +239,14 @@ for (const [position, velocity] of view.components) {
 }
 
 // React to changes
-view.onAdd((entity, components) => { /* ... */ });
-view.onRemove((entity, components) => { /* ... */ });
+view.onAdd((entity, components, index) => { /* ... */ });
+view.onRemove((entity, components, index) => { /* ... */ });
 view.onClear(() => { /* ... */ });
 ```
+
+`index` is the position of the entry in `entities` / `components`.  
+On removal, the last entry takes the place of the removed one (swap-and-pop): an external array
+mirroring the view can stay aligned in O(1) by applying the same move.
 
 ### Contexts
 

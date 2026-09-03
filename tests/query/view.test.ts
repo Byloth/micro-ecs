@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ReferenceException } from "@byloth/core";
+
 import { Component, Entity } from "../../src/index.js";
 import QueryView from "../../src/query/view.js";
 
@@ -55,17 +57,19 @@ describe("QueryView", () =>
             expect(_view.has(entity)).toBe(true);
             expect(_view.get(entity)).toEqual([component]);
         });
-        it("Should update components when setting an existing entity", () =>
+        it("Should throw when setting an existing entity", () =>
         {
             const entity = new Entity();
             const component1 = new TestComponent1();
             const component2 = new TestComponent1();
 
             _view.set(entity, [component1]);
-            _view.set(entity, [component2]);
+
+            expect(() => _view.set(entity, [component2]))
+                .toThrow(ReferenceException);
 
             expect(_view.size).toBe(1);
-            expect(_view.get(entity)).toEqual([component2]);
+            expect(_view.get(entity)).toEqual([component1]);
         });
 
         it("Should check if an entity exists", () =>
@@ -168,20 +172,22 @@ describe("QueryView", () =>
             _view.set(entity, [component]);
 
             expect(callback).toHaveBeenCalledTimes(1);
-            expect(callback).toHaveBeenCalledWith(entity, [component]);
+            expect(callback).toHaveBeenCalledWith(entity, [component], 0);
         });
-        it("Should not trigger 'add' event when updating an existing entity", () =>
+        it("Should report the insertion index in the 'add' event", () =>
         {
             const callback = vi.fn();
-            const entity = new Entity();
-            const component1 = new TestComponent1();
-            const component2 = new TestComponent1();
+            const entities = [new Entity(), new Entity(), new Entity()];
+            const components = entities.map(() => new TestComponent1());
 
-            _view.set(entity, [component1]);
             _view.onAdd(callback);
-            _view.set(entity, [component2]);
 
-            expect(callback).not.toHaveBeenCalled();
+            entities.forEach((entity, index) => { _view.set(entity, [components[index]]); });
+
+            expect(callback).toHaveBeenCalledTimes(3);
+            expect(callback).toHaveBeenNthCalledWith(1, entities[0], [components[0]], 0);
+            expect(callback).toHaveBeenNthCalledWith(2, entities[1], [components[1]], 1);
+            expect(callback).toHaveBeenNthCalledWith(3, entities[2], [components[2]], 2);
         });
 
         it("Should trigger 'remove' event when an entity is removed", () =>
@@ -195,7 +201,41 @@ describe("QueryView", () =>
             _view.delete(entity);
 
             expect(callback).toHaveBeenCalledTimes(1);
-            expect(callback).toHaveBeenCalledWith(entity, [component]);
+            expect(callback).toHaveBeenCalledWith(entity, [component], 0);
+        });
+        it("Should report the vacated index in the 'remove' event", () =>
+        {
+            const callback = vi.fn();
+            const entities = [new Entity(), new Entity(), new Entity(), new Entity(), new Entity()];
+            const components = entities.map(() => new TestComponent1());
+
+            entities.forEach((entity, index) => { _view.set(entity, [components[index]]); });
+
+            _view.onRemove(callback);
+            _view.delete(entities[2]);
+
+            expect(callback).toHaveBeenLastCalledWith(entities[2], [components[2]], 2);
+            expect(_view.entities[2]).toBe(entities[4]);
+            expect(_view.components[2]).toEqual([components[4]]);
+
+            _view.delete(entities[3]);
+
+            expect(callback).toHaveBeenLastCalledWith(entities[3], [components[3]], 3);
+            expect(_view.size).toBe(3);
+            expect(_view.entities).toEqual([entities[0], entities[1], entities[4]]);
+        });
+        it("Should report index 0 when removing the only entity", () =>
+        {
+            const callback = vi.fn();
+            const entity = new Entity();
+            const component = new TestComponent1();
+
+            _view.set(entity, [component]);
+            _view.onRemove(callback);
+            _view.delete(entity);
+
+            expect(callback).toHaveBeenCalledWith(entity, [component], 0);
+            expect(_view.size).toBe(0);
         });
         it("Should not trigger 'remove' event when deleting a non-existent entity", () =>
         {
@@ -279,10 +319,7 @@ describe("QueryView", () =>
             const entities = [new Entity(), new Entity(), new Entity(), new Entity(), new Entity()];
             const components = entities.map(() => new TestComponent1());
 
-            entities.forEach((entity, index) =>
-            {
-                _view.set(entity, [components[index]]);
-            });
+            entities.forEach((entity, index) => { _view.set(entity, [components[index]]); });
 
             expect(_view.size).toBe(5);
 
@@ -309,13 +346,47 @@ describe("QueryView", () =>
 
             _view.set(entity1, [component1]);
             _view.set(entity2, [component2]);
-
             _view.delete(entity2);
 
             expect(_view.size).toBe(1);
             expect(_view.has(entity1)).toBe(true);
             expect(_view.has(entity2)).toBe(false);
             expect(_view.get(entity1)).toEqual([component1]);
+        });
+        it("Should keep an external mirror aligned using the event indexes", () =>
+        {
+            const mirror: Entity[] = [];
+
+            _view.onAdd((entity, _, index) =>
+            {
+                expect(index).toBe(mirror.length);
+
+                mirror.push(entity);
+            });
+
+            _view.onRemove((entity, _, index) =>
+            {
+                expect(mirror[index]).toBe(entity);
+
+                const last = mirror.pop()!;
+                if (index < mirror.length) { mirror[index] = last; }
+            });
+
+            const entities = [new Entity(), new Entity(), new Entity(), new Entity(), new Entity(), new Entity()];
+
+            _view.set(entities[0], [new TestComponent1()]);
+            _view.set(entities[1], [new TestComponent1()]);
+            _view.set(entities[2], [new TestComponent1()]);
+            _view.delete(entities[0]);
+            _view.set(entities[3], [new TestComponent1()]);
+            _view.delete(entities[3]);
+            _view.set(entities[4], [new TestComponent1()]);
+            _view.set(entities[5], [new TestComponent1()]);
+            _view.delete(entities[1]);
+            _view.delete(entities[5]);
+
+            expect(mirror).toEqual(_view.entities);
+            expect(mirror).toEqual([entities[2], entities[4]]);
         });
     });
 

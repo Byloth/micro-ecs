@@ -1,4 +1,4 @@
-import { Publisher } from "@byloth/core";
+import { Publisher, ReferenceException } from "@byloth/core";
 import type { Callback } from "@byloth/core";
 
 import type Entity from "../entity.js";
@@ -6,8 +6,8 @@ import type Component from "../component.js";
 
 interface QueryViewEventsMap<C extends Component[]>
 {
-    "add": (entity: Entity, components: C) => void;
-    "remove": (entity: Entity, components: C) => void;
+    "add": (entity: Entity, components: C, index: number) => void;
+    "remove": (entity: Entity, components: C, index: number) => void;
 
     "clear": () => void;
 }
@@ -24,8 +24,8 @@ export interface ReadonlyQueryView<C extends Component[]>
 
     [Symbol.iterator](): Iterator<[Entity, C]>;
 
-    onAdd(callback: (entity: Entity, components: C) => void): Callback;
-    onRemove(callback: (entity: Entity, components: C) => void): Callback;
+    onAdd(callback: (entity: Entity, components: C, index: number) => void): Callback;
+    onRemove(callback: (entity: Entity, components: C, index: number) => void): Callback;
     onClear(callback: () => void): Callback;
 }
 
@@ -78,21 +78,18 @@ export default class QueryView<C extends Component[]> implements ReadonlyQueryVi
     }
     public set(entity: Entity, components: C): this
     {
-        const existingIndex = this._indexes.get(entity);
-        if (existingIndex !== undefined)
+        if ((import.meta.env.DEV) && (this._indexes.has(entity)))
         {
-            this._components[existingIndex] = components;
-
-            return this;
+            throw new ReferenceException("The entity already exists in the view.");
         }
 
-        const { size } = this;
+        const index = this.size;
 
         this._components.push(components);
         this._entities.push(entity);
-        this._indexes.set(entity, size);
+        this._indexes.set(entity, index);
 
-        this._publisher.publish("add", entity, components);
+        this._publisher.publish("add", entity, components, index);
 
         return this;
     }
@@ -116,7 +113,7 @@ export default class QueryView<C extends Component[]> implements ReadonlyQueryVi
         }
 
         this._indexes.delete(entity);
-        this._publisher.publish("remove", entity, components);
+        this._publisher.publish("remove", entity, components, index);
 
         return true;
     }
@@ -140,11 +137,11 @@ export default class QueryView<C extends Component[]> implements ReadonlyQueryVi
         }
     }
 
-    public onAdd(callback: (entity: Entity, components: C) => void): Callback
+    public onAdd(callback: (entity: Entity, components: C, index: number) => void): Callback
     {
         return this._publisher.subscribe("add", callback);
     }
-    public onRemove(callback: (entity: Entity, components: C) => void): Callback
+    public onRemove(callback: (entity: Entity, components: C, index: number) => void): Callback
     {
         return this._publisher.subscribe("remove", callback);
     }
