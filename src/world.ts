@@ -26,6 +26,7 @@ export default class World<T extends CallbackMap<T> = { }>
     protected readonly _entityPools: Map<EntityType, ObjectPool<Entity>>;
 
     protected readonly _entities: Map<number, Entity>;
+    public get entities(): ReadonlyMap<number, Entity> { return this._entities; }
 
     protected readonly _resources: Map<ResourceType, Resource>;
     public get resources(): ReadonlyMap<ResourceType, Resource> { return this._resources; }

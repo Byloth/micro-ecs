@@ -168,7 +168,26 @@ describe("Entity", () =>
 
             expect(entity.hasComponent(TestComponent)).toBe(true);
             expect(entity.getComponent(TestComponent)).toBe(component);
-            expect(entity["_components"].size).toBe(1);
+            expect(entity.components.size).toBe(1);
+        });
+        it("Should expose the components as a readonly map", () =>
+        {
+            class TestComponentA extends Component { }
+            class TestComponentB extends Component { }
+
+            const world = new World();
+            const entity = world.createEntity();
+            const componentA = entity.createComponent(TestComponentA);
+            const componentB = entity.createComponent(TestComponentB);
+
+            expect(entity.components).toBe(entity["_components"]);
+            expect(entity.components.size).toBe(2);
+            expect(entity.components.get(TestComponentA)).toBe(componentA);
+            expect(entity.components.get(TestComponentB)).toBe(componentB);
+
+            entity.destroyComponent(TestComponentB);
+            expect(entity.components.size).toBe(1);
+            expect(entity.components.has(TestComponentB)).toBe(false);
         });
         it("Should throw when creating a duplicate component", () =>
         {

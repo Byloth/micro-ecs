@@ -25,6 +25,7 @@ export default class Entity<W extends World = World> implements Poolable<W>
     public get isEnabled(): boolean { return this._isEnabled; }
 
     protected readonly _components: Map<ComponentType, Component>;
+    public get components(): ReadonlyMap<ComponentType, Component> { return this._components; }
 
     protected readonly _contexts: Map<Component, EntityContext>;
     protected readonly _dependencies: Map<Component, Set<Component>>;

@@ -128,13 +128,15 @@ Entities and Components are pooled automatically by the World.
 
 ### World
 
-The central container. Creates and destroys Entities, registers Systems and Resources, dispatches events, and drives the update loop.
+The central container. Creates and destroys Entities, registers Systems and Resources, dispatches events, and drives the update loop.  
+The `entities`, `systems` and `resources` getters expose read-only views of its internal state: unlike query views, `entities` also includes disabled entities.
 
 ```typescript
 const world = new World();
 
 // Entities
 const entity = world.createEntity();
+world.entities;  // ReadonlyMap<number, Entity> — includes disabled entities
 world.destroyEntity(entity);
 
 // Systems (priority order — lower runs first)
@@ -169,6 +171,7 @@ const entity = world.createEntity();
 const hp = entity.createComponent(Health, true, 200);
 entity.hasComponent(Health);  // true
 entity.getComponent(Health);  // Health
+entity.components;            // ReadonlyMap<ComponentType, Component>
 entity.destroyComponent(Health);
 
 entity.disable();  // Hides from queries

@@ -23,8 +23,25 @@ describe("World", () =>
         {
             const entity = _world.createEntity();
 
-            expect(_world["_entities"].size).toBe(1);
-            expect(_world["_entities"].get(entity.id)).toBe(entity);
+            expect(_world.entities.size).toBe(1);
+            expect(_world.entities.get(entity.id)).toBe(entity);
+        });
+        it("Should expose the entities as a readonly map", () =>
+        {
+            const entity1 = _world.createEntity();
+            const entity2 = _world.createEntity();
+
+            expect(_world.entities).toBe(_world["_entities"]);
+            expect(_world.entities.size).toBe(2);
+            expect(_world.entities.get(entity1.id)).toBe(entity1);
+            expect(_world.entities.get(entity2.id)).toBe(entity2);
+
+            entity1.disable();
+            expect(_world.entities.has(entity1.id)).toBe(true);
+
+            _world.destroyEntity(entity2);
+            expect(_world.entities.size).toBe(1);
+            expect(_world.entities.has(entity2.id)).toBe(false);
         });
 
         it("Should return true when checking for an existing entity", () =>
