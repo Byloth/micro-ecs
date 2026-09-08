@@ -81,13 +81,17 @@ pnpm run vitest run tests/world.test.ts
 
 ### Build System
 
-Uses Vite with dual-mode builds:
-- Production build: minified, outputs `*.prod.js` / `*.prod.cjs`
-- Development build: unminified with `import.meta.env.DEV` checks preserved
+Uses Vite with three build modes (`pnpm run build` runs all of them):
+- Production build (`vite build`): minified, `import.meta.env.DEV` resolved to `false`. Outputs `micro-ecs.prod.cjs`, `micro-ecs.esm.prod.js`, `micro-ecs.global.prod.js`
+- Development build (`--mode development`): unminified, `import.meta.env.DEV` resolved to `true`. Outputs `micro-ecs.cjs`, `micro-ecs.esm.js`
+- Bundler build (`--mode bundler`): ESM with `import.meta.env.DEV` left **unresolved**, for downstream bundlers (Vite, webpack) to decide. Outputs `micro-ecs.esm.bundler.js`. Never use it as a Node entry: `import.meta.env` is undefined there.
 
 Development-only code uses `import.meta.env.DEV` guards - these checks are tree-shaken in production builds.
 
-Output formats: CJS, ESM, IIFE (global), UMD
+Package entry points (`package.json` → `exports`):
+- Bundlers (`default` condition) get `micro-ecs.esm.bundler.js`
+- Node ESM (`node` condition) gets `micro-ecs.esm.js`, or `micro-ecs.esm.prod.js` with `node -C production`
+- Node CJS gets `index.cjs`, which picks `micro-ecs.cjs` / `micro-ecs.prod.cjs` from `NODE_ENV`
 
 ### Dependencies
 

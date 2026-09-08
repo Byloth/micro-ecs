@@ -25,12 +25,11 @@
   "license": "Apache-2.0",
   "type": "module",
   "files": [
-    "index.js",
-    "index.mjs",
+    "index.cjs",
     "dist",
     "src"
   ],
-  "main": "index.js",
+  "main": "index.cjs",
   "module": "dist/micro-ecs.esm.bundler.js",
   "types": "src/index.ts",
   "unpkg": "dist/micro-ecs.global.prod.js",
@@ -39,7 +38,11 @@
     ".": {
       "import": {
         "types": "./src/index.ts",
-        "node": "./index.mjs",
+        "node": {
+          "production": "./dist/micro-ecs.esm.prod.js",
+          "development": "./dist/micro-ecs.esm.js",
+          "default": "./dist/micro-ecs.esm.js"
+        },
         "default": "./dist/micro-ecs.esm.bundler.js"
       },
       "require": {
@@ -47,9 +50,9 @@
         "node": {
           "production": "./dist/micro-ecs.prod.cjs",
           "development": "./dist/micro-ecs.cjs",
-          "default": "./index.js"
+          "default": "./index.cjs"
         },
-        "default": "./index.js"
+        "default": "./index.cjs"
       }
     }
   },

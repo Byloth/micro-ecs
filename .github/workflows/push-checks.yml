@@ -29,10 +29,10 @@ jobs:
 
       - name: Checking type consistency
         run: pnpm run typecheck
-      - name: Testing the source code
-        run: pnpm run test
       - name: Building the source code
         run: pnpm build
+      - name: Testing the source code
+        run: pnpm run test
 
   coverage:
     name: Coverage tests

@@ -13,9 +13,8 @@ export default defineConfig(({ mode }) =>
   else if (isProd) { suffix = "prod."; }
   else { suffix = ""; }
 
-  const formats: LibraryFormats[] = [];
-  if (isBundler) { formats.push("es"); }
-  else
+  const formats: LibraryFormats[] = ["es"];
+  if (!(isBundler))
   {
     formats.push("cjs");
 

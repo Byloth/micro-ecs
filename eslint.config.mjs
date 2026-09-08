@@ -16,10 +16,6 @@ export default [includeIgnoreFile(gitignorePath), ...eslintTs, {
   }
 
 }, {
-  files: ["index.js", "index.mjs"],
-  rules: {
-    "@stylistic/brace-style": ["error", "1tbs"],
-    "@stylistic/quotes": ["error", "single"],
-    "@typescript-eslint/no-require-imports": "off"
-  }
+  files: ["index.cjs"],
+  rules: { "@typescript-eslint/no-require-imports": "off" }
 }];
