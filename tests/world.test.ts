@@ -1,4 +1,4 @@
-import { ReferenceException } from "@byloth/core";
+import { ReferenceException, RuntimeException } from "@byloth/core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -283,6 +283,83 @@ describe("World", () =>
         {
             expect(() => _world.destroyEntity(42))
                 .toThrow(ReferenceException);
+        });
+    });
+
+    describe("Pooling", () =>
+    {
+        class TestComponent extends Component { }
+
+        it("Should use the default pool sizes when no options are given", () =>
+        {
+            expect(_world["_entityPoolSize"]).toBe(World.DefaultOptions.entityPoolSize);
+            expect(_world["_componentPoolSize"]).toBe(World.DefaultOptions.componentPoolSize);
+        });
+        it("Should hand back a clean, recycled entity", () =>
+        {
+            const entity1 = _world.createEntity();
+            entity1.createComponent(TestComponent);
+            entity1.disable();
+
+            _world.destroyEntity(entity1);
+
+            const entity2 = _world.createEntity();
+
+            expect(entity2).toBe(entity1);
+            expect(entity2.id).toBe(2);
+            expect(entity2.world).toBe(_world);
+            expect(entity2.isEnabled).toBe(true);
+            expect(entity2.components.size).toBe(0);
+        });
+        it("Should hand back a clean, recycled component", () =>
+        {
+            const entity = _world.createEntity();
+
+            const component1 = entity.createComponent(TestComponent);
+            component1.disable();
+            entity.destroyComponent(TestComponent);
+
+            const component2 = entity.createComponent(TestComponent);
+
+            expect(component2).toBe(component1);
+            expect(component2.entity).toBe(entity);
+            expect(component2.isEnabled).toBe(true);
+        });
+
+        it("Should not recycle entities when their pool size is zero", () =>
+        {
+            const world = new World({ entityPoolSize: 0 });
+
+            const entity1 = world.createEntity();
+            world.destroyEntity(entity1);
+
+            expect(world.createEntity()).not.toBe(entity1);
+        });
+        it("Should not recycle components when their pool size is zero", () =>
+        {
+            const world = new World({ componentPoolSize: 0 });
+            const entity = world.createEntity();
+
+            const component1 = entity.createComponent(TestComponent);
+            entity.destroyComponent(TestComponent);
+
+            expect(entity.createComponent(TestComponent)).not.toBe(component1);
+        });
+
+        it("Should throw when releasing a live entity to its pool", () =>
+        {
+            const entity = _world.createEntity();
+
+            expect(() => _world["_getEntityPool"](Entity).release(entity))
+                .toThrow(RuntimeException);
+        });
+        it("Should throw when releasing a live component to its pool", () =>
+        {
+            const entity = _world.createEntity();
+            const component = entity.createComponent(TestComponent);
+
+            expect(() => _world["_getComponentPool"](TestComponent).release(component))
+                .toThrow(RuntimeException);
         });
     });
 

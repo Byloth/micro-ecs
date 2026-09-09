@@ -14,7 +14,7 @@ export { QueryManager, QueryView } from "./query/index.js";
 export type { ReadonlyQueryView } from "./query/index.js";
 
 export { default as ObjectPool } from "./object-pool/index.js";
-export type { default as Poolable, InitializeArgs } from "./object-pool/types.js";
+export type { InitializeArgs, ObjectPoolOptions, Poolable } from "./object-pool/types.js";
 
 export type {
     EntityType,
@@ -23,6 +23,7 @@ export type {
     ResourceType,
     Instances,
     Resourceable,
-    SignalEventsMap
+    SignalEventsMap,
+    WorldOptions
 
 } from "./types.js";

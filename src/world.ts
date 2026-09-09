@@ -15,13 +15,33 @@ import type { InitializeArgs } from "./object-pool/types.js";
 import { QueryManager } from "./query/index.js";
 import type { ReadonlyQueryView } from "./query/view.js";
 
-import type { ComponentType, EntityType, Instances, ResourceType, SignalEventsMap, SystemType } from "./types.js";
+import type {
+    ComponentType,
+    EntityType,
+    Instances,
+    ResourceType,
+    SignalEventsMap,
+    SystemType,
+    WorldOptions
+
+} from "./types.js";
 
 type P = SignalEventsMap & InternalsEventsMap;
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export default class World<T extends CallbackMap<T> = { }>
 {
+    public static get DefaultOptions(): WorldOptions
+    {
+        return {
+            componentPoolSize: 256,
+            entityPoolSize: 256
+        };
+    }
+
+    protected readonly _entityPoolSize: number;
+    protected readonly _componentPoolSize: number;
+
     protected _nextId: number;
     public get nextId(): number { return this._nextId; }
 
@@ -59,8 +79,13 @@ export default class World<T extends CallbackMap<T> = { }>
         this._contexts.delete(system);
     };
 
-    public constructor()
+    public constructor(options: Partial<WorldOptions> = { })
     {
+        const _options = { ...World.DefaultOptions, ...options };
+
+        this._componentPoolSize = _options.componentPoolSize;
+        this._entityPoolSize = _options.entityPoolSize;
+
         this._nextId = 1;
 
         this._componentPools = new Map();
@@ -84,7 +109,10 @@ export default class World<T extends CallbackMap<T> = { }>
         let pool = this._componentPools.get(Type) as ObjectPool<C> | undefined;
         if (pool) { return pool; }
 
-        pool = new ObjectPool(() => new Type());
+        pool = new ObjectPool(() => new Type(), {
+            maxSize: this._componentPoolSize,
+            isReleasable: (component) => (component["_entity"] === null)
+        });
 
         this._componentPools.set(Type, pool);
 
@@ -95,7 +123,10 @@ export default class World<T extends CallbackMap<T> = { }>
         let pool = this._entityPools.get(Type) as ObjectPool<E> | undefined;
         if (pool) { return pool; }
 
-        pool = new ObjectPool(() => new Type());
+        pool = new ObjectPool(() => new Type(), {
+            maxSize: this._entityPoolSize,
+            isReleasable: (entity) => (entity["_world"] === null)
+        });
 
         this._entityPools.set(Type, pool);
 

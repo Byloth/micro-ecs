@@ -43,6 +43,7 @@ pnpm run vitest run tests/world.test.ts
 
 **World** (`world.ts`) - The central container that manages:
 - Entities (with their Components; IDs come from a per-world counter, `nextId`)
+- Object pools for Entities and Components (sizes via `WorldOptions.entityPoolSize` / `componentPoolSize`, `0` disables pooling)
 - Systems (with priority-based execution order)
 - Resources (singleton data shared across systems)
 - Services (objects that are both System and Resource)
@@ -101,6 +102,7 @@ Package entry points (`package.json` → `exports`):
 
 - **Strict, never idempotent.** Lifecycle and state-transition methods (`enable`, `disable`, `dispose`, `destroy*`, `remove*`, `use*`/`release*`, duplicate `create*`/`add*`) throw in DEV when called in the wrong state. Do not make them idempotent, do not add `strict`/`force` parameters or permissive setters. Callers check first (`isEnabled`, `hasComponent`, ...). Rationale: a loud error beats a silently masked logic error. Library-internal cleanup of an object in unknown state checks the state explicitly (see the `createEntity` failure path in `world.ts`) instead of relaxing the method.
 - **DEV-only validation.** All checks live under `import.meta.env.DEV` and are stripped in production: production trusts the caller.
+- **`dispose()` is the reset.** Pools hand the same instance back, so every subclass must reset its own fields in `dispose()`. There is no separate `reset()` hook; in DEV a pool refuses objects that haven't been disposed.
 
 ## Code Style
 

@@ -1,7 +1,7 @@
 import { ReferenceException, RuntimeException } from "@byloth/core";
 
 import type Entity from "./entity.js";
-import type Poolable from "./object-pool/types.js";
+import type { Poolable } from "./object-pool/types.js";
 
 export default class Component<E extends Entity = Entity> implements Poolable<E>
 {

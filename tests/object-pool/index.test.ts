@@ -60,7 +60,7 @@ describe("ObjectPool", () =>
         });
         it("Should silently discard released items when the pool is full", () =>
         {
-            const pool = new ObjectPool(_factory, 2);
+            const pool = new ObjectPool(_factory, { maxSize: 2 });
             const items = [pool.acquire(), pool.acquire(), pool.acquire()];
 
             pool.release(items[0]);
@@ -90,16 +90,41 @@ describe("ObjectPool", () =>
             pool.preallocate(5);
             expect(pool.available).toBe(5);
         });
+        it("Should throw when releasing an item that isn't releasable", () =>
+        {
+            const pool = new ObjectPool(_factory, { isReleasable: (item) => (item.id < 0) });
+            const item = pool.acquire();
+
+            expect(() => pool.release(item))
+                .toThrow(RuntimeException);
+            expect(pool.available).toBe(0);
+
+            item.id = -1;
+            pool.release(item);
+
+            expect(pool.available).toBe(1);
+        });
+        it("Should never store items when the maximum size is zero", () =>
+        {
+            const pool = new ObjectPool(_factory, { maxSize: 0 });
+            const item = pool.acquire();
+
+            pool.release(item);
+
+            expect(pool.available).toBe(0);
+            expect(pool.acquire()).not.toBe(item);
+        });
+
         it("Should respect the maximum pool size when preallocating", () =>
         {
-            const pool = new ObjectPool(_factory, 3);
+            const pool = new ObjectPool(_factory, { maxSize: 3 });
 
             pool.preallocate(10);
             expect(pool.available).toBe(3);
         });
         it("Should add items up to the remaining capacity", () =>
         {
-            const pool = new ObjectPool(_factory, 5);
+            const pool = new ObjectPool(_factory, { maxSize: 5 });
 
             pool.preallocate(3);
             expect(pool.available).toBe(3);
@@ -109,7 +134,7 @@ describe("ObjectPool", () =>
         });
         it("Should do nothing when the pool is already full", () =>
         {
-            const pool = new ObjectPool(_factory, 2);
+            const pool = new ObjectPool(_factory, { maxSize: 2 });
 
             pool.preallocate(2);
             expect(pool.available).toBe(2);

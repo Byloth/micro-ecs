@@ -26,3 +26,9 @@ type ResourceSignalEventsMap<T extends unknown[]> = Record<`resource:${number}:$
 
 export type SignalEventsMap<T extends unknown[] = unknown[]> =
     EntitySignalEventsMap<T> & ComponentSignalEventsMap<T> & SystemSignalEventsMap<T> & ResourceSignalEventsMap<T>;
+
+export interface WorldOptions
+{
+    readonly componentPoolSize: number;
+    readonly entityPoolSize: number;
+}

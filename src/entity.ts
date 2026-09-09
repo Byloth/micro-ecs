@@ -3,10 +3,7 @@ import { ReferenceException, RuntimeException } from "@byloth/core";
 import type Component from "./component.js";
 import EntityContext from "./contexts/entity.js";
 import { DependencyException } from "./exceptions.js";
-
-import type Poolable from "./object-pool/types.js";
-import type { InitializeArgs } from "./object-pool/types.js";
-
+import type { InitializeArgs, Poolable } from "./object-pool/types.js";
 import type { ComponentType } from "./types.js";
 import type World from "./world.js";
 
