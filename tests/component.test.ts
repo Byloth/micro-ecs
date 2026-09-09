@@ -2,7 +2,7 @@ import { ReferenceException, RuntimeException } from "@byloth/core";
 import { describe, expect, it, vi } from "vitest";
 
 import { Component, World } from "../src/index.js";
-import type { Entity } from "../src/index.js";
+import type { ComponentType, Entity } from "../src/index.js";
 
 describe("Component", () =>
 {
@@ -177,6 +177,17 @@ describe("Component", () =>
             expect(siblingId).not.toBe(derivedId);
             expect(deepId).not.toBe(derivedId);
             expect(deepId).not.toBe(baseId);
+        });
+        it("Should expose an optional static Tag through ComponentType", () =>
+        {
+            class TaggedComponent extends Component { public static readonly Tag = "tagged"; }
+            class UntaggedComponent extends Component { }
+
+            const tagged: ComponentType = TaggedComponent;
+            const untagged: ComponentType = UntaggedComponent;
+
+            expect(tagged.Tag).toBe("tagged");
+            expect(untagged.Tag).toBeUndefined();
         });
 
         it("Should correctly distinguish inherited components in queries", () =>
