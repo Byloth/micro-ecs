@@ -37,8 +37,6 @@ describe("QueryManager", () =>
             [[[TestComponent1, false], [TestComponent3, false], [TestComponent2, false]], true]
         ];
 
-        Object.defineProperty(Entity, "__μECS_NextId__", { value: 0, writable: true });
-
         for (const [components, entityEnabled] of definitions)
         {
             const entity = _world.createEntity(TestEntity, entityEnabled);

@@ -22,6 +22,9 @@ type P = SignalEventsMap & InternalsEventsMap;
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export default class World<T extends CallbackMap<T> = { }>
 {
+    protected _nextId: number;
+    public get nextId(): number { return this._nextId; }
+
     protected readonly _componentPools: Map<ComponentType, ObjectPool<Component>>;
     protected readonly _entityPools: Map<EntityType, ObjectPool<Entity>>;
 
@@ -58,6 +61,8 @@ export default class World<T extends CallbackMap<T> = { }>
 
     public constructor()
     {
+        this._nextId = 1;
+
         this._componentPools = new Map();
         this._entityPools = new Map();
 
@@ -187,10 +192,46 @@ export default class World<T extends CallbackMap<T> = { }>
 
     public createEntity<E extends Entity>(Type?: EntityType<E>, ...args: InitializeArgs<E>): E
     {
+        const id = this._nextId;
+        if ((import.meta.env.DEV) && (this._entities.has(id)))
+        {
+            throw new ReferenceException(`An entity with ID ${id} already exists in the world.`);
+        }
+
         const pool = this._getEntityPool((Type ?? Entity) as EntityType<E>);
         const entity = pool.acquire() as E;
 
-        entity.initialize(this, ...args as InitializeArgs<Entity>);
+        entity["_id"] = id;
+        this._nextId += 1;
+
+        try { entity.initialize(this, ...args as InitializeArgs<Entity>); }
+        catch (error)
+        {
+            if (this._nextId === id + 1) { this._nextId = id; }
+
+            if (entity["_world"])
+            {
+                if (entity.isEnabled) { this._disableEntity(entity); }
+
+                try
+                {
+                    entity.dispose();
+                    pool.release(entity);
+                }
+                catch (_error)
+                {
+                    if (import.meta.env.DEV)
+                    {
+                        // eslint-disable-next-line no-console
+                        console.warn("An error occurred while disposing this entity.\n\nSuppressed", _error);
+                    }
+                }
+            }
+
+            entity["_id"] = -1;
+
+            throw error;
+        }
 
         this._entities.set(entity.id, entity);
 
@@ -560,5 +601,7 @@ export default class World<T extends CallbackMap<T> = { }>
 
         this._componentPools.clear();
         this._entityPools.clear();
+
+        this._nextId = 1;
     }
 }

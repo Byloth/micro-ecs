@@ -2,6 +2,7 @@ import { ReferenceException } from "@byloth/core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+    Component,
     DependencyException,
     Entity,
     Resource,
@@ -42,6 +43,213 @@ describe("World", () =>
             _world.destroyEntity(entity2);
             expect(_world.entities.size).toBe(1);
             expect(_world.entities.has(entity2.id)).toBe(false);
+        });
+
+        it("Should assign entity IDs from a per-world counter starting at 1", () =>
+        {
+            const other = new World();
+
+            expect(_world.nextId).toBe(1);
+            expect(_world.createEntity().id).toBe(1);
+            expect(_world.createEntity().id).toBe(2);
+            expect(_world.nextId).toBe(3);
+
+            expect(other.createEntity().id).toBe(1);
+            expect(other.nextId).toBe(2);
+        });
+        it("Should assign a new ID to an entity recycled from the pool", () =>
+        {
+            const entity1 = _world.createEntity();
+            _world.destroyEntity(entity1);
+
+            const entity2 = _world.createEntity();
+
+            expect(entity2).toBe(entity1);
+            expect(entity2.id).toBe(2);
+        });
+        it("Should expose and restore the next entity ID", () =>
+        {
+            _world["_nextId"] = 100;
+
+            expect(_world.createEntity().id).toBe(100);
+            expect(_world.nextId).toBe(101);
+        });
+        it("Should throw when creating an entity whose ID is already in use", () =>
+        {
+            _world.createEntity();
+            _world["_nextId"] = 1;
+
+            expect(() => _world.createEntity())
+                .toThrow(ReferenceException);
+        });
+
+        it("Should roll back the next ID and release the entity when `initialize` throws", () =>
+        {
+            const error = new Error("Boom!");
+
+            let shouldFail = true;
+            class FailingEntity extends Entity
+            {
+                public override initialize(world: World): void
+                {
+                    super.initialize(world);
+
+                    if (shouldFail) { throw error; }
+                }
+            }
+
+            const pool = _world["_getEntityPool"](FailingEntity);
+            const _onWarn = vi.spyOn(console, "warn").mockImplementation(() => { /* ... */ });
+
+            _world.createEntity();
+
+            let caught: unknown;
+            try { _world.createEntity(FailingEntity); }
+            catch (e) { caught = e; }
+
+            expect(caught).toBe(error);
+            expect(_onWarn).not.toHaveBeenCalled();
+
+            expect(_world.nextId).toBe(2);
+            expect(_world.entities.size).toBe(1);
+            expect(pool.available).toBe(1);
+
+            const failed = pool["_items"][0];
+            expect(failed.id).toBe(-1);
+            expect(failed["_world"]).toBeNull();
+
+            shouldFail = false;
+            const entity = _world.createEntity(FailingEntity);
+
+            expect(entity).toBe(failed);
+            expect(entity.id).toBe(2);
+            expect(_world.nextId).toBe(3);
+
+            _onWarn.mockRestore();
+        });
+        it("Should detach components created before `initialize` throws", () =>
+        {
+            class TestComponent extends Component { }
+            class FailingEntity extends Entity
+            {
+                public override initialize(world: World): void
+                {
+                    super.initialize(world);
+                    this.createComponent(TestComponent);
+
+                    throw new Error("Boom!");
+                }
+            }
+
+            const view = _world.getComponentView(TestComponent);
+
+            expect(() => _world.createEntity(FailingEntity))
+                .toThrow("Boom!");
+
+            expect(view.size).toBe(0);
+            expect(_world["_getComponentPool"](TestComponent).available).toBe(1);
+            expect(_world["_getEntityPool"](FailingEntity).available).toBe(1);
+        });
+        it("Should drop the entity when `initialize` throws before attaching", () =>
+        {
+            class FailingEntity extends Entity
+            {
+                public override initialize(world: World): void
+                {
+                    throw new Error("Boom!");
+                }
+            }
+
+            expect(() => _world.createEntity(FailingEntity))
+                .toThrow("Boom!");
+
+            expect(_world.nextId).toBe(1);
+            expect(_world.entities.size).toBe(0);
+            expect(_world["_getEntityPool"](FailingEntity).available).toBe(0);
+        });
+        it("Should assign distinct IDs to entities created inside `initialize`", () =>
+        {
+            class ParentEntity extends Entity
+            {
+                public child!: Entity;
+
+                public override initialize(world: World): void
+                {
+                    super.initialize(world);
+
+                    this.child = world.createEntity();
+                }
+            }
+
+            const parent = _world.createEntity(ParentEntity);
+
+            expect(parent.id).toBe(1);
+            expect(parent.child.id).toBe(2);
+            expect(_world.entities.get(1)).toBe(parent);
+            expect(_world.entities.get(2)).toBe(parent.child);
+            expect(_world.nextId).toBe(3);
+        });
+        it("Should not roll back past IDs consumed by nested creations", () =>
+        {
+            let child: Entity;
+            class FailingParentEntity extends Entity
+            {
+                public override initialize(world: World): void
+                {
+                    super.initialize(world);
+                    child = world.createEntity();
+
+                    throw new Error("Boom!");
+                }
+            }
+
+            expect(() => _world.createEntity(FailingParentEntity))
+                .toThrow("Boom!");
+
+            expect(_world.nextId).toBe(3);
+            expect(_world.entities.size).toBe(1);
+            expect(_world.entities.get(2)).toBe(child!);
+            expect(_world.createEntity().id).toBe(3);
+        });
+        it("Should not release the entity when its `dispose` throws during recovery", () =>
+        {
+            const error = new Error("Boom!");
+            class FailingEntity extends Entity
+            {
+                public override initialize(world: World): void
+                {
+                    super.initialize(world);
+
+                    throw error;
+                }
+                public override dispose(): void
+                {
+                    throw new Error("Dispose failed!");
+                }
+            }
+
+            const _onWarn = vi.spyOn(console, "warn").mockImplementation(() => { /* ... */ });
+
+            let caught: unknown;
+            try { _world.createEntity(FailingEntity); }
+            catch (e) { caught = e; }
+
+            expect(caught).toBe(error);
+            expect(_onWarn).toHaveBeenCalledTimes(1);
+            expect(_world["_getEntityPool"](FailingEntity).available).toBe(0);
+            expect(_world.nextId).toBe(1);
+
+            _onWarn.mockRestore();
+        });
+
+        it("Should reset the next entity ID on dispose", () =>
+        {
+            _world.createEntity();
+            _world.createEntity();
+            _world.dispose();
+
+            expect(_world.nextId).toBe(1);
+            expect(_world.createEntity().id).toBe(1);
         });
 
         it("Should return true when checking for an existing entity", () =>

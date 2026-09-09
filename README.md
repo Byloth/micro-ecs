@@ -129,7 +129,8 @@ Entities and Components are pooled automatically by the World.
 ### World
 
 The central container. Creates and destroys Entities, registers Systems and Resources, dispatches events, and drives the update loop.  
-The `entities`, `systems` and `resources` getters expose read-only views of its internal state: unlike query views, `entities` also includes disabled entities.
+The `entities`, `systems` and `resources` getters expose read-only views of its internal state: unlike query views, `entities` also includes disabled entities.  
+Entity IDs are unique per world and come from a counter that can be read and restored (e.g. when loading a save).
 
 ```typescript
 const world = new World();

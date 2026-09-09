@@ -156,7 +156,7 @@ describe("Component", () =>
         });
     });
 
-    describe("Static Id — Multi-level Inheritance", () =>
+    describe("Static ID — Multi-level Inheritance", () =>
     {
         class BaseComponent extends Component { public value = 0; }
 
@@ -165,7 +165,7 @@ describe("Component", () =>
 
         class DeepComponent extends DerivedComponent { public deep = true; }
 
-        it("Should assign unique Ids to each level of the inheritance chain", () =>
+        it("Should assign unique IDs to each level of the inheritance chain", () =>
         {
             const baseId = BaseComponent.Id;
             const derivedId = DerivedComponent.Id;

@@ -42,7 +42,7 @@ pnpm run vitest run tests/world.test.ts
 ### Core Classes (src/)
 
 **World** (`world.ts`) - The central container that manages:
-- Entities (with their Components)
+- Entities (with their Components; IDs come from a per-world counter, `nextId`)
 - Systems (with priority-based execution order)
 - Resources (singleton data shared across systems)
 - Services (objects that are both System and Resource)
@@ -96,6 +96,11 @@ Package entry points (`package.json` → `exports`):
 ### Dependencies
 
 - **@byloth/core** (peer dependency) - Provides utilities like `Publisher`, `SmartIterator`, `MapView`, and exception classes
+
+## Design Rules
+
+- **Strict, never idempotent.** Lifecycle and state-transition methods (`enable`, `disable`, `dispose`, `destroy*`, `remove*`, `use*`/`release*`, duplicate `create*`/`add*`) throw in DEV when called in the wrong state. Do not make them idempotent, do not add `strict`/`force` parameters or permissive setters. Callers check first (`isEnabled`, `hasComponent`, ...). Rationale: a loud error beats a silently masked logic error. Library-internal cleanup of an object in unknown state checks the state explicitly (see the `createEntity` failure path in `world.ts`) instead of relaxing the method.
+- **DEV-only validation.** All checks live under `import.meta.env.DEV` and are stripped in production: production trusts the caller.
 
 ## Code Style
 

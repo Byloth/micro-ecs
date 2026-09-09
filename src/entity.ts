@@ -12,9 +12,6 @@ import type World from "./world.js";
 
 export default class Entity<W extends World = World> implements Poolable<W>
 {
-    // eslint-disable-next-line camelcase
-    private static __μECS_NextId__ = 0;
-
     protected _id: number;
     public get id(): number { return this._id; }
 
@@ -114,9 +111,7 @@ export default class Entity<W extends World = World> implements Poolable<W>
             throw new ReferenceException("The entity is already attached to a world.");
         }
 
-        this._id = (Entity["__μECS_NextId__"] += 1);
         this._world = world;
-
         this._isEnabled = true;
     }
 
