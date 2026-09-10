@@ -626,9 +626,6 @@ export default class World<T extends CallbackMap<T> = { }>
             }
         }
 
-        this._systems.clear();
-        this._enabledSystems.length = 0;
-
         for (const entity of this._entities.values())
         {
             try { entity.dispose(); }
@@ -647,8 +644,10 @@ export default class World<T extends CallbackMap<T> = { }>
 
         this._entities.clear();
 
-        for (const resource of this._resources.values())
+        for (const [Type, resource] of this._resources)
         {
+            if (this._systems.has(Type as SystemType)) { continue; }
+
             try
             {
                 resource.dispose();
@@ -664,6 +663,9 @@ export default class World<T extends CallbackMap<T> = { }>
         }
 
         this._resources.clear();
+
+        this._systems.clear();
+        this._enabledSystems.length = 0;
 
         this._componentPools.clear();
         this._entityPools.clear();

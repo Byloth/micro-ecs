@@ -112,6 +112,7 @@ describe("ObjectPool", () =>
 
             expect(() => pool.release(item))
                 .toThrow(RuntimeException);
+
             expect(pool.available).toBe(0);
 
             item.dispose();

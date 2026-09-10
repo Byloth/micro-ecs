@@ -1378,5 +1378,65 @@ describe("World", () =>
             expect(_world["_viewDependencies"].size).toBe(0);
             expect(_world["_queryManager"]["_views"].size).toBe(0);
         });
+
+        it("Should dispose services once", () =>
+        {
+            const _onDispose = vi.fn();
+
+            class TestService extends System
+            {
+                public override dispose(): void
+                {
+                    super.dispose();
+
+                    _onDispose();
+                }
+            }
+
+            const service = _world.addService(new TestService());
+            const _onWarn = vi.spyOn(console, "warn").mockImplementation(() => { /* ... */ });
+
+            _world.dispose();
+
+            const warnings = _onWarn.mock.calls.length;
+            _onWarn.mockRestore();
+
+            expect(_onDispose).toHaveBeenCalledTimes(1);
+            expect(warnings).toBe(0);
+            expect(service.isDisposed).toBe(true);
+
+            expect(_world.resources.size).toBe(0);
+            expect(_world.systems.size).toBe(0);
+            expect(_world["_enabledSystems"].length).toBe(0);
+        });
+        it("Should dispose a system added only as a resource once", () =>
+        {
+            const _onDispose = vi.fn();
+
+            class TestSystem extends System
+            {
+                public override dispose(): void
+                {
+                    super.dispose();
+
+                    _onDispose();
+                }
+            }
+
+            const system = _world.addResource(new TestSystem());
+            const _onWarn = vi.spyOn(console, "warn").mockImplementation(() => { /* ... */ });
+
+            _world.dispose();
+
+            const warnings = _onWarn.mock.calls.length;
+            _onWarn.mockRestore();
+
+            expect(_onDispose).toHaveBeenCalledTimes(1);
+            expect(warnings).toBe(0);
+            expect(system.isDisposed).toBe(true);
+
+            expect(_world.resources.size).toBe(0);
+            expect(_world.systems.size).toBe(0);
+        });
     });
 });
