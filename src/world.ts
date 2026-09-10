@@ -60,6 +60,7 @@ export default class World<T extends CallbackMap<T> = { }>
 
     protected readonly _contexts: Map<System, WorldContext<CallbackMap>>;
     protected readonly _dependencies: Map<Resource, Set<System>>;
+    protected readonly _viewDependencies: Map<ReadonlyQueryView<Component[]>, Set<System>>;
 
     protected readonly _queryManager: QueryManager;
     protected readonly _publisher: Publisher;
@@ -74,6 +75,18 @@ export default class World<T extends CallbackMap<T> = { }>
             dependants.delete(system);
 
             if (dependants.size === 0) { this._dependencies.delete(dependency); }
+        }
+
+        for (const view of context.componentViews)
+        {
+            const dependants = this._viewDependencies.get(view)!;
+            dependants.delete(system);
+
+            if (dependants.size === 0)
+            {
+                this._viewDependencies.delete(view);
+                this._queryManager.destroyView(view);
+            }
         }
 
         this._contexts.delete(system);
@@ -99,6 +112,7 @@ export default class World<T extends CallbackMap<T> = { }>
 
         this._contexts = new Map();
         this._dependencies = new Map();
+        this._viewDependencies = new Map();
 
         this._queryManager = new QueryManager(this._entities);
         this._publisher = new Publisher();
@@ -221,6 +235,39 @@ export default class World<T extends CallbackMap<T> = { }>
         return dependency;
     }
 
+    protected _addComponentView(system: System, Types: ComponentType[]): ReadonlyQueryView<Component[]>
+    {
+        const view = this._queryManager.resolveView(...Types) as unknown as ReadonlyQueryView<Component[]>;
+
+        const dependants = this._viewDependencies.get(view);
+        if (dependants)
+        {
+            if ((import.meta.env.DEV) && (dependants.has(system)))
+            {
+                throw new DependencyException("The dependant already depends on this view.");
+            }
+
+            dependants.add(system);
+        }
+        else { this._viewDependencies.set(view, new Set([system])); }
+
+        return view;
+    }
+    protected _removeComponentView(system: System, view: ReadonlyQueryView<Component[]>): void
+    {
+        const dependants = this._viewDependencies.get(view);
+        if ((import.meta.env.DEV) && !(dependants?.delete(system)))
+        {
+            throw new DependencyException("The dependant doesn't depend on this view.");
+        }
+
+        if (dependants!.size === 0)
+        {
+            this._viewDependencies.delete(view);
+            this._queryManager.destroyView(view);
+        }
+    }
+
     public createEntity<E extends Entity>(Type?: EntityType<E>, ...args: InitializeArgs<E>): E
     {
         const id = this._nextId;
@@ -329,13 +376,6 @@ export default class World<T extends CallbackMap<T> = { }>
     ): SmartIterator<R>
     {
         return this._queryManager.findAll<C, R>(...Types);
-    }
-
-    public getComponentView<C extends ComponentType[], R extends Instances<C> = Instances<C>>(
-        ...Types: C
-    ): ReadonlyQueryView<R>
-    {
-        return this._queryManager.getView<C, R>(...Types);
     }
 
     public addResource<R extends Resource>(resource: R, ...args: InitializeArgs<R>): R
@@ -557,8 +597,6 @@ export default class World<T extends CallbackMap<T> = { }>
 
     public dispose(): void
     {
-        this._queryManager.dispose();
-
         for (const context of this._contexts.values())
         {
             try { context.dispose(); }
@@ -574,6 +612,9 @@ export default class World<T extends CallbackMap<T> = { }>
 
         this._contexts.clear();
         this._publisher.clear();
+
+        this._viewDependencies.clear();
+        this._queryManager.dispose();
 
         for (const system of this._systems.values())
         {

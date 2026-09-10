@@ -14,6 +14,8 @@ interface QueryViewEventsMap<C extends Component[]>
 
 export interface ReadonlyQueryView<C extends Component[]>
 {
+    readonly isDisposed: boolean;
+
     readonly entities: readonly Entity[];
     readonly components: readonly C[];
 
@@ -31,28 +33,25 @@ export interface ReadonlyQueryView<C extends Component[]>
 
 export default class QueryView<C extends Component[]> implements ReadonlyQueryView<C>
 {
+    protected _isDisposed: boolean;
+    public get isDisposed(): boolean { return this._isDisposed; }
+
     protected readonly _indexes: Map<Entity, number>;
+
     protected readonly _entities: Entity[];
+    public get entities(): readonly Entity[] { return this._entities; }
+
     protected readonly _components: C[];
+    public get components(): readonly C[] { return this._components; }
+
+    public get size(): number { return this._components.length; }
 
     protected readonly _publisher: Publisher<QueryViewEventsMap<C>>;
 
-    public get entities(): readonly Entity[]
-    {
-        return this._entities;
-    }
-    public get components(): readonly C[]
-    {
-        return this._components;
-    }
-
-    public get size(): number
-    {
-        return this._components.length;
-    }
-
     public constructor(iterable?: Iterable<[Entity, C]> | null)
     {
+        this._isDisposed = false;
+
         this._indexes = new Map();
         this._entities = [];
         this._components = [];
@@ -139,15 +138,43 @@ export default class QueryView<C extends Component[]> implements ReadonlyQueryVi
 
     public onAdd(callback: (entity: Entity, components: C, index: number) => void): Callback
     {
+        if ((import.meta.env.DEV) && (this._isDisposed))
+        {
+            throw new ReferenceException("The view has been disposed.");
+        }
+
         return this._publisher.subscribe("add", callback);
     }
     public onRemove(callback: (entity: Entity, components: C, index: number) => void): Callback
     {
+        if ((import.meta.env.DEV) && (this._isDisposed))
+        {
+            throw new ReferenceException("The view has been disposed.");
+        }
+
         return this._publisher.subscribe("remove", callback);
     }
 
     public onClear(callback: () => void): Callback
     {
+        if ((import.meta.env.DEV) && (this._isDisposed))
+        {
+            throw new ReferenceException("The view has been disposed.");
+        }
+
         return this._publisher.subscribe("clear", callback);
+    }
+
+    public dispose(): void
+    {
+        if ((import.meta.env.DEV) && (this._isDisposed))
+        {
+            throw new ReferenceException("The view has already been disposed.");
+        }
+
+        this.clear();
+        this._publisher.clear();
+
+        this._isDisposed = true;
     }
 }

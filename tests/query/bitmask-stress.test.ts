@@ -62,7 +62,7 @@ describe("Bitmask Stress Test", () =>
         for (let i = 0; i < NUM_QUERY_TESTS; i += 1)
         {
             const queryType = Random.Choice(ComponentTypes);
-            const view = _world.getComponentView(queryType);
+            const view = _world["_queryManager"].resolveView(queryType);
 
             const expectedEntities = _entities.filter((entity) =>
             {
@@ -85,7 +85,7 @@ describe("Bitmask Stress Test", () =>
             const querySize = Random.Integer(2, MAX_QUERY_SIZE + 1);
             const queryTypes = randomSample(ComponentTypes, querySize);
 
-            const view = _world.getComponentView(...queryTypes);
+            const view = _world["_queryManager"].resolveView(...queryTypes);
 
             const expectedEntities = _entities.filter((entity) =>
             {
@@ -109,7 +109,7 @@ describe("Bitmask Stress Test", () =>
         const typesFromSecondChunk = randomSample(ComponentTypes.slice(32, 64), 2);
         const queryTypes = [...typesFromFirstChunk, ...typesFromSecondChunk];
 
-        const view = _world.getComponentView(...queryTypes);
+        const view = _world["_queryManager"].resolveView(...queryTypes);
 
         const expectedEntities = _entities.filter((entity) =>
         {
@@ -131,7 +131,7 @@ describe("Bitmask Stress Test", () =>
         const querySize = Random.Integer(2, MAX_QUERY_SIZE + 1);
         const queryTypes = randomSample(ComponentTypes, querySize);
 
-        const view = _world.getComponentView(...queryTypes);
+        const view = _world["_queryManager"].resolveView(...queryTypes);
         const initialSize = view.size;
 
         const nonMatchingEntities = _entities.filter((entity) =>
@@ -161,7 +161,7 @@ describe("Bitmask Stress Test", () =>
         const querySize = Random.Integer(1, MAX_QUERY_SIZE + 1);
         const queryTypes = randomSample(ComponentTypes, querySize);
 
-        const view = _world.getComponentView(...queryTypes);
+        const view = _world["_queryManager"].resolveView(...queryTypes);
 
         const matchingEntities = [...view.entities];
         if (matchingEntities.length === 0) { return; }
@@ -182,7 +182,7 @@ describe("Bitmask Stress Test", () =>
     {
         const queryType = Random.Choice(ComponentTypes);
 
-        const view = _world.getComponentView(queryType);
+        const view = _world["_queryManager"].resolveView(queryType);
 
         const matchingEntities = [...view.entities];
         if (matchingEntities.length === 0) { return; }
@@ -216,7 +216,7 @@ describe("Bitmask Stress Test", () =>
             const querySize = Random.Integer(1, 11);
             const queryTypes = randomSample(ComponentTypes, querySize);
 
-            const view = _world.getComponentView(...queryTypes);
+            const view = _world["_queryManager"].resolveView(...queryTypes);
             expect(view.has(superEntity)).toBe(true);
         }
     });
@@ -233,17 +233,17 @@ describe("Bitmask Stress Test", () =>
 
         const firstChunkTypes = randomSample(ComponentTypes.slice(0, 32), 2);
 
-        const view1 = _world.getComponentView(...firstChunkTypes);
+        const view1 = _world["_queryManager"].resolveView(...firstChunkTypes);
         expect(view1.has(secondChunkEntity)).toBe(false);
 
-        const view2 = _world.getComponentView(...secondChunkTypes);
+        const view2 = _world["_queryManager"].resolveView(...secondChunkTypes);
         expect(view2.has(secondChunkEntity)).toBe(true);
     });
 
     it("Should maintain consistency across multiple operations", () =>
     {
         const queryTypes = randomSample(ComponentTypes, 3);
-        const view = _world.getComponentView(...queryTypes);
+        const view = _world["_queryManager"].resolveView(...queryTypes);
 
         for (let i = 0; i < 100; i += 1)
         {

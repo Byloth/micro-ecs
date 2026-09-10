@@ -198,8 +198,8 @@ describe("Component", () =>
             entity.createComponent(BaseComponent);
             entity.createComponent(DerivedComponent);
 
-            const baseView = world.getComponentView(BaseComponent);
-            const derivedView = world.getComponentView(DerivedComponent);
+            const baseView = world["_queryManager"].resolveView(BaseComponent);
+            const derivedView = world["_queryManager"].resolveView(DerivedComponent);
 
             expect(baseView.size).toBe(1);
             expect(derivedView.size).toBe(1);

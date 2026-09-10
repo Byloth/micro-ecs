@@ -1,4 +1,4 @@
-import { KeyException, SmartIterator, ValueException } from "@byloth/core";
+import { KeyException, ReferenceException, SmartIterator, ValueException } from "@byloth/core";
 import type { CallbackMap } from "@byloth/core";
 
 import QueryView from "./view.js";
@@ -87,7 +87,9 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
     protected readonly _entityMasks: WeakMap<Entity, number[]>;
 
     protected readonly _entities: ReadonlyMap<number, Entity>;
+
     protected readonly _views: Map<string, QueryView<Component[]>>;
+    protected readonly _viewKeys: Map<QueryView<Component[]>, string>;
 
     public constructor(entities: ReadonlyMap<number, Entity>)
     {
@@ -98,7 +100,9 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         this._entityMasks = new WeakMap();
 
         this._entities = entities;
+
         this._views = new Map();
+        this._viewKeys = new Map();
     }
 
     protected _getEntityMask(entity: Entity): number[]
@@ -249,7 +253,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         });
     }
 
-    public getView<C extends ComponentType[], R extends Instances<C> = Instances<C>>(
+    public resolveView<C extends ComponentType[], R extends Instances<C> = Instances<C>>(
         ...Types: C
     ): ReadonlyQueryView<R>
     {
@@ -277,6 +281,7 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
         }
 
         this._views.set(key, view);
+        this._viewKeys.set(view, key);
         this._queryMasks.set(key, queryMask);
 
         this._addComponentKeys(Types, key);
@@ -284,10 +289,50 @@ export default class QueryManager<T extends CallbackMap<T> = { }>
 
         return view;
     }
+    public findView<C extends ComponentType[], R extends Instances<C> = Instances<C>>(
+        ...Types: C
+    ): ReadonlyQueryView<R> | undefined
+    {
+        if ((import.meta.env.DEV) && !(Types.length))
+        {
+            throw new ValueException("At least one type must be provided.");
+        }
+
+        return this._views.get(_getQueryKey(Types)) as QueryView<R> | undefined;
+    }
+    public destroyView<C extends Component[]>(view: ReadonlyQueryView<C>): void
+    {
+        const _view = view as QueryView<C>;
+
+        const key = this._viewKeys.get(_view);
+        if ((import.meta.env.DEV) && (key === undefined))
+        {
+            throw new ReferenceException("The view doesn't exist in the manager.");
+        }
+
+        const Types = this._keyTypes.get(key!)!;
+        for (const Type of Types)
+        {
+            const keys = this._typeKeys.get(Type)!;
+            keys.delete(key!);
+
+            if (keys.size === 0) { this._typeKeys.delete(Type); }
+        }
+
+        this._keyTypes.delete(key!);
+        this._queryMasks.delete(key!);
+
+        this._viewKeys.delete(_view);
+        this._views.delete(key!);
+
+        _view.dispose();
+    }
 
     public dispose(): void
     {
-        for (const view of this._views.values()) { view.clear(); }
+        for (const view of this._views.values()) { view.dispose(); }
+
+        this._viewKeys.clear();
         this._views.clear();
 
         this._queryMasks.clear();

@@ -80,7 +80,8 @@ class MovementSystem extends System {
   public override initialize(world: World): void {
     super.initialize(world);
 
-    this._view = world.getComponentView(Position, Velocity);
+    this._view = world.getContext(this)
+      .useComponentView(Position, Velocity);
   }
   public override update(deltaTime: number): void {
     for (const [position, velocity] of this._view.components) {
@@ -226,8 +227,9 @@ class PhysicsSystem extends System {
 
 ### Queries & Views
 
-The World exposes methods to query entities by component types.  
-`getComponentView()` returns a cached, auto-updating `ReadonlyQueryView`.
+The World exposes methods for one-shot queries by component types.  
+Systems get a cached, auto-updating `ReadonlyQueryView` through their `WorldContext`
+with `useComponentView()`; the view is shared between every System using the same query.
 
 ```typescript
 // One-shot queries
@@ -237,8 +239,9 @@ world.getFirstComponents(Position, Velocity);
 // Lazy iteration
 for (const [pos, vel] of world.findAllComponents(Position, Velocity)) { /* ... */ }
 
-// Cached view (preferred in Systems)
-const view = world.getComponentView(Position, Velocity);
+// Cached view — obtained in System.initialize()
+const view = world.getContext(this)
+  .useComponentView(Position, Velocity);
 
 view.size;         // number
 view.has(entity);  // boolean
@@ -258,6 +261,15 @@ view.onClear(() => { /* ... */ });
 On removal, the last entry takes the place of the removed one (swap-and-pop): an external array
 mirroring the view can stay aligned in O(1) by applying the same move.
 
+A view is released automatically when its System is removed or the World is disposed.
+It can also be released early with `releaseComponentView()`; when the last System
+using it lets go, the view is disposed (`isDisposed` becomes `true`, subscribers are dropped).
+
+```typescript
+ctx.releaseComponentView(view);                // By instance
+ctx.releaseComponentView(Position, Velocity);  // By types
+```
+
 ### Contexts
 
 A **WorldContext** gives Systems access to events and resource dependencies.  
@@ -274,6 +286,9 @@ await ctx.wait("player:hit");     // Async wait
 
 const config = ctx.useResource(GameConfig);  // Declare dependency
 ctx.releaseResource(GameConfig);             // Release dependency
+
+const view = ctx.useComponentView(Position);  // Acquire a shared view
+ctx.releaseComponentView(view);               // Release it
 
 // EntityContext — obtained in Component.initialize()
 const ctx = entity.getContext(this);

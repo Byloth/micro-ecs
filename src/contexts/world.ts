@@ -1,4 +1,4 @@
-import { TimedPromise } from "@byloth/core";
+import { ReferenceException, TimedPromise } from "@byloth/core";
 import type {
     Callback,
     CallbackMap,
@@ -9,10 +9,13 @@ import type {
 
 } from "@byloth/core";
 
+import type Component from "../component.js";
 import type Resource from "../resource.js";
 import type System from "../system.js";
-import type { Resourceable, ResourceType, SignalEventsMap } from "../types.js";
 import type World from "../world.js";
+
+import type { ReadonlyQueryView } from "../query/view.js";
+import type { ComponentType, Instances, Resourceable, ResourceType, SignalEventsMap } from "../types.js";
 
 type P = SignalEventsMap & InternalsEventsMap;
 type S = P & WildcardEventsMap;
@@ -28,6 +31,9 @@ export default class WorldContext<T extends CallbackMap<T> = { }>
     protected readonly _dependencies: Set<Resource>;
     public get dependencies(): ReadonlySet<Resource> { return this._dependencies; }
 
+    protected readonly _componentViews: Set<ReadonlyQueryView<Component[]>>;
+    public get componentViews(): ReadonlySet<ReadonlyQueryView<Component[]>> { return this._componentViews; }
+
     protected _onDispose?: (context: WorldContext) => void;
 
     public constructor(system: System, publisher: Publisher)
@@ -36,6 +42,7 @@ export default class WorldContext<T extends CallbackMap<T> = { }>
         this._publisher = publisher;
 
         this._dependencies = new Set();
+        this._componentViews = new Set();
     }
 
     public emit<K extends keyof T>(event: K & string, ...args: Parameters<T[K]>): ReturnType<T[K]>[];
@@ -119,6 +126,37 @@ export default class WorldContext<T extends CallbackMap<T> = { }>
         this._dependencies.delete(dependency);
     }
 
+    public useComponentView<C extends ComponentType[], R extends Instances<C> = Instances<C>>(
+        ...Types: C
+    ): ReadonlyQueryView<R>
+    {
+        const view = this._world["_addComponentView"](this._system, Types);
+        this._componentViews.add(view);
+
+        return view as unknown as ReadonlyQueryView<R>;
+    }
+
+    public releaseComponentView<C extends Component[]>(view: ReadonlyQueryView<C>): void;
+    public releaseComponentView<C extends ComponentType[]>(...Types: C): void;
+    public releaseComponentView(...args: [ReadonlyQueryView<Component[]>] | ComponentType[]): void
+    {
+        let view: ReadonlyQueryView<Component[]>;
+        if (typeof args[0] === "function")
+        {
+            const _view = this._world["_queryManager"].findView(...args as ComponentType[]);
+            if ((import.meta.env.DEV) && !(_view))
+            {
+                throw new ReferenceException("The view doesn't exist in the world.");
+            }
+
+            view = _view!;
+        }
+        else { view = args[0]; }
+
+        this._world["_removeComponentView"](this._system, view);
+        this._componentViews.delete(view);
+    }
+
     public dispose(): void
     {
         if (this._onDispose)
@@ -128,6 +166,8 @@ export default class WorldContext<T extends CallbackMap<T> = { }>
         }
 
         this._dependencies.clear();
+        this._componentViews.clear();
+
         this._publisher.clear();
     }
 }

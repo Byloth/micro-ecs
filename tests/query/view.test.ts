@@ -285,6 +285,91 @@ describe("QueryView", () =>
         });
     });
 
+    describe("Dispose", () =>
+    {
+        it("Should be initialized as not disposed", () =>
+        {
+            expect(_view.isDisposed).toBe(false);
+        });
+
+        it("Should empty the view when disposed", () =>
+        {
+            const entity = new Entity();
+            const component = new TestComponent1();
+
+            _view.set(entity, [component]);
+            _view.dispose();
+
+            expect(_view.isDisposed).toBe(true);
+            expect(_view.size).toBe(0);
+            expect(_view.entities).toHaveLength(0);
+            expect(_view.components).toHaveLength(0);
+            expect(_view.has(entity)).toBe(false);
+        });
+
+        it("Should trigger 'clear' event once when a non-empty view is disposed", () =>
+        {
+            const callback = vi.fn();
+            const entity = new Entity();
+            const component = new TestComponent1();
+
+            _view.set(entity, [component]);
+            _view.onClear(callback);
+            _view.dispose();
+
+            expect(callback).toHaveBeenCalledTimes(1);
+        });
+        it("Should not trigger 'clear' event when an empty view is disposed", () =>
+        {
+            const callback = vi.fn();
+
+            _view.onClear(callback);
+            _view.dispose();
+
+            expect(callback).not.toHaveBeenCalled();
+        });
+
+        it("Should drop all subscribers when disposed", () =>
+        {
+            const onAdd = vi.fn();
+            const onRemove = vi.fn();
+            const onClear = vi.fn();
+
+            _view.onAdd(onAdd);
+            _view.onRemove(onRemove);
+            _view.onClear(onClear);
+
+            _view.dispose();
+
+            const entity = new Entity();
+            const component = new TestComponent1();
+
+            _view.set(entity, [component]);
+            _view.delete(entity);
+            _view.set(entity, [component]);
+            _view.clear();
+
+            expect(onAdd).not.toHaveBeenCalled();
+            expect(onRemove).not.toHaveBeenCalled();
+            expect(onClear).not.toHaveBeenCalled();
+        });
+
+        it("Should throw when subscribing to a disposed view", () =>
+        {
+            _view.dispose();
+
+            expect(() => _view.onAdd(vi.fn())).toThrow(ReferenceException);
+            expect(() => _view.onRemove(vi.fn())).toThrow(ReferenceException);
+            expect(() => _view.onClear(vi.fn())).toThrow(ReferenceException);
+        });
+        it("Should throw when disposing an already disposed view", () =>
+        {
+            _view.dispose();
+
+            expect(() => _view.dispose()).toThrow(ReferenceException);
+        });
+    });
+
     describe("Multiple components", () =>
     {
         it("Should handle views with multiple component types", () =>

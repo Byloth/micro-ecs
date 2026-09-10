@@ -34,7 +34,7 @@ pnpm run test:coverage # Run tests with coverage
 
 Run a single test file:
 ```bash
-pnpm run vitest run tests/world.test.ts
+pnpm exec vitest run tests/world.test.ts
 ```
 
 ## Architecture
@@ -48,7 +48,8 @@ pnpm run vitest run tests/world.test.ts
 - Resources (singleton data shared across systems)
 - Services (objects that are both System and Resource)
 - Event publishing via `Publisher` from `@byloth/core`
-- QueryManager for component queries
+- QueryManager for component queries (one-shot queries are public; views are acquired only through `WorldContext`)
+- View dependencies (`_viewDependencies: Map<view, Set<System>>`, mirrors `_dependencies` for Resources): the view is released to the QueryManager when its last dependant lets go
 
 **Entity** (`entity.ts`) - Container for Components. Can be enabled/disabled. Manages component dependencies via EntityContext.
 
@@ -62,13 +63,16 @@ pnpm run vitest run tests/world.test.ts
 - `pickOne<C>(type)` - Get first component of type
 - `findFirst<C>(...types)` - Get first entity with all component types
 - `findAll<C>(...types)` - Iterate all matching entities
-- `getView<C>(...types)` - Get cached view that auto-updates
+- `resolveView<C>(...types)` - Get (or create) the cached view that auto-updates; no reference counting here, holders are tracked by World
+- `findView<C>(...types)` - Get the cached view without creating it
+- `destroyView(view)` - Purge the view from every internal map (`_views`, `_viewKeys`, `_queryMasks`, `_keyTypes`, `_typeKeys`) and dispose it
 
-**QueryView** (`query/view.ts`) - Cached view returned by `getView()`. Auto-updates when entities/components change. Provides:
+**QueryView** (`query/view.ts`) - Cached view returned by `resolveView()`. Auto-updates when entities/components change. Provides:
 - `entities` / `components` - Direct array access (preferred for iteration)
 - `get(entity)` / `has(entity)` - Entity lookup
 - `[Symbol.iterator]()` - Iterate `[entity, components]` tuples (use only when entity access is needed)
-- `onAdd()` / `onRemove()` / `onClear()` - Event subscriptions
+- `onAdd()` / `onRemove()` / `onClear()` - Event subscriptions (throw in DEV on a disposed view)
+- `dispose()` / `isDisposed` - Empties the view (publishing a last `"clear"`) and drops every subscriber; a second `dispose()` throws in DEV
 
 ### Contexts (src/contexts/)
 
@@ -76,6 +80,7 @@ pnpm run vitest run tests/world.test.ts
 - Event subscription (`on`, `once`, `wait`, `off`)
 - Event emission (`emit`)
 - Resource dependency management (`useResource`, `releaseResource`)
+- View dependency management (`useComponentView`, `releaseComponentView`); views are shared between Systems with the same query and released automatically in `dispose()`
 
 **EntityContext** (`entity.ts`) - Provided to Components. Enables:
 - Component dependency management (`useComponent`, `releaseComponent`)

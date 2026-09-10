@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ReferenceException, ValueException } from "@byloth/core";
+
 import { Component, Entity, World } from "../../src/index.js";
 import type { ComponentType } from "../../src/index.js";
 
@@ -54,7 +56,7 @@ describe("QueryManager", () =>
         const first = _world.getFirstComponents(TestComponent3, TestComponent1)!;
         const second = _world.getFirstComponent(TestComponent4);
         const iterator = _world.findAllComponents(TestComponent2).toArray();
-        const view = Array.from(_world.getComponentView(TestComponent1).components);
+        const view = Array.from(_world["_queryManager"].resolveView(TestComponent1).components);
 
         expect(view.length).toBe(4);
 
@@ -77,7 +79,7 @@ describe("QueryManager", () =>
     {
         it("Should update the view when components are added", () =>
         {
-            const view = _world.getComponentView(TestComponent1, TestComponent3);
+            const view = _world["_queryManager"].resolveView(TestComponent1, TestComponent3);
 
             const before = Array.from(view.components);
             expect(before.length).toBe(2);
@@ -95,7 +97,7 @@ describe("QueryManager", () =>
         });
         it("Should update the view when components are enabled", () =>
         {
-            const view = _world.getComponentView(TestComponent1, TestComponent3);
+            const view = _world["_queryManager"].resolveView(TestComponent1, TestComponent3);
 
             const before = Array.from(view.components);
             expect(before.length).toBe(2);
@@ -122,7 +124,7 @@ describe("QueryManager", () =>
         });
         it("Should reactively update view when components are disabled", () =>
         {
-            const view = _world.getComponentView(TestComponent1, TestComponent3);
+            const view = _world["_queryManager"].resolveView(TestComponent1, TestComponent3);
 
             const before = Array.from(view.components);
             expect(before.length).toBe(2);
@@ -138,7 +140,7 @@ describe("QueryManager", () =>
         });
         it("Should update the view when components are removed", () =>
         {
-            const view = _world.getComponentView(TestComponent1, TestComponent3);
+            const view = _world["_queryManager"].resolveView(TestComponent1, TestComponent3);
 
             const before = Array.from(view.components);
             expect(before.length).toBe(2);
@@ -158,7 +160,7 @@ describe("QueryManager", () =>
     {
         it("Should update the view when entities are added", () =>
         {
-            const view = _world.getComponentView(TestComponent2, TestComponent3);
+            const view = _world["_queryManager"].resolveView(TestComponent2, TestComponent3);
 
             const before = Array.from(view.components);
             expect(before.length).toBe(2);
@@ -177,7 +179,7 @@ describe("QueryManager", () =>
         });
         it("Should update the view when entities are enabled", () =>
         {
-            const view = _world.getComponentView(TestComponent2, TestComponent3);
+            const view = _world["_queryManager"].resolveView(TestComponent2, TestComponent3);
 
             const before = Array.from(view.components);
             expect(before.length).toBe(2);
@@ -195,7 +197,7 @@ describe("QueryManager", () =>
         });
         it("Should update the view when entities are disabled", () =>
         {
-            const view = _world.getComponentView(TestComponent2, TestComponent3);
+            const view = _world["_queryManager"].resolveView(TestComponent2, TestComponent3);
 
             const before = Array.from(view.components);
             expect(before.length).toBe(2);
@@ -210,7 +212,7 @@ describe("QueryManager", () =>
         });
         it("Should update the view when entities are removed", () =>
         {
-            const view = _world.getComponentView(TestComponent2, TestComponent3);
+            const view = _world["_queryManager"].resolveView(TestComponent2, TestComponent3);
 
             const before = Array.from(view.components);
             expect(before.length).toBe(2);
@@ -232,7 +234,7 @@ describe("QueryManager", () =>
     {
         const _onEntryAdd = vi.fn();
 
-        const view = _world.getComponentView(TestComponent1, TestComponent2);
+        const view = _world["_queryManager"].resolveView(TestComponent1, TestComponent2);
         view.onAdd(_onEntryAdd);
 
         const entity1 = _world.createEntity();
@@ -246,9 +248,128 @@ describe("QueryManager", () =>
         expect(_onEntryAdd).toHaveBeenCalledTimes(2);
     });
 
-    it("Should clear all views when the world is disposed", () =>
+    describe("View lifecycle", () =>
     {
-        const entities = _world.getComponentView(TestComponent3);
+        it("Should return the same cached view for the same query", () =>
+        {
+            const manager = _world["_queryManager"];
+
+            const view1 = manager.resolveView(TestComponent1, TestComponent3);
+            const view2 = manager.resolveView(TestComponent3, TestComponent1);
+
+            expect(view2).toBe(view1);
+            expect(manager["_views"].size).toBe(1);
+        });
+
+        it("Should find a cached view without creating it", () =>
+        {
+            const manager = _world["_queryManager"];
+
+            expect(manager.findView(TestComponent1, TestComponent3)).toBeUndefined();
+            expect(manager["_views"].size).toBe(0);
+
+            const view = manager.resolveView(TestComponent1, TestComponent3);
+
+            expect(manager.findView(TestComponent3, TestComponent1)).toBe(view);
+            expect(manager["_views"].size).toBe(1);
+        });
+        it("Should throw when finding without any type", () =>
+        {
+            expect(() => _world["_queryManager"].findView()).toThrow(ValueException);
+        });
+
+        it("Should purge every internal structure when a view is destroyed", () =>
+        {
+            const manager = _world["_queryManager"];
+            const view = manager.resolveView(TestComponent1, TestComponent3);
+
+            expect(manager["_views"].size).toBe(1);
+            expect(manager["_viewKeys"].size).toBe(1);
+            expect(manager["_queryMasks"].size).toBe(1);
+            expect(manager["_keyTypes"].size).toBe(1);
+            expect(manager["_typeKeys"].has(TestComponent1)).toBe(true);
+            expect(manager["_typeKeys"].has(TestComponent3)).toBe(true);
+
+            manager.destroyView(view);
+
+            expect(view.isDisposed).toBe(true);
+            expect(manager["_views"].size).toBe(0);
+            expect(manager["_viewKeys"].size).toBe(0);
+            expect(manager["_queryMasks"].size).toBe(0);
+            expect(manager["_keyTypes"].size).toBe(0);
+            expect(manager["_typeKeys"].size).toBe(0);
+        });
+        it("Should keep the type keys still used by other views when a view is destroyed", () =>
+        {
+            const manager = _world["_queryManager"];
+
+            const view1 = manager.resolveView(TestComponent1, TestComponent3);
+            const view2 = manager.resolveView(TestComponent1, TestComponent2);
+
+            manager.destroyView(view1);
+
+            expect(view1.isDisposed).toBe(true);
+            expect(view2.isDisposed).toBe(false);
+
+            expect(manager["_views"].size).toBe(1);
+            expect(manager["_typeKeys"].has(TestComponent3)).toBe(false);
+            expect(manager["_typeKeys"].get(TestComponent1)?.size).toBe(1);
+            expect(manager["_typeKeys"].get(TestComponent2)?.size).toBe(1);
+        });
+
+        it("Should stop updating a destroyed view", () =>
+        {
+            const manager = _world["_queryManager"];
+            const view = manager.resolveView(TestComponent4);
+
+            manager.destroyView(view);
+
+            const entity = _world.createEntity();
+            entity.createComponent(TestComponent4);
+
+            expect(view.size).toBe(0);
+        });
+        it("Should create a new repopulated view after a destruction", () =>
+        {
+            const manager = _world["_queryManager"];
+
+            const view1 = manager.resolveView(TestComponent3);
+            expect(view1.size).toBe(4);
+
+            manager.destroyView(view1);
+
+            const entity = _world.createEntity();
+            entity.createComponent(TestComponent3);
+
+            const view2 = manager.resolveView(TestComponent3);
+
+            expect(view2).not.toBe(view1);
+            expect(view2.isDisposed).toBe(false);
+            expect(view2.size).toBe(5);
+            expect(view2.has(entity)).toBe(true);
+        });
+
+        it("Should throw when destroying an unknown view", () =>
+        {
+            const manager = _world["_queryManager"];
+            const view = manager.resolveView(TestComponent3);
+
+            manager.destroyView(view);
+
+            expect(() => manager.destroyView(view)).toThrow(ReferenceException);
+        });
+    });
+
+    it("Should dispose all views when the world is disposed", () =>
+    {
+        const _onAdd = vi.fn();
+        const _onClear = vi.fn();
+
+        const manager = _world["_queryManager"];
+        const entities = manager.resolveView(TestComponent3);
+
+        entities.onAdd(_onAdd);
+        entities.onClear(_onClear);
 
         const before = Array.from(entities.components);
         expect(before.length).toBe(4);
@@ -261,5 +382,15 @@ describe("QueryManager", () =>
 
         const after = Array.from(entities.components);
         expect(after.length).toBe(0);
+
+        expect(entities.isDisposed).toBe(true);
+        expect(_onClear).toHaveBeenCalledTimes(1);
+        expect(() => entities.onAdd(_onAdd)).toThrow(ReferenceException);
+
+        expect(manager["_views"].size).toBe(0);
+        expect(manager["_viewKeys"].size).toBe(0);
+        expect(manager["_queryMasks"].size).toBe(0);
+        expect(manager["_keyTypes"].size).toBe(0);
+        expect(manager["_typeKeys"].size).toBe(0);
     });
 });

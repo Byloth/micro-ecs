@@ -11,6 +11,7 @@ import {
     WorldContext
 
 } from "../src/index.js";
+import type { ReadonlyQueryView } from "../src/index.js";
 
 describe("World", () =>
 {
@@ -141,7 +142,7 @@ describe("World", () =>
                 }
             }
 
-            const view = _world.getComponentView(TestComponent);
+            const view = _world["_queryManager"].resolveView(TestComponent);
 
             expect(() => _world.createEntity(FailingEntity))
                 .toThrow("Boom!");
@@ -1001,6 +1002,286 @@ describe("World", () =>
         });
     });
 
+    describe("Views", () =>
+    {
+        class Position extends Component { }
+        class Velocity extends Component { }
+
+        it("Should allow using and releasing a component view", () =>
+        {
+            class TestSystem extends System { }
+
+            const entity1 = _world.createEntity();
+            entity1.createComponent(Position);
+            entity1.createComponent(Velocity);
+
+            const entity2 = _world.createEntity();
+            entity2.createComponent(Position);
+
+            const system = _world.addSystem(new TestSystem());
+            const context = _world.getContext(system);
+
+            const view = context.useComponentView(Position, Velocity);
+
+            expect(view.size).toBe(1);
+            expect(view.has(entity1)).toBe(true);
+            expect(view.has(entity2)).toBe(false);
+
+            expect(context.componentViews.has(view)).toBe(true);
+            expect(context.componentViews.size).toBe(1);
+            expect(_world["_viewDependencies"].get(view)?.size).toBe(1);
+
+            context.releaseComponentView(view);
+
+            expect(view.isDisposed).toBe(true);
+            expect(context.componentViews.size).toBe(0);
+            expect(_world["_viewDependencies"].has(view)).toBe(false);
+            expect(_world["_queryManager"]["_views"].size).toBe(0);
+        });
+        it("Should keep the used view updated", () =>
+        {
+            const _onAdd = vi.fn();
+            const _onRemove = vi.fn();
+
+            class TestSystem extends System { }
+
+            const system = _world.addSystem(new TestSystem());
+            const view = _world.getContext(system)
+                .useComponentView(Position, Velocity);
+
+            view.onAdd(_onAdd);
+            view.onRemove(_onRemove);
+
+            const entity = _world.createEntity();
+            entity.createComponent(Position);
+
+            expect(view.size).toBe(0);
+
+            entity.createComponent(Velocity);
+
+            expect(view.size).toBe(1);
+            expect(_onAdd).toHaveBeenCalledTimes(1);
+
+            _world.destroyEntity(entity);
+
+            expect(view.size).toBe(0);
+            expect(_onRemove).toHaveBeenCalledTimes(1);
+        });
+
+        it("Should allow releasing a component view by its types", () =>
+        {
+            class TestSystem extends System { }
+
+            const system = _world.addSystem(new TestSystem());
+            const context = _world.getContext(system);
+
+            const view = context.useComponentView(Position, Velocity);
+            context.releaseComponentView(Velocity, Position);
+
+            expect(view.isDisposed).toBe(true);
+            expect(context.componentViews.size).toBe(0);
+            expect(_world["_viewDependencies"].has(view)).toBe(false);
+        });
+        it("Should throw when releasing by types a view that doesn't exist", () =>
+        {
+            class TestSystem extends System { }
+
+            const system = _world.addSystem(new TestSystem());
+            const context = _world.getContext(system);
+
+            expect(() => context.releaseComponentView(Position, Velocity))
+                .toThrow(ReferenceException);
+        });
+
+        it("Should share the same view between systems and dispose it with the last one", () =>
+        {
+            class TestSystemA extends System { }
+            class TestSystemB extends System { }
+
+            const systemA = _world.addSystem(new TestSystemA());
+            const systemB = _world.addSystem(new TestSystemB());
+
+            const contextA = _world.getContext(systemA);
+            const contextB = _world.getContext(systemB);
+
+            const viewA = contextA.useComponentView(Position);
+            const viewB = contextB.useComponentView(Position);
+
+            expect(viewB).toBe(viewA);
+            expect(_world["_viewDependencies"].get(viewA)?.size).toBe(2);
+
+            contextA.releaseComponentView(viewA);
+
+            expect(viewA.isDisposed).toBe(false);
+            expect(contextA.componentViews.size).toBe(0);
+            expect(contextB.componentViews.size).toBe(1);
+            expect(_world["_viewDependencies"].get(viewA)?.size).toBe(1);
+
+            contextB.releaseComponentView(viewB);
+
+            expect(viewA.isDisposed).toBe(true);
+            expect(_world["_viewDependencies"].has(viewA)).toBe(false);
+            expect(_world["_queryManager"]["_views"].size).toBe(0);
+        });
+        it("Should provide a new repopulated view after the previous one has been released", () =>
+        {
+            class TestSystem extends System { }
+
+            const entity = _world.createEntity();
+            entity.createComponent(Position);
+
+            const system = _world.addSystem(new TestSystem());
+            const context = _world.getContext(system);
+
+            const view1 = context.useComponentView(Position);
+            expect(view1.size).toBe(1);
+
+            context.releaseComponentView(view1);
+
+            const view2 = context.useComponentView(Position);
+
+            expect(view2).not.toBe(view1);
+            expect(view2.isDisposed).toBe(false);
+            expect(view2.size).toBe(1);
+            expect(view2.has(entity)).toBe(true);
+        });
+
+        it("Should throw when using the same view twice in the same context", () =>
+        {
+            class TestSystem extends System { }
+
+            const system = _world.addSystem(new TestSystem());
+            const context = _world.getContext(system);
+
+            context.useComponentView(Position, Velocity);
+
+            expect(() => context.useComponentView(Velocity, Position))
+                .toThrow(DependencyException);
+        });
+        it("Should throw when releasing a view that isn't used in the context", () =>
+        {
+            class TestSystemA extends System { }
+            class TestSystemB extends System { }
+
+            const systemA = _world.addSystem(new TestSystemA());
+            const systemB = _world.addSystem(new TestSystemB());
+
+            const view = _world.getContext(systemA)
+                .useComponentView(Position);
+
+            expect(() => _world.getContext(systemB).releaseComponentView(view))
+                .toThrow(DependencyException);
+        });
+
+        it("Should allow using a view from within the system initialization", () =>
+        {
+            const _onUpdate = vi.fn();
+
+            class TestSystem extends System
+            {
+                private _view!: ReadonlyQueryView<[Position]>;
+
+                public override initialize(world: World): void
+                {
+                    super.initialize(world);
+
+                    this._view = world.getContext(this)
+                        .useComponentView(Position);
+                }
+                public override update(): void
+                {
+                    _onUpdate(this._view.size);
+                }
+            }
+
+            const entity = _world.createEntity();
+            entity.createComponent(Position);
+
+            const system = _world.addSystem(new TestSystem());
+            _world.update(0);
+
+            expect(_onUpdate).toHaveBeenCalledWith(1);
+            expect(_world.getContext(system).componentViews.size).toBe(1);
+        });
+        it("Should release the views when the context is disposed", () =>
+        {
+            const _onClear = vi.fn();
+
+            class TestSystem extends System { }
+
+            const entity = _world.createEntity();
+            entity.createComponent(Position);
+
+            const system = _world.addSystem(new TestSystem());
+            const context = _world.getContext(system);
+
+            const view = context.useComponentView(Position);
+            view.onClear(_onClear);
+
+            context.dispose();
+
+            expect(_onClear).toHaveBeenCalledTimes(1);
+            expect(view.isDisposed).toBe(true);
+            expect(context.componentViews.size).toBe(0);
+            expect(_world["_viewDependencies"].has(view)).toBe(false);
+            expect(_world["_queryManager"]["_views"].size).toBe(0);
+        });
+        it("Should release the views when the system is removed", () =>
+        {
+            const _onClear = vi.fn();
+
+            class TestSystem extends System
+            {
+                public override initialize(world: World): void
+                {
+                    super.initialize(world);
+
+                    world.getContext(this)
+                        .useComponentView(Position)
+                        .onClear(_onClear);
+                }
+            }
+
+            const entity = _world.createEntity();
+            entity.createComponent(Position);
+
+            const system = _world.addSystem(new TestSystem());
+            const context = _world.getContext(system);
+            const [view] = context.componentViews;
+
+            expect(view.size).toBe(1);
+
+            _world.removeSystem(TestSystem);
+
+            expect(_onClear).toHaveBeenCalledTimes(1);
+            expect(view.isDisposed).toBe(true);
+            expect(context.componentViews.size).toBe(0);
+            expect(_world["_viewDependencies"].has(view)).toBe(false);
+            expect(_world["_queryManager"]["_views"].size).toBe(0);
+        });
+        it("Should keep a shared view alive when only one of its systems is removed", () =>
+        {
+            class TestSystemA extends System { }
+            class TestSystemB extends System { }
+
+            const systemA = _world.addSystem(new TestSystemA());
+            const systemB = _world.addSystem(new TestSystemB());
+
+            const view = _world.getContext(systemA).useComponentView(Position);
+            _world.getContext(systemB).useComponentView(Position);
+
+            _world.removeSystem(systemA);
+
+            expect(view.isDisposed).toBe(false);
+            expect(_world["_viewDependencies"].get(view)?.size).toBe(1);
+
+            const entity = _world.createEntity();
+            entity.createComponent(Position);
+
+            expect(view.size).toBe(1);
+        });
+    });
+
     describe("Dispose", () =>
     {
         it("Should dispose all entities, systems, and resources", () =>
@@ -1058,6 +1339,44 @@ describe("World", () =>
             expect(_world["_entities"].size).toBe(0);
             expect(_world.systems.size).toBe(0);
             expect(_world.resources.size).toBe(0);
+        });
+        it("Should dispose the views used by the systems", () =>
+        {
+            const _onClear = vi.fn();
+            const _onSystemDispose = vi.fn();
+
+            class Position extends Component { }
+            class TestSystem extends System
+            {
+                public override initialize(world: World): void
+                {
+                    super.initialize(world);
+
+                    world.getContext(this)
+                        .useComponentView(Position)
+                        .onClear(_onClear);
+                }
+                public override dispose(): void
+                {
+                    _onSystemDispose(_onClear.mock.calls.length);
+
+                    super.dispose();
+                }
+            }
+
+            const entity = _world.createEntity();
+            entity.createComponent(Position);
+
+            const system = _world.addSystem(new TestSystem());
+            const [view] = _world.getContext(system).componentViews;
+
+            _world.dispose();
+
+            expect(view.isDisposed).toBe(true);
+            expect(_onClear).toHaveBeenCalledTimes(1);
+            expect(_onSystemDispose).toHaveBeenCalledWith(1);
+            expect(_world["_viewDependencies"].size).toBe(0);
+            expect(_world["_queryManager"]["_views"].size).toBe(0);
         });
     });
 });
