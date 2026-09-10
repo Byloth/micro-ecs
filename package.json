@@ -29,6 +29,7 @@
     "dist",
     "src"
   ],
+  "sideEffects": false,
   "main": "index.cjs",
   "module": "dist/micro-ecs.esm.bundler.js",
   "types": "src/index.ts",
