@@ -14,6 +14,7 @@ describe("Component", () =>
 
             expect(component.entity).toBeNull();
             expect(component.isEnabled).toBe(false);
+            expect(component.isDisposed).toBe(true);
         });
     });
 

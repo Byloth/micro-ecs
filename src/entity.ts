@@ -14,6 +14,7 @@ export default class Entity<W extends World = World> implements Poolable<W>
 
     protected _world: W | null;
     public get world(): W { return this._world!; }
+    public get isDisposed(): boolean { return this._world === null; }
 
     protected _isEnabled: boolean;
     public get isEnabled(): boolean { return this._isEnabled; }
@@ -103,7 +104,7 @@ export default class Entity<W extends World = World> implements Poolable<W>
 
     public initialize(world: W, ...args: unknown[]): void
     {
-        if ((import.meta.env.DEV) && (this._world))
+        if ((import.meta.env.DEV) && !(this.isDisposed))
         {
             throw new ReferenceException("The entity is already attached to a world.");
         }
@@ -233,15 +234,10 @@ export default class Entity<W extends World = World> implements Poolable<W>
 
     public dispose(): void
     {
-        if ((import.meta.env.DEV) && !(this._world))
+        if ((import.meta.env.DEV) && (this.isDisposed))
         {
             throw new ReferenceException("The entity isn't attached to any world.");
         }
-
-        const world = this._world;
-
-        this._id = -1;
-        this._world = null;
 
         this._isEnabled = false;
 
@@ -273,10 +269,13 @@ export default class Entity<W extends World = World> implements Poolable<W>
                 }
             }
 
-            world!["_getComponentPool"](component.constructor as ComponentType)
+            this._world!["_getComponentPool"](component.constructor as ComponentType)
                 .release(component);
         }
 
         this._components.clear();
+
+        this._world = null;
+        this._id = -1;
     }
 }

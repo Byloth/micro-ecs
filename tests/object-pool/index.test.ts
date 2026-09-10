@@ -2,17 +2,30 @@ import { RuntimeException } from "@byloth/core";
 import { describe, expect, it } from "vitest";
 
 import { ObjectPool } from "../../src/index.js";
+import type { Poolable } from "../../src/index.js";
+
+class TestItem implements Poolable
+{
+    private static _nextId = 0;
+
+    public readonly id: number;
+
+    private _isDisposed: boolean;
+    public get isDisposed(): boolean { return this._isDisposed; }
+
+    public constructor()
+    {
+        this.id = (TestItem._nextId += 1);
+        this._isDisposed = true;
+    }
+
+    public initialize(): void { this._isDisposed = false; }
+    public dispose(): void { this._isDisposed = true; }
+}
 
 describe("ObjectPool", () =>
 {
-    let _nextId: number;
-
-    const _factory = (): { id: number } =>
-    {
-        _nextId ??= 0;
-
-        return { id: (_nextId += 1) };
-    };
+    const _factory = (): TestItem => new TestItem();
 
     describe("Initialization", () =>
     {
@@ -90,16 +103,18 @@ describe("ObjectPool", () =>
             pool.preallocate(5);
             expect(pool.available).toBe(5);
         });
-        it("Should throw when releasing an item that isn't releasable", () =>
+        it("Should throw when releasing an item that hasn't been disposed", () =>
         {
-            const pool = new ObjectPool(_factory, { isReleasable: (item) => (item.id < 0) });
+            const pool = new ObjectPool(_factory);
             const item = pool.acquire();
+
+            item.initialize();
 
             expect(() => pool.release(item))
                 .toThrow(RuntimeException);
             expect(pool.available).toBe(0);
 
-            item.id = -1;
+            item.dispose();
             pool.release(item);
 
             expect(pool.available).toBe(1);

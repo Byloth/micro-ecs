@@ -123,10 +123,7 @@ export default class World<T extends CallbackMap<T> = { }>
         let pool = this._componentPools.get(Type) as ObjectPool<C> | undefined;
         if (pool) { return pool; }
 
-        pool = new ObjectPool(() => new Type(), {
-            maxSize: this._componentPoolSize,
-            isReleasable: (component) => (component["_entity"] === null)
-        });
+        pool = new ObjectPool(() => new Type(), { maxSize: this._componentPoolSize });
 
         this._componentPools.set(Type, pool);
 
@@ -137,10 +134,7 @@ export default class World<T extends CallbackMap<T> = { }>
         let pool = this._entityPools.get(Type) as ObjectPool<E> | undefined;
         if (pool) { return pool; }
 
-        pool = new ObjectPool(() => new Type(), {
-            maxSize: this._entityPoolSize,
-            isReleasable: (entity) => (entity["_world"] === null)
-        });
+        pool = new ObjectPool(() => new Type(), { maxSize: this._entityPoolSize });
 
         this._entityPools.set(Type, pool);
 
@@ -287,7 +281,7 @@ export default class World<T extends CallbackMap<T> = { }>
         {
             if (this._nextId === id + 1) { this._nextId = id; }
 
-            if (entity["_world"])
+            if (!(entity.isDisposed))
             {
                 if (entity.isEnabled) { this._disableEntity(entity); }
 

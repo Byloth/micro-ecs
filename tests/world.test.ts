@@ -117,7 +117,7 @@ describe("World", () =>
 
             const failed = pool["_items"][0];
             expect(failed.id).toBe(-1);
-            expect(failed["_world"]).toBeNull();
+            expect(failed.isDisposed).toBe(true);
 
             shouldFail = false;
             const entity = _world.createEntity(FailingEntity);

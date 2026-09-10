@@ -107,7 +107,8 @@ Package entry points (`package.json` → `exports`):
 
 - **Strict, never idempotent.** Lifecycle and state-transition methods (`enable`, `disable`, `dispose`, `destroy*`, `remove*`, `use*`/`release*`, duplicate `create*`/`add*`) throw in DEV when called in the wrong state. Do not make them idempotent, do not add `strict`/`force` parameters or permissive setters. Callers check first (`isEnabled`, `hasComponent`, ...). Rationale: a loud error beats a silently masked logic error. Library-internal cleanup of an object in unknown state checks the state explicitly (see the `createEntity` failure path in `world.ts`) instead of relaxing the method.
 - **DEV-only validation.** All checks live under `import.meta.env.DEV` and are stripped in production: production trusts the caller.
-- **`dispose()` is the reset.** Pools hand the same instance back, so every subclass must reset its own fields in `dispose()`. There is no separate `reset()` hook; in DEV a pool refuses objects that haven't been disposed.
+- **`dispose()` is the reset.** Pools hand the same instance back, so every subclass must reset its own fields in `dispose()`. There is no separate `reset()` hook; in DEV a pool refuses objects whose `isDisposed` is `false`.
+- **`isDisposed` is the state.** Every `Poolable` exposes `isDisposed`, derived from its attachment field (`_world` / `_entity`): `true` before `initialize()` and after `dispose()`. The pool's DEV check, the `initialize`/`dispose` guards and internal cleanup paths (e.g. the `createEntity` failure path) read it; callers check it first. On `QueryView` the flag is terminal instead (views aren't pooled).
 
 ## Code Style
 

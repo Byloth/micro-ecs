@@ -13,6 +13,7 @@ describe("Entity", () =>
 
             expect(entity.id).toEqual(-1);
             expect(entity.isEnabled).toBe(false);
+            expect(entity.isDisposed).toBe(true);
             expect(entity.world).toBeNull();
             expect(entity["_components"].size).toBe(0);
         });
@@ -39,6 +40,7 @@ describe("Entity", () =>
 
             expect(entity1.world).toBe(world);
             expect(entity1.isEnabled).toBe(true);
+            expect(entity1.isDisposed).toBe(false);
 
             const entity2 = world.createEntity(TestEntity, false);
 
@@ -79,6 +81,7 @@ describe("Entity", () =>
 
             expect(entity.id).toEqual(-1);
             expect(entity.isEnabled).toBe(false);
+            expect(entity.isDisposed).toBe(true);
             expect(entity.world).toBeNull();
 
             expect(entity.hasComponent(TestComponent)).toBe(false);
@@ -636,6 +639,258 @@ describe("Entity", () =>
             expect(context.dependencies.size).toBe(0);
             expect(entity["_contexts"].has(dependant)).toBe(false);
             expect(entity["_dependencies"].has(dependency)).toBe(false);
+        });
+
+        it("Should auto-destroy children when the entity is disposed", () =>
+        {
+            const _onChildDispose = vi.fn();
+            const _onParentDispose = vi.fn();
+
+            class ChildComponent extends Component
+            {
+                public override dispose(): void
+                {
+                    super.dispose();
+
+                    _onChildDispose();
+                }
+            }
+            class ParentComponent extends Component
+            {
+                public override initialize(entity: Entity): void
+                {
+                    super.initialize(entity);
+
+                    entity.getContext(this)
+                        .createChild(ChildComponent);
+                }
+                public override dispose(): void
+                {
+                    super.dispose();
+
+                    _onParentDispose();
+                }
+            }
+
+            const world = new World();
+            const entity = world.createEntity();
+            const parent = entity.createComponent(ParentComponent);
+            const context = entity.getContext(parent);
+
+            const childPool = world["_getComponentPool"](ChildComponent);
+            const parentPool = world["_getComponentPool"](ParentComponent);
+
+            const _onWarn = vi.spyOn(console, "warn").mockImplementation(() => { /* ... */ });
+
+            world.destroyEntity(entity);
+
+            expect(_onWarn).not.toHaveBeenCalled();
+            expect(_onChildDispose).toHaveBeenCalledTimes(1);
+            expect(_onParentDispose).toHaveBeenCalledTimes(1);
+
+            expect(context.children.size).toBe(0);
+            expect(context.dependencies.size).toBe(0);
+            expect(entity["_contexts"].size).toBe(0);
+            expect(entity["_dependencies"].size).toBe(0);
+            expect(entity["_components"].size).toBe(0);
+
+            expect(childPool.available).toBe(1);
+            expect(parentPool.available).toBe(1);
+
+            expect(entity.id).toBe(-1);
+            expect(entity.world).toBeNull();
+
+            _onWarn.mockRestore();
+        });
+        it("Should auto-destroy every child when the entity is disposed", () =>
+        {
+            const _onDispose = vi.fn();
+
+            class ChildComponent extends Component
+            {
+                public override dispose(): void
+                {
+                    super.dispose();
+
+                    _onDispose(this.constructor);
+                }
+            }
+            class ChildA extends ChildComponent { }
+            class ChildB extends ChildComponent { }
+            class ChildC extends ChildComponent { }
+
+            class ParentComponent extends Component
+            {
+                public override initialize(entity: Entity): void
+                {
+                    super.initialize(entity);
+
+                    const context = entity.getContext(this);
+                    context.createChild(ChildA);
+                    context.createChild(ChildB);
+                    context.createChild(ChildC);
+                }
+            }
+
+            const world = new World();
+            const entity = world.createEntity();
+            const parent = entity.createComponent(ParentComponent);
+            const context = entity.getContext(parent);
+
+            const poolA = world["_getComponentPool"](ChildA);
+            const poolB = world["_getComponentPool"](ChildB);
+            const poolC = world["_getComponentPool"](ChildC);
+
+            const _onWarn = vi.spyOn(console, "warn").mockImplementation(() => { /* ... */ });
+
+            world.destroyEntity(entity);
+
+            expect(_onWarn).not.toHaveBeenCalled();
+            expect(_onDispose).toHaveBeenCalledTimes(3);
+            expect(_onDispose).toHaveBeenCalledWith(ChildA);
+            expect(_onDispose).toHaveBeenCalledWith(ChildB);
+            expect(_onDispose).toHaveBeenCalledWith(ChildC);
+
+            expect(context.children.size).toBe(0);
+            expect(entity["_components"].size).toBe(0);
+
+            expect(poolA.available).toBe(1);
+            expect(poolB.available).toBe(1);
+            expect(poolC.available).toBe(1);
+
+            _onWarn.mockRestore();
+        });
+        it("Should auto-destroy nested children when the entity is disposed", () =>
+        {
+            const _onDispose = vi.fn();
+
+            class GrandchildComponent extends Component
+            {
+                public override dispose(): void
+                {
+                    super.dispose();
+
+                    _onDispose(GrandchildComponent);
+                }
+            }
+            class ChildComponent extends Component
+            {
+                public override initialize(entity: Entity): void
+                {
+                    super.initialize(entity);
+
+                    entity.getContext(this)
+                        .createChild(GrandchildComponent);
+                }
+                public override dispose(): void
+                {
+                    super.dispose();
+
+                    _onDispose(ChildComponent);
+                }
+            }
+            class ParentComponent extends Component
+            {
+                public override initialize(entity: Entity): void
+                {
+                    super.initialize(entity);
+
+                    entity.getContext(this)
+                        .createChild(ChildComponent);
+                }
+                public override dispose(): void
+                {
+                    super.dispose();
+
+                    _onDispose(ParentComponent);
+                }
+            }
+
+            const world = new World();
+            const entity = world.createEntity();
+            entity.createComponent(ParentComponent);
+
+            expect(entity["_contexts"].size).toBe(2);
+
+            const grandchildPool = world["_getComponentPool"](GrandchildComponent);
+            const childPool = world["_getComponentPool"](ChildComponent);
+            const parentPool = world["_getComponentPool"](ParentComponent);
+
+            const _onWarn = vi.spyOn(console, "warn").mockImplementation(() => { /* ... */ });
+
+            world.destroyEntity(entity);
+
+            expect(_onWarn).not.toHaveBeenCalled();
+            expect(_onDispose).toHaveBeenCalledTimes(3);
+            expect(_onDispose).toHaveBeenCalledWith(GrandchildComponent);
+            expect(_onDispose).toHaveBeenCalledWith(ChildComponent);
+            expect(_onDispose).toHaveBeenCalledWith(ParentComponent);
+
+            expect(entity["_contexts"].size).toBe(0);
+            expect(entity["_dependencies"].size).toBe(0);
+            expect(entity["_components"].size).toBe(0);
+
+            expect(grandchildPool.available).toBe(1);
+            expect(childPool.available).toBe(1);
+            expect(parentPool.available).toBe(1);
+
+            _onWarn.mockRestore();
+        });
+        it("Should auto-destroy children when the world is disposed", () =>
+        {
+            const _onChildDispose = vi.fn();
+            const _onParentDispose = vi.fn();
+
+            class ChildComponent extends Component
+            {
+                public override dispose(): void
+                {
+                    super.dispose();
+
+                    _onChildDispose();
+                }
+            }
+            class ParentComponent extends Component
+            {
+                public override initialize(entity: Entity): void
+                {
+                    super.initialize(entity);
+
+                    entity.getContext(this)
+                        .createChild(ChildComponent);
+                }
+                public override dispose(): void
+                {
+                    super.dispose();
+
+                    _onParentDispose();
+                }
+            }
+
+            const world = new World();
+            const entity = world.createEntity();
+            const parent = entity.createComponent(ParentComponent);
+            const context = entity.getContext(parent);
+
+            const childPool = world["_getComponentPool"](ChildComponent);
+            const parentPool = world["_getComponentPool"](ParentComponent);
+
+            const _onWarn = vi.spyOn(console, "warn").mockImplementation(() => { /* ... */ });
+
+            world.dispose();
+
+            expect(_onWarn).not.toHaveBeenCalled();
+            expect(_onChildDispose).toHaveBeenCalledTimes(1);
+            expect(_onParentDispose).toHaveBeenCalledTimes(1);
+
+            expect(context.children.size).toBe(0);
+            expect(entity["_contexts"].size).toBe(0);
+            expect(entity["_components"].size).toBe(0);
+
+            expect(childPool.available).toBe(1);
+            expect(parentPool.available).toBe(1);
+
+            _onWarn.mockRestore();
         });
     });
 });

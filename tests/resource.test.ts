@@ -10,7 +10,9 @@ describe("Resource", () =>
         it("Should be initialized with a null world", () =>
         {
             const resource = new Resource();
+
             expect(resource.world).toBeNull();
+            expect(resource.isDisposed).toBe(true);
         });
     });
 
@@ -64,6 +66,7 @@ describe("Resource", () =>
             world.removeResource(TestResource);
 
             expect(resource.world).toBeNull();
+            expect(resource.isDisposed).toBe(true);
             expect(_onDispose).toHaveBeenCalledTimes(1);
         });
         it("Should throw when disposing a resource not attached to any world", () =>

@@ -125,7 +125,8 @@ requestAnimationFrame(gameLoop);
 ### Lifecycle
 
 Every core class follows the `Poolable` pattern: the constructor creates the object in an empty state, `initialize()` activates it, and `dispose()` resets it.  
-Entities and Components are pooled automatically by the World: a destroyed instance is handed back by the next `createEntity()` / `createComponent()` of the same type, so `dispose()` overrides **must reset every field** of the subclass. In DEV, a pool refuses objects that haven't been disposed.
+`isDisposed` reports whether the object is in that empty state: `true` before `initialize()` and after `dispose()`.  
+Entities and Components are pooled automatically by the World: a destroyed instance is handed back by the next `createEntity()` / `createComponent()` of the same type, so `dispose()` overrides **must reset every field** of the subclass. In DEV, a pool refuses objects whose `isDisposed` is `false`.
 
 Pool sizes are configurable per World (`0` disables pooling for that kind of object):
 

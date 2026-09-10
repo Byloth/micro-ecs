@@ -7,6 +7,7 @@ export default class Resource<W extends World = World> implements Poolable<W>
 {
     protected _world: W | null;
     public get world(): W | null { return this._world; }
+    public get isDisposed(): boolean { return this._world === null; }
 
     public constructor()
     {
@@ -15,7 +16,7 @@ export default class Resource<W extends World = World> implements Poolable<W>
 
     public initialize(world: W, ...args: unknown[]): void
     {
-        if ((import.meta.env.DEV) && (this._world))
+        if ((import.meta.env.DEV) && !(this.isDisposed))
         {
             throw new ReferenceException("The object is already attached to a world.");
         }
@@ -24,7 +25,7 @@ export default class Resource<W extends World = World> implements Poolable<W>
     }
     public dispose(): void
     {
-        if ((import.meta.env.DEV) && !(this._world))
+        if ((import.meta.env.DEV) && (this.isDisposed))
         {
             throw new ReferenceException("The object isn't attached to any world.");
         }

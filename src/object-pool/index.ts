@@ -1,24 +1,21 @@
 import { RuntimeException } from "@byloth/core";
-import type { ObjectPoolOptions } from "./types.js";
+import type { ObjectPoolOptions, Poolable } from "./types.js";
 
-export default class ObjectPool<T>
+export default class ObjectPool<T extends Poolable>
 {
     public static get DefaultOptions(): ObjectPoolOptions
     {
-        return {
-            maxSize: 256,
-            isReleasable: () => true
-        };
+        return { maxSize: 256 };
     }
 
     protected readonly _factory: () => T;
 
     protected readonly _items: T[];
-    protected readonly _options: ObjectPoolOptions<T>;
+    protected readonly _options: ObjectPoolOptions;
 
     public get available(): number { return this._items.length; }
 
-    public constructor(factory: () => T, options: Partial<ObjectPoolOptions<T>> = { })
+    public constructor(factory: () => T, options: Partial<ObjectPoolOptions> = { })
     {
         this._factory = factory;
 
@@ -36,9 +33,9 @@ export default class ObjectPool<T>
     {
         if (import.meta.env.DEV)
         {
-            if (!(this._options.isReleasable(item)))
+            if (!(item.isDisposed))
             {
-                throw new RuntimeException("The item isn't ready to be released to this pool.");
+                throw new RuntimeException("The item hasn't been disposed and cannot be released to this pool.");
             }
             if (this._items.includes(item))
             {

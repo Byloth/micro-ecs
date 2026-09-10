@@ -14,6 +14,7 @@ describe("System", () =>
             expect(system.priority).toBe(0);
             expect(system.isEnabled).toBe(true);
             expect(system.world).toBeNull();
+            expect(system.isDisposed).toBe(true);
         });
         it("Should be initialized with a custom priority", () =>
         {
@@ -77,6 +78,7 @@ describe("System", () =>
             world.removeSystem(TestSystem);
 
             expect(system.world).toBeNull();
+            expect(system.isDisposed).toBe(true);
             expect(_onDispose).toHaveBeenCalledTimes(1);
         });
         it("Should throw when disposing a system not attached to any world", () =>
