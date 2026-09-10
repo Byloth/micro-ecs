@@ -192,6 +192,8 @@ export default class Entity<W extends World = World> implements Poolable<W>
                 // eslint-disable-next-line no-console
                 console.warn("An error occurred while disposing this component.\n\nSuppressed", error);
             }
+
+            return;
         }
 
         this._world!["_getComponentPool"](_component!.constructor as ComponentType)
@@ -267,6 +269,8 @@ export default class Entity<W extends World = World> implements Poolable<W>
                     // eslint-disable-next-line no-console
                     console.warn("An error occurred while disposing components of the entity.\n\nSuppressed", error);
                 }
+
+                continue;
             }
 
             this._world!["_getComponentPool"](component.constructor as ComponentType)

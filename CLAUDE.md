@@ -47,7 +47,7 @@ pnpm exec vitest run tests/world.test.ts
 - Systems (with priority-based execution order; enable/disable/add/remove during `update()` are deferred to the end of the frame via `_pendingSystems`, and disabled or disposed systems are skipped by the loop)
 - Resources (singleton data shared across systems)
 - Services (objects that are both System and Resource)
-- Event publishing via `Publisher` from `@byloth/core`
+- Event emission via `EventEmitter` from `@byloth/core` (Systems get a scoped emitter through their `WorldContext`)
 - QueryManager for component queries (one-shot queries are public; views are acquired only through `WorldContext`)
 - View dependencies (`_viewDependencies: Map<view, Set<System>>`, mirrors `_dependencies` for Resources): the view is released to the QueryManager when its last dependant lets go
 
@@ -101,13 +101,13 @@ Package entry points (`package.json` → `exports`):
 
 ### Dependencies
 
-- **@byloth/core** (peer dependency) - Provides utilities like `Publisher`, `SmartIterator`, `MapView`, and exception classes
+- **@byloth/core** (peer dependency, `^3.0.0`) - Provides utilities like `EventEmitter` (`on`/`once`/`wait`/`off`/`emit`), `SmartIterator`, `MapView`, and exception classes
 
 ## Design Rules
 
 - **Strict, never idempotent.** Lifecycle and state-transition methods (`enable`, `disable`, `dispose`, `destroy*`, `remove*`, `use*`/`release*`, duplicate `create*`/`add*`) throw in DEV when called in the wrong state. Do not make them idempotent, do not add `strict`/`force` parameters or permissive setters. Callers check first (`isEnabled`, `hasComponent`, ...). Rationale: a loud error beats a silently masked logic error. Library-internal cleanup of an object in unknown state checks the state explicitly (see the `createEntity` failure path in `world.ts`) instead of relaxing the method.
 - **DEV-only validation.** All checks live under `import.meta.env.DEV` and are stripped in production: production trusts the caller.
-- **`dispose()` is the reset.** Pools hand the same instance back, so every subclass must reset its own fields in `dispose()`. There is no separate `reset()` hook; in DEV a pool refuses objects whose `isDisposed` is `false`.
+- **`dispose()` is the reset.** Pools hand the same instance back, so every subclass must reset its own fields in `dispose()`. There is no separate `reset()` hook; in DEV a pool refuses objects whose `isDisposed` is `false`. If a `dispose()` throws, the object is abandoned to the GC and never released to its pool: its state is unknown.
 - **`isDisposed` is the state.** Every `Poolable` exposes `isDisposed`, derived from its attachment field (`_world` / `_entity`): `true` before `initialize()` and after `dispose()`. The pool's DEV check, the `initialize`/`dispose` guards and internal cleanup paths (e.g. the `createEntity` failure path) read it; callers check it first. On `QueryView` the flag is terminal instead (views aren't pooled).
 
 ## Code Style

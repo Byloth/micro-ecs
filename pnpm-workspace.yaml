@@ -1,0 +1,2 @@
+minimumReleaseAgeExclude:
+  - '@byloth/core@3.0.0'

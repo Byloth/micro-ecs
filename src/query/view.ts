@@ -1,4 +1,4 @@
-import { Publisher, ReferenceException } from "@byloth/core";
+import { EventEmitter, ReferenceException } from "@byloth/core";
 import type { Callback } from "@byloth/core";
 
 import type Entity from "../entity.js";
@@ -46,7 +46,7 @@ export default class QueryView<C extends Component[]> implements ReadonlyQueryVi
 
     public get size(): number { return this._components.length; }
 
-    protected readonly _publisher: Publisher<QueryViewEventsMap<C>>;
+    protected readonly _emitter: EventEmitter<QueryViewEventsMap<C>>;
 
     public constructor(iterable?: Iterable<[Entity, C]> | null)
     {
@@ -56,7 +56,7 @@ export default class QueryView<C extends Component[]> implements ReadonlyQueryVi
         this._entities = [];
         this._components = [];
 
-        this._publisher = new Publisher();
+        this._emitter = new EventEmitter();
 
         if (iterable)
         {
@@ -88,7 +88,7 @@ export default class QueryView<C extends Component[]> implements ReadonlyQueryVi
         this._entities.push(entity);
         this._indexes.set(entity, index);
 
-        this._publisher.publish("add", entity, components, index);
+        this._emitter.emit("add", entity, components, index);
 
         return this;
     }
@@ -112,7 +112,7 @@ export default class QueryView<C extends Component[]> implements ReadonlyQueryVi
         }
 
         this._indexes.delete(entity);
-        this._publisher.publish("remove", entity, components, index);
+        this._emitter.emit("remove", entity, components, index);
 
         return true;
     }
@@ -125,7 +125,7 @@ export default class QueryView<C extends Component[]> implements ReadonlyQueryVi
         this._entities.length = 0;
         this._indexes.clear();
 
-        if (size > 0) { this._publisher.publish("clear"); }
+        if (size > 0) { this._emitter.emit("clear"); }
     }
 
     public *[Symbol.iterator](): Iterator<[Entity, C]>
@@ -143,7 +143,7 @@ export default class QueryView<C extends Component[]> implements ReadonlyQueryVi
             throw new ReferenceException("The view has been disposed.");
         }
 
-        return this._publisher.subscribe("add", callback);
+        return this._emitter.on("add", callback);
     }
     public onRemove(callback: (entity: Entity, components: C, index: number) => void): Callback
     {
@@ -152,7 +152,7 @@ export default class QueryView<C extends Component[]> implements ReadonlyQueryVi
             throw new ReferenceException("The view has been disposed.");
         }
 
-        return this._publisher.subscribe("remove", callback);
+        return this._emitter.on("remove", callback);
     }
 
     public onClear(callback: () => void): Callback
@@ -162,7 +162,7 @@ export default class QueryView<C extends Component[]> implements ReadonlyQueryVi
             throw new ReferenceException("The view has been disposed.");
         }
 
-        return this._publisher.subscribe("clear", callback);
+        return this._emitter.on("clear", callback);
     }
 
     public dispose(): void
@@ -173,7 +173,7 @@ export default class QueryView<C extends Component[]> implements ReadonlyQueryVi
         }
 
         this.clear();
-        this._publisher.clear();
+        this._emitter.clear();
 
         this._isDisposed = true;
     }

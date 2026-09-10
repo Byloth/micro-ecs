@@ -1,13 +1,5 @@
-import { ReferenceException, TimedPromise } from "@byloth/core";
-import type {
-    Callback,
-    CallbackMap,
-    InternalsEventsMap,
-    PromiseResolver,
-    Publisher,
-    WildcardEventsMap
-
-} from "@byloth/core";
+import { ReferenceException } from "@byloth/core";
+import type { Callback, CallbackMap, EventEmitter, InternalsEventsMap, WildcardEventsMap } from "@byloth/core";
 
 import type Component from "../component.js";
 import type Resource from "../resource.js";
@@ -26,7 +18,7 @@ export default class WorldContext<T extends CallbackMap<T> = { }>
     protected get _world(): World { return this._system.world!; }
 
     protected readonly _system: System;
-    protected readonly _publisher: Publisher;
+    protected readonly _emitter: EventEmitter;
 
     protected readonly _dependencies: Set<Resource>;
     public get dependencies(): ReadonlySet<Resource> { return this._dependencies; }
@@ -36,10 +28,10 @@ export default class WorldContext<T extends CallbackMap<T> = { }>
 
     protected _onDispose?: (context: WorldContext) => void;
 
-    public constructor(system: System, publisher: Publisher)
+    public constructor(system: System, emitter: EventEmitter)
     {
         this._system = system;
-        this._publisher = publisher;
+        this._emitter = emitter;
 
         this._dependencies = new Set();
         this._componentViews = new Set();
@@ -49,59 +41,34 @@ export default class WorldContext<T extends CallbackMap<T> = { }>
     public emit<K extends keyof P>(event: K & string, ...args: Parameters<P[K]>): ReturnType<P[K]>[];
     public emit(event: string, ...args: unknown[]): unknown[]
     {
-        return this._publisher.publish(event, ...args);
+        return this._emitter.emit(event, ...args);
     }
 
     public on<K extends keyof T>(event: K & string, callback: T[K]): Callback;
     public on<K extends keyof S>(event: K & string, callback: S[K]): Callback;
     public on(event: string, callback: Callback<unknown[], unknown>): Callback
     {
-        return this._publisher.subscribe(event, callback);
+        return this._emitter.on(event, callback);
     }
 
     public once<K extends keyof T>(event: K & string, callback: T[K]): Callback;
     public once<K extends keyof S>(event: K & string, callback: S[K]): Callback;
     public once(event: string, callback: Callback<unknown[], unknown>): Callback
     {
-        const _callback = (...args: unknown[]): unknown =>
-        {
-            this._publisher.unsubscribe(event, _callback);
-
-            return callback(...args);
-        };
-
-        return this._publisher.subscribe(event, _callback);
+        return this._emitter.once(event, callback);
     }
-    public async wait<K extends keyof T>(event: K & string, timeout?: number): Promise<Parameters<T[K]>>;
-    public async wait<K extends keyof S>(event: K & string, timeout?: number): Promise<Parameters<S[K]>>;
-    public async wait(event: string, timeout?: number): Promise<unknown[]>
+    public wait<K extends keyof T>(event: K & string, timeout?: number): Promise<Parameters<T[K]>>;
+    public wait<K extends keyof S>(event: K & string, timeout?: number): Promise<Parameters<S[K]>>;
+    public wait(event: string, timeout?: number): Promise<unknown[]>
     {
-        let _callback: Callback<unknown[]>;
-
-        const executor = (resolve: PromiseResolver<unknown[]>) =>
-        {
-            _callback = (...args) => { resolve(args); };
-
-            this._publisher.subscribe(event, _callback);
-        };
-
-        try
-        {
-            if (timeout) { return await new TimedPromise(executor, timeout); }
-
-            return await new Promise(executor);
-        }
-        finally
-        {
-            this._publisher.unsubscribe(event, _callback!);
-        }
+        return this._emitter.wait(event, timeout);
     }
 
     public off<K extends keyof T>(event: K & string, callback: T[K]): void;
     public off<K extends keyof S>(event: K & string, callback: S[K]): void;
     public off(event: string, callback: Callback<unknown[], unknown>): void
     {
-        this._publisher.unsubscribe(event, callback);
+        this._emitter.off(event, callback);
     }
 
     public useResource<R extends System>(Type: ResourceType<R>): Resourceable<R>;
@@ -168,6 +135,6 @@ export default class WorldContext<T extends CallbackMap<T> = { }>
         this._dependencies.clear();
         this._componentViews.clear();
 
-        this._publisher.clear();
+        this._emitter.clear();
     }
 }

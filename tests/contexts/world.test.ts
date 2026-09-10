@@ -99,6 +99,43 @@ describe("WorldContext", () =>
             expect(_moveHandler1).toHaveBeenCalledTimes(2);
             expect(_moveHandler2).toHaveBeenCalledTimes(2);
         });
+
+        it("Should unsubscribe a one-time handler through its handle before it fires", () =>
+        {
+            const _moveHandler = vi.fn();
+
+            _populateWorld(new System());
+
+            const unsubscribe = context.once("player:move", _moveHandler);
+            unsubscribe();
+
+            world.emit("player:move", { x: 50, y: 60 });
+            expect(_moveHandler).not.toHaveBeenCalled();
+        });
+        it("Should tolerate the handle of a one-time handler being called once after it fired", () =>
+        {
+            const _moveHandler = vi.fn();
+
+            _populateWorld(new System());
+
+            const unsubscribe = context.once("player:move", _moveHandler);
+            world.emit("player:move", { x: 50, y: 60 });
+
+            expect(() => unsubscribe()).not.toThrow();
+            expect(() => unsubscribe()).toThrow(ReferenceException);
+        });
+        it("Should unsubscribe a one-time handler through `off` before it fires", () =>
+        {
+            const _moveHandler = vi.fn();
+
+            _populateWorld(new System());
+
+            context.once("player:move", _moveHandler);
+            context.off("player:move", _moveHandler);
+
+            world.emit("player:move", { x: 50, y: 60 });
+            expect(_moveHandler).not.toHaveBeenCalled();
+        });
     });
 
     describe("Wait", () =>
@@ -128,12 +165,12 @@ describe("WorldContext", () =>
             const _expectTimeoutPromise = expect(context.wait("player:move", 100)).rejects
                 .toThrow(TimeoutException);
 
-            expect(context["_publisher"]["_subscribers"].size).toBe(1);
+            expect(context["_emitter"]["_listeners"].get("player:move")).toHaveLength(1);
 
             await vi.advanceTimersByTimeAsync(100);
             await _expectTimeoutPromise;
 
-            expect(context["_publisher"]["_subscribers"].size).toBe(0);
+            expect(context["_emitter"]["_listeners"].get("player:move")).toEqual([]);
         });
     });
 

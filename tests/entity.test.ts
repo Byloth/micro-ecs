@@ -100,6 +100,113 @@ describe("Entity", () =>
         });
     });
 
+    describe("Faulty dispose", () =>
+    {
+        class HealthyComponent extends Component { }
+        class FaultyComponent extends Component
+        {
+            public override dispose(): void
+            {
+                throw new Error("Dispose failed!");
+            }
+        }
+
+        it("Should abandon a component whose `dispose` throws when destroying it", () =>
+        {
+            const world = new World();
+            const entity = world.createEntity();
+            const faulty = entity.createComponent(FaultyComponent);
+
+            const faultyPool = world["_getComponentPool"](FaultyComponent);
+            const _onWarn = vi.spyOn(console, "warn").mockImplementation(() => { /* ... */ });
+
+            expect(() => entity.destroyComponent(FaultyComponent)).not.toThrow();
+
+            expect(_onWarn).toHaveBeenCalledTimes(1);
+            expect(entity.hasComponent(FaultyComponent)).toBe(false);
+            expect(faultyPool.available).toBe(0);
+            expect(faulty.isDisposed).toBe(false);
+        });
+        it("Should abandon a component whose `dispose` throws when destroying the entity", () =>
+        {
+            class HealthyComponent2 extends Component { }
+
+            const world = new World();
+            const entity = world.createEntity();
+
+            entity.createComponent(HealthyComponent);
+            entity.createComponent(FaultyComponent);
+            entity.createComponent(HealthyComponent2);
+
+            const healthyPool = world["_getComponentPool"](HealthyComponent);
+            const healthyPool2 = world["_getComponentPool"](HealthyComponent2);
+            const faultyPool = world["_getComponentPool"](FaultyComponent);
+            const entityPool = world["_getEntityPool"](Entity);
+
+            const _onWarn = vi.spyOn(console, "warn").mockImplementation(() => { /* ... */ });
+
+            expect(() => world.destroyEntity(entity)).not.toThrow();
+
+            expect(_onWarn).toHaveBeenCalledTimes(1);
+            expect(healthyPool.available).toBe(1);
+            expect(healthyPool2.available).toBe(1);
+            expect(faultyPool.available).toBe(0);
+
+            expect(entity.isDisposed).toBe(true);
+            expect(entity["_components"].size).toBe(0);
+            expect(entityPool.available).toBe(1);
+        });
+        it("Should abandon a component whose `dispose` throws when disposing the world", () =>
+        {
+            const world = new World();
+            const entity = world.createEntity();
+
+            entity.createComponent(HealthyComponent);
+            entity.createComponent(FaultyComponent);
+
+            const healthyPool = world["_getComponentPool"](HealthyComponent);
+            const faultyPool = world["_getComponentPool"](FaultyComponent);
+            const entityPool = world["_getEntityPool"](Entity);
+
+            const _onWarn = vi.spyOn(console, "warn").mockImplementation(() => { /* ... */ });
+
+            expect(() => world.dispose()).not.toThrow();
+
+            expect(_onWarn).toHaveBeenCalledTimes(1);
+            expect(healthyPool.available).toBe(1);
+            expect(faultyPool.available).toBe(0);
+            expect(entityPool.available).toBe(1);
+
+            expect(entity.isDisposed).toBe(true);
+            expect(world.entities.size).toBe(0);
+        });
+        it("Should abandon a component whose `dispose` throws even after `super.dispose()`", () =>
+        {
+            class LateFaultyComponent extends Component
+            {
+                public override dispose(): void
+                {
+                    super.dispose();
+
+                    throw new Error("Dispose failed!");
+                }
+            }
+
+            const world = new World();
+            const entity = world.createEntity();
+            const faulty = entity.createComponent(LateFaultyComponent);
+
+            const faultyPool = world["_getComponentPool"](LateFaultyComponent);
+            const _onWarn = vi.spyOn(console, "warn").mockImplementation(() => { /* ... */ });
+
+            expect(() => entity.destroyComponent(LateFaultyComponent)).not.toThrow();
+
+            expect(_onWarn).toHaveBeenCalledTimes(1);
+            expect(faultyPool.available).toBe(0);
+            expect(faulty.isDisposed).toBe(true);
+        });
+    });
+
     describe("Enable & Disable", () =>
     {
         it("Should enable a disabled entity", () =>

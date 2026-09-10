@@ -1,4 +1,4 @@
-import { Publisher, ReferenceException, RuntimeException } from "@byloth/core";
+import { EventEmitter, ReferenceException, RuntimeException } from "@byloth/core";
 import type { CallbackMap, InternalsEventsMap, SmartIterator } from "@byloth/core";
 
 import Entity from "./entity.js";
@@ -67,8 +67,8 @@ export default class World<T extends CallbackMap<T> = { }>
     protected readonly _dependencies: Map<Resource, Set<System>>;
     protected readonly _viewDependencies: Map<ReadonlyQueryView<Component[]>, Set<System>>;
 
+    protected readonly _emitter: EventEmitter;
     protected readonly _queryManager: QueryManager;
-    protected readonly _publisher: Publisher;
 
     protected readonly _onContextDispose = (context: WorldContext): void =>
     {
@@ -121,8 +121,8 @@ export default class World<T extends CallbackMap<T> = { }>
         this._dependencies = new Map();
         this._viewDependencies = new Map();
 
+        this._emitter = new EventEmitter();
         this._queryManager = new QueryManager(this._entities);
-        this._publisher = new Publisher();
     }
 
     protected _getComponentPool<C extends Component>(Type: ComponentType<C>): ObjectPool<C>
@@ -186,6 +186,8 @@ export default class World<T extends CallbackMap<T> = { }>
                 // eslint-disable-next-line no-console
                 console.warn("An error occurred while disposing this entity.\n\nSuppressed", error);
             }
+
+            return;
         }
 
         this._getEntityPool(entity.constructor as EntityType)
@@ -592,7 +594,7 @@ export default class World<T extends CallbackMap<T> = { }>
         let context = this._contexts.get(system);
         if (context) { return context; }
 
-        context = new WorldContext(system, this._publisher.createScope());
+        context = new WorldContext(system, this._emitter.createScope());
         context["_onDispose"] = this._onContextDispose;
 
         this._contexts.set(system, context);
@@ -604,7 +606,7 @@ export default class World<T extends CallbackMap<T> = { }>
     public emit<K extends keyof P>(event: K & string, ...args: Parameters<P[K]>): ReturnType<P[K]>[];
     public emit(event: string, ...args: unknown[]): unknown[]
     {
-        return this._publisher.publish(event, ...args);
+        return this._emitter.emit(event, ...args);
     }
 
     public update(deltaTime: number): void
@@ -659,7 +661,7 @@ export default class World<T extends CallbackMap<T> = { }>
         }
 
         this._contexts.clear();
-        this._publisher.clear();
+        this._emitter.clear();
 
         this._viewDependencies.clear();
         this._queryManager.dispose();
