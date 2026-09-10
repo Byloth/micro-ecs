@@ -44,7 +44,7 @@ pnpm exec vitest run tests/world.test.ts
 **World** (`world.ts`) - The central container that manages:
 - Entities (with their Components; IDs come from a per-world counter, `nextId`)
 - Object pools for Entities and Components (sizes via `WorldOptions.entityPoolSize` / `componentPoolSize`, `0` disables pooling)
-- Systems (with priority-based execution order)
+- Systems (with priority-based execution order; enable/disable/add/remove during `update()` are deferred to the end of the frame via `_pendingSystems`, and disabled or disposed systems are skipped by the loop)
 - Resources (singleton data shared across systems)
 - Services (objects that are both System and Resource)
 - Event publishing via `Publisher` from `@byloth/core`

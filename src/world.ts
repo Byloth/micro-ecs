@@ -1,4 +1,4 @@
-import { Publisher, ReferenceException } from "@byloth/core";
+import { Publisher, ReferenceException, RuntimeException } from "@byloth/core";
 import type { CallbackMap, InternalsEventsMap, SmartIterator } from "@byloth/core";
 
 import Entity from "./entity.js";
@@ -42,6 +42,9 @@ export default class World<T extends CallbackMap<T> = { }>
     protected readonly _entityPoolSize: number;
     protected readonly _componentPoolSize: number;
 
+    protected _isUpdating: boolean;
+    public get isUpdating(): boolean { return this._isUpdating; }
+
     protected _nextId: number;
     public get nextId(): number { return this._nextId; }
 
@@ -55,8 +58,10 @@ export default class World<T extends CallbackMap<T> = { }>
     public get resources(): ReadonlyMap<ResourceType, Resource> { return this._resources; }
 
     protected readonly _systems: Map<SystemType, System>;
-    protected readonly _enabledSystems: System[];
     public get systems(): ReadonlyMap<SystemType, System> { return this._systems; }
+
+    protected readonly _enabledSystems: System[];
+    protected readonly _pendingSystems: [System, boolean][];
 
     protected readonly _contexts: Map<System, WorldContext<CallbackMap>>;
     protected readonly _dependencies: Map<Resource, Set<System>>;
@@ -99,6 +104,7 @@ export default class World<T extends CallbackMap<T> = { }>
         this._componentPoolSize = _options.componentPoolSize;
         this._entityPoolSize = _options.entityPoolSize;
 
+        this._isUpdating = false;
         this._nextId = 1;
 
         this._componentPools = new Map();
@@ -109,6 +115,7 @@ export default class World<T extends CallbackMap<T> = { }>
 
         this._systems = new Map();
         this._enabledSystems = [];
+        this._pendingSystems = [];
 
         this._contexts = new Map();
         this._dependencies = new Map();
@@ -187,6 +194,13 @@ export default class World<T extends CallbackMap<T> = { }>
 
     protected _enableSystem(system: System): void
     {
+        if (this._isUpdating)
+        {
+            this._pendingSystems.push([system, true]);
+
+            return;
+        }
+
         let left = 0;
         let right = this._enabledSystems.length;
 
@@ -203,6 +217,13 @@ export default class World<T extends CallbackMap<T> = { }>
     }
     protected _disableSystem(system: System): void
     {
+        if (this._isUpdating)
+        {
+            this._pendingSystems.push([system, false]);
+
+            return;
+        }
+
         const index = this._enabledSystems.indexOf(system);
         if (index === -1) { return; }
 
@@ -588,14 +609,42 @@ export default class World<T extends CallbackMap<T> = { }>
 
     public update(deltaTime: number): void
     {
-        for (const system of this._enabledSystems)
+        if ((import.meta.env.DEV) && (this._isUpdating))
         {
-            system.update(deltaTime);
+            throw new RuntimeException("The world is already updating.");
+        }
+
+        this._isUpdating = true;
+        try
+        {
+            for (const system of this._enabledSystems)
+            {
+                if (!(system.isEnabled) || (system.isDisposed)) { continue; }
+
+                system.update(deltaTime);
+            }
+        }
+        finally
+        {
+            this._isUpdating = false;
+
+            for (const [system, enable] of this._pendingSystems)
+            {
+                if (enable) { this._enableSystem(system); }
+                else { this._disableSystem(system); }
+            }
+
+            this._pendingSystems.length = 0;
         }
     }
 
     public dispose(): void
     {
+        if ((import.meta.env.DEV) && (this._isUpdating))
+        {
+            throw new RuntimeException("The world cannot be disposed while updating.");
+        }
+
         for (const context of this._contexts.values())
         {
             try { context.dispose(); }
@@ -656,6 +705,7 @@ export default class World<T extends CallbackMap<T> = { }>
 
         this._systems.clear();
         this._enabledSystems.length = 0;
+        this._pendingSystems.length = 0;
 
         this._componentPools.clear();
         this._entityPools.clear();

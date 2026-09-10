@@ -505,6 +505,278 @@ describe("World", () =>
             expect(_onUpdate1).toHaveBeenCalledTimes(6);
             expect(_onUpdate2).toHaveBeenCalledTimes(4);
         });
+
+        describe("Mutations during update", () =>
+        {
+            let _calls: string[];
+
+            beforeEach(() => { _calls = []; });
+
+            const _track = (name: string, priority: number, enabled = true, onUpdate?: () => void) =>
+            {
+                return class extends System
+                {
+                    public constructor() { super(priority, enabled); }
+                    public override update(): void
+                    {
+                        _calls.push(name);
+                        onUpdate?.();
+                    }
+                };
+            };
+
+            it("Should not skip the next system when a previous one disables another", () =>
+            {
+                const B = _track("B", 5);
+                const b = new B();
+
+                const A = _track("A", 0, true, () =>
+                {
+                    if (b.isEnabled) { b.disable(); }
+                });
+                const C = _track("C", 10);
+
+                _world.addSystem(new A());
+                _world.addSystem(b);
+                _world.addSystem(new C());
+
+                _world.update(16);
+                expect(_calls).toEqual(["A", "C"]);
+
+                _calls.length = 0;
+                _world.update(16);
+                expect(_calls).toEqual(["A", "C"]);
+            });
+            it("Should let a system disable a previous one starting from the next frame", () =>
+            {
+                const A = _track("A", 0);
+                const a = new A();
+
+                const B = _track("B", 5, true, () =>
+                {
+                    if (a.isEnabled) { a.disable(); }
+                });
+
+                _world.addSystem(a);
+                _world.addSystem(new B());
+
+                _world.update(16);
+                expect(_calls).toEqual(["A", "B"]);
+
+                _calls.length = 0;
+                _world.update(16);
+                expect(_calls).toEqual(["B"]);
+            });
+
+            it("Should not run twice a system that enables a lower-priority one", () =>
+            {
+                const Z = _track("Z", 0, false);
+                const z = new Z();
+
+                let armed = true;
+                const A = _track("A", 5, true, () =>
+                {
+                    if (!(armed)) { return; }
+
+                    armed = false;
+                    z.enable();
+                });
+
+                _world.addSystem(z);
+                _world.addSystem(new A());
+
+                _world.update(16);
+                expect(_calls).toEqual(["A"]);
+
+                _calls.length = 0;
+                _world.update(16);
+                expect(_calls).toEqual(["Z", "A"]);
+            });
+            it("Should run a higher-priority system enabled during the frame from the next one", () =>
+            {
+                const C = _track("C", 10, false);
+                const c = new C();
+
+                let armed = true;
+                const A = _track("A", 0, true, () =>
+                {
+                    if (!(armed)) { return; }
+
+                    armed = false;
+                    c.enable();
+                });
+
+                _world.addSystem(new A());
+                _world.addSystem(c);
+
+                _world.update(16);
+                expect(_calls).toEqual(["A"]);
+
+                _calls.length = 0;
+                _world.update(16);
+                expect(_calls).toEqual(["A", "C"]);
+            });
+
+            it("Should let a system disable itself", () =>
+            {
+                class A extends System
+                {
+                    public override update(): void
+                    {
+                        _calls.push("A");
+                        this.disable();
+                    }
+                }
+
+                _world.addSystem(new A());
+
+                _world.update(16);
+                expect(_calls).toEqual(["A"]);
+                expect(_world["_enabledSystems"]).toHaveLength(0);
+                expect(_world["_pendingSystems"]).toHaveLength(0);
+
+                _calls.length = 0;
+                _world.update(16);
+                expect(_calls).toEqual([]);
+            });
+            it("Should cancel out an enable followed by a disable within the same frame", () =>
+            {
+                const Z = _track("Z", 0, false);
+                const z = new Z();
+
+                let armed = true;
+                const A = _track("A", 5, true, () =>
+                {
+                    if (!(armed)) { return; }
+
+                    armed = false;
+                    z.enable();
+                    z.disable();
+                });
+
+                _world.addSystem(z);
+                _world.addSystem(new A());
+
+                _world.update(16);
+                _world.update(16);
+
+                expect(_calls).toEqual(["A", "A"]);
+                expect(_world["_enabledSystems"]).not.toContain(z);
+                expect(_world["_pendingSystems"]).toHaveLength(0);
+            });
+
+            it("Should not run a system removed during the frame by a previous one", () =>
+            {
+                const _onDispose = vi.fn();
+
+                class B extends System
+                {
+                    public constructor() { super(5); }
+                    public override update(): void { _calls.push("B"); }
+                    public override dispose(): void
+                    {
+                        super.dispose();
+
+                        _onDispose();
+                    }
+                }
+                const A = _track("A", 0, true, () => _world.removeSystem(B));
+
+                _world.addSystem(new A());
+                const b = _world.addSystem(new B());
+
+                _world.update(16);
+
+                expect(_calls).toEqual(["A"]);
+                expect(_onDispose).toHaveBeenCalledTimes(1);
+                expect(_world.systems.has(B)).toBe(false);
+                expect(_world["_enabledSystems"]).not.toContain(b);
+                expect(_world["_pendingSystems"]).toHaveLength(0);
+            });
+            it("Should run a system added during the frame from the next one", () =>
+            {
+                const C = _track("C", 10);
+
+                let armed = true;
+                const A = _track("A", 0, true, () =>
+                {
+                    if (!(armed)) { return; }
+
+                    armed = false;
+                    _world.addSystem(new C());
+                });
+
+                _world.addSystem(new A());
+
+                _world.update(16);
+                expect(_calls).toEqual(["A"]);
+                expect(_world.systems.has(C)).toBe(true);
+
+                _calls.length = 0;
+                _world.update(16);
+                expect(_calls).toEqual(["A", "C"]);
+            });
+
+            it("Should throw when disposing the world during the frame", () =>
+            {
+                let caught: unknown;
+                const A = _track("A", 0, true, () =>
+                {
+                    try { _world.dispose(); }
+                    catch (error) { caught = error; }
+                });
+
+                _world.addSystem(new A());
+                _world.update(16);
+
+                expect(caught).toBeInstanceOf(RuntimeException);
+
+                _calls.length = 0;
+                _world.update(16);
+                expect(_calls).toEqual(["A"]);
+            });
+            it("Should throw when updating the world during the frame", () =>
+            {
+                let caught: unknown;
+                const A = _track("A", 0, true, () =>
+                {
+                    try { _world.update(16); }
+                    catch (error) { caught = error; }
+                });
+
+                _world.addSystem(new A());
+                _world.update(16);
+
+                expect(caught).toBeInstanceOf(RuntimeException);
+                expect(_calls).toEqual(["A"]);
+            });
+            it("Should apply the pending mutations even when a system throws", () =>
+            {
+                const B = _track("B", 5);
+                const b = new B();
+
+                const error = new Error("Update failed!");
+                const A = _track("A", 0, true, () =>
+                {
+                    if (b.isEnabled) { b.disable(); }
+
+                    throw error;
+                });
+
+                _world.addSystem(new A());
+                _world.addSystem(b);
+
+                expect(() => _world.update(16)).toThrow(error);
+
+                expect(_world["_isUpdating"]).toBe(false);
+                expect(_world["_enabledSystems"]).not.toContain(b);
+                expect(_world["_pendingSystems"]).toHaveLength(0);
+
+                _calls.length = 0;
+                expect(() => _world.update(16)).toThrow(error);
+                expect(_calls).toEqual(["A"]);
+            });
+        });
     });
 
     describe("Resources", () =>

@@ -226,6 +226,10 @@ class PhysicsSystem extends System {
 }
 ```
 
+Systems can enable, disable, add or remove other systems from within `update()`: the change is applied at the end of the frame.  
+A system enabled or added during a frame runs from the next one; a system disabled or removed during a frame doesn't run anymore from that moment.  
+Calling `world.update()` or `world.dispose()` from within a system's `update()` throws in DEV.
+
 ### Queries & Views
 
 The World exposes methods for one-shot queries by component types.  
