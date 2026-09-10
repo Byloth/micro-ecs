@@ -1,10 +1,12 @@
 import { ReferenceException, RuntimeException } from "@byloth/core";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Component, DependencyException, Entity, EntityContext, World } from "../src/index.js";
 
 describe("Entity", () =>
 {
+    afterEach(() => { vi.restoreAllMocks(); });
+
     describe("Initialization", () =>
     {
         it("Should be initialized with default values", () =>
@@ -699,8 +701,6 @@ describe("Entity", () =>
 
             expect(entity.id).toBe(-1);
             expect(entity.world).toBeNull();
-
-            _onWarn.mockRestore();
         });
         it("Should auto-destroy every child when the entity is disposed", () =>
         {
@@ -757,8 +757,6 @@ describe("Entity", () =>
             expect(poolA.available).toBe(1);
             expect(poolB.available).toBe(1);
             expect(poolC.available).toBe(1);
-
-            _onWarn.mockRestore();
         });
         it("Should auto-destroy nested children when the entity is disposed", () =>
         {
@@ -833,8 +831,6 @@ describe("Entity", () =>
             expect(grandchildPool.available).toBe(1);
             expect(childPool.available).toBe(1);
             expect(parentPool.available).toBe(1);
-
-            _onWarn.mockRestore();
         });
         it("Should auto-destroy children when the world is disposed", () =>
         {
@@ -889,8 +885,6 @@ describe("Entity", () =>
 
             expect(childPool.available).toBe(1);
             expect(parentPool.available).toBe(1);
-
-            _onWarn.mockRestore();
         });
     });
 });

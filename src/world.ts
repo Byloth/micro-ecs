@@ -169,6 +169,22 @@ export default class World<T extends CallbackMap<T> = { }>
         this._queryManager["_onEntityComponentDisable"](entity, component);
     }
 
+    protected _disposeEntity(entity: Entity): void
+    {
+        try { entity.dispose(); }
+        catch (error)
+        {
+            if (import.meta.env.DEV)
+            {
+                // eslint-disable-next-line no-console
+                console.warn("An error occurred while disposing this entity.\n\nSuppressed", error);
+            }
+        }
+
+        this._getEntityPool(entity.constructor as EntityType)
+            .release(entity);
+    }
+
     protected _enableSystem(system: System): void
     {
         let left = 0;
@@ -338,18 +354,7 @@ export default class World<T extends CallbackMap<T> = { }>
         if (_entity!.isEnabled) { this._disableEntity(_entity!); }
         this._entities.delete(_entity!.id);
 
-        try { _entity!.dispose(); }
-        catch (error)
-        {
-            if (import.meta.env.DEV)
-            {
-                // eslint-disable-next-line no-console
-                console.warn("An error occurred while disposing this entity.\n\nSuppressed", error);
-            }
-        }
-
-        this._getEntityPool(_entity!.constructor as EntityType)
-            .release(_entity!);
+        this._disposeEntity(_entity!);
     }
 
     public getFirstComponent<C extends ComponentType, R extends InstanceType<C> = InstanceType<C>>(
@@ -626,22 +631,7 @@ export default class World<T extends CallbackMap<T> = { }>
             }
         }
 
-        for (const entity of this._entities.values())
-        {
-            try { entity.dispose(); }
-            catch (error)
-            {
-                if (import.meta.env.DEV)
-                {
-                    // eslint-disable-next-line no-console
-                    console.warn("An error occurred while disposing an entity of the world.\n\nSuppressed", error);
-                }
-            }
-
-            this._getEntityPool(entity.constructor as EntityType)
-                .release(entity);
-        }
-
+        for (const entity of this._entities.values()) { this._disposeEntity(entity); }
         this._entities.clear();
 
         for (const [Type, resource] of this._resources)

@@ -1,5 +1,5 @@
 import { ReferenceException, RuntimeException } from "@byloth/core";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
     Component,
@@ -18,6 +18,7 @@ describe("World", () =>
     let _world: World;
 
     beforeEach(() => { _world = new World(); });
+    afterEach(() => { vi.restoreAllMocks(); });
 
     describe("Entities", () =>
     {
@@ -125,8 +126,6 @@ describe("World", () =>
             expect(entity).toBe(failed);
             expect(entity.id).toBe(2);
             expect(_world.nextId).toBe(3);
-
-            _onWarn.mockRestore();
         });
         it("Should detach components created before `initialize` throws", () =>
         {
@@ -239,8 +238,6 @@ describe("World", () =>
             expect(_onWarn).toHaveBeenCalledTimes(1);
             expect(_world["_getEntityPool"](FailingEntity).available).toBe(0);
             expect(_world.nextId).toBe(1);
-
-            _onWarn.mockRestore();
         });
 
         it("Should reset the next entity ID on dispose", () =>
@@ -1398,11 +1395,8 @@ describe("World", () =>
 
             _world.dispose();
 
-            const warnings = _onWarn.mock.calls.length;
-            _onWarn.mockRestore();
-
             expect(_onDispose).toHaveBeenCalledTimes(1);
-            expect(warnings).toBe(0);
+            expect(_onWarn).not.toHaveBeenCalled();
             expect(service.isDisposed).toBe(true);
 
             expect(_world.resources.size).toBe(0);
@@ -1428,11 +1422,8 @@ describe("World", () =>
 
             _world.dispose();
 
-            const warnings = _onWarn.mock.calls.length;
-            _onWarn.mockRestore();
-
             expect(_onDispose).toHaveBeenCalledTimes(1);
-            expect(warnings).toBe(0);
+            expect(_onWarn).not.toHaveBeenCalled();
             expect(system.isDisposed).toBe(true);
 
             expect(_world.resources.size).toBe(0);
