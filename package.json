@@ -69,17 +69,16 @@
     "ci": "pnpm install --frozen-lockfile"
   },
   "peerDependencies": {
-    "@byloth/core": "^3.0.0"
+    "@byloth/core": "^3.0.1"
   },
   "devDependencies": {
     "@byloth/eslint-config-typescript": "^4.0.2",
-    "@types/node": "^24.13.3",
-    "@vitest/coverage-v8": "^4.1.11",
+    "@types/node": "^24.13.4",
+    "@vitest/coverage-v8": "^5.0.0",
     "eslint": "^10.10.0",
     "husky": "^9.1.7",
-    "jsdom": "^30.0.1",
     "typescript": "^6.0.3",
-    "vite": "^8.2.2",
-    "vitest": "^4.1.11"
+    "vite": "^8.3.0",
+    "vitest": "^5.0.0"
   }
 }
