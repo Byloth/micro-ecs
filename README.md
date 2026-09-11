@@ -329,9 +329,7 @@ Known issues and current limitations to be aware of.
 
 Optimizations and refinements that improve quality and performance.
 
-- [ ] **Automatic View garbage collection**
-
-  Implement an automatic clean-up system for `QueryManager` that detects and removes Views no longer referenced or used, avoiding memory accumulation over time.
+*Suspiciously, none at the moment.*
 
 ---
 
